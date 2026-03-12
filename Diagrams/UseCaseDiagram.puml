@@ -1,0 +1,61 @@
+@startuml FitnessApp
+
+!pragma ratio 0.80
+
+ skinparam linetype polyline
+' skinparam linetype ortho
+
+left to right direction
+
+' Actors:
+actor "Admin" as admin
+actor "Staff" as staff
+actor "Customer" as customer
+
+' Generalizations:
+admin -[norank]-|> staff
+staff -[norank]-|> customer
+
+
+' System boundary:
+rectangle "FlowFinder" as flowFinder {
+    usecase "Register" as register
+    usecase "Log in" as login
+    usecase "Reset Password" as resetPassword
+    usecase "Register lecture" as registerLecture
+    usecase "Send Confirmation Email" as confirmationEmail
+    usecase "Unregister lecture" as unregisterLecture
+    usecase "Buy subscription" as buySubscription
+    usecase "Stop subscription" as stopSubscription
+    usecase "Change contact information" as changeContact
+
+    usecase "CRUD Lecture" as crudLecture
+    }
+
+' Includes, extends:
+
+' schedulePaymentOrders ..> automaticCategorisation : <<include>>
+register ..> confirmationEmail : <<include>>
+resetPassword ..> confirmationEmail : <<include>>
+registerLecture ..> confirmationEmail : <<include>>
+buySubscription ..> confirmationEmail : <<include>>
+
+' Associations between actors and use cases:
+customer -- register
+customer -- login
+customer -- resetPassword
+customer -- registerLecture
+customer -- unregisterLecture
+customer -- buySubscription
+customer -- stopSubscription
+customer -- changeContact
+
+staff -- crudLecture
+
+
+' For layout purposes only
+
+' subscriptionOwner -[hidden]-> advancedUser
+' advancedUser -[hidden]-> basicUser
+
+@enduml
