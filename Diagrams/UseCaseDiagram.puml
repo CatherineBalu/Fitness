@@ -13,12 +13,11 @@ actor "Staff" as staff
 actor "Customer" as customer
 
 ' Generalizations:
-admin -[norank]-|> staff
-staff -[norank]-|> customer
+staff -[norank]-|> admin
 
 
 ' System boundary:
-rectangle "FlowFinder" as flowFinder {
+rectangle "FitnessApp" as fitnessApp {
     usecase "Register" as register
     usecase "Log in" as login
     usecase "Reset Password" as resetPassword
@@ -28,17 +27,24 @@ rectangle "FlowFinder" as flowFinder {
     usecase "Buy subscription" as buySubscription
     usecase "Stop subscription" as stopSubscription
     usecase "Change contact information" as changeContact
+    usecase "Log in\n--\n**extension points**\nOAuth" as login
+    usecase "Log in via OAuth" as oauthLogin
 
     usecase "CRUD Lecture" as crudLecture
+    usecase "CRUD Customer" as crudCustomer
+    usecase "Check lecture's roster" as checkRoster
+    
+    usecase "CRUD Staff" as crudStaff
+    usecase "View System analytics" as viewAnalytics
     }
 
 ' Includes, extends:
 
-' schedulePaymentOrders ..> automaticCategorisation : <<include>>
 register ..> confirmationEmail : <<include>>
 resetPassword ..> confirmationEmail : <<include>>
 registerLecture ..> confirmationEmail : <<include>>
 buySubscription ..> confirmationEmail : <<include>>
+oauthLogin .up.> login : <<extend>>
 
 ' Associations between actors and use cases:
 customer -- register
@@ -51,11 +57,10 @@ customer -- stopSubscription
 customer -- changeContact
 
 staff -- crudLecture
+staff -- crudCustomer
+staff -- checkRoster
 
-
-' For layout purposes only
-
-' subscriptionOwner -[hidden]-> advancedUser
-' advancedUser -[hidden]-> basicUser
+admin -- crudStaff
+admin -- viewAnalytics
 
 @enduml
