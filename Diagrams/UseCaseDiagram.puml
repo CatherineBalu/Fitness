@@ -33,6 +33,8 @@ rectangle "FitnessApp" as fitnessApp {
     usecase "CRUD Lecture" as crudLecture
     usecase "CRUD Customer" as crudCustomer
     usecase "Check lecture's roster" as checkRoster
+    usecase "Mark lecture's attendence" as markAttendence
+    usecase "View Payment history" as viewPaymentHistory
     
     usecase "CRUD Staff" as crudStaff
     usecase "View System analytics" as viewAnalytics
@@ -59,6 +61,8 @@ customer -- changeContact
 staff -- crudLecture
 staff -- crudCustomer
 staff -- checkRoster
+staff -- markAttendence
+staff -- viewPaymentHistory
 
 admin -- crudStaff
 admin -- viewAnalytics
