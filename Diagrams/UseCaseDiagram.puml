@@ -45,6 +45,7 @@ rectangle "FitnessApp" as fitnessApp {
 register ..> confirmationEmail : <<include>>
 resetPassword ..> confirmationEmail : <<include>>
 registerLecture ..> confirmationEmail : <<include>>
+unregisterLecture ..> confirmationEmail : <<include>>
 buySubscription ..> confirmationEmail : <<include>>
 oauthLogin .up.> login : <<extend>>
 
