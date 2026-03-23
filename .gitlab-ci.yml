@@ -10,6 +10,8 @@ stages:
 frontend:lint:
   stage: lint_and_format
   image: node:20-alpine # Uses a lightweight Node environment
+  tags:
+    - shared-fi
   script:
     - cd frontend
     - npm ci # Strictly installs dependencies exactly as they are in package-lock.json
@@ -19,6 +21,8 @@ frontend:lint:
 frontend:test:
   stage: test
   image: node:20-alpine
+  tags:
+    - shared-fi
   script:
     - cd frontend
     - npm ci
@@ -31,6 +35,8 @@ frontend:test:
 backend:lint:
   stage: lint_and_format
   image: oven/bun:latest # Uses the official Bun environment
+  tags:
+    - shared-fi
   script:
     - cd backend
     - bun install # Installs Bun dependencies
@@ -40,6 +46,8 @@ backend:lint:
 backend:test:
   stage: test
   image: oven/bun:latest
+  tags:
+    - shared-fi
   script:
     - cd backend
     - bun install
