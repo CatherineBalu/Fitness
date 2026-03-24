@@ -5,5 +5,5 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
-  eslintConfigPrettier // Ensures Prettier handles formatting, ESLint handles logic
+  eslintConfigPrettier, // Ensures Prettier handles formatting, ESLint handles logic
 );
