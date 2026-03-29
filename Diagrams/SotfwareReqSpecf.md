@@ -41,7 +41,7 @@ UC12 allows the admin to create and manage employee accounts, define their roles
 ### <ins>Advanced version</ins>
 
 #### 13. System analytics
-UC13 allows the administrator to view advanced business metrics, including revenue reports, attendance trends, and peak gym occupancy hours.
+UC13 allows the administrator to view advanced business metrics
 
 #### 14. Lecture newsletter
 UC14 automatically notifies subscribed customers via email whenever a new lecture or a special training event is added to the schedule.
@@ -64,23 +64,20 @@ UC19 allows employees (trainers) to create new exercise types (e.g., Pilates, HI
 #### 20. Employee lifecycle management
 UC19 allows the admin to create new employee records, assign them to a person in the database, and define their specific job roles.
 
-#### 21. Access level control
-UC20 allows the admin to promote a staff member to an admin role or revoke access by deactivating their account in the employee table.
-
-#### 22. Subscription plan configuration
+#### 21. Subscription plan configuration
 UC21 allows the admin to modify the membership types, including changing prices, plan names, and the duration of valid subscriptions.
 
-#### 23. Gym room management
+#### 22. Gym room management
 UC22 allows the admin to add, rename, or modify the capacity of workout rooms in the TB_room table to reflect the physical gym layout.
 
-#### 24. Exercise category management
+#### 23. Exercise category management
 UC23 allows the admin to manage the list of available exercise types (e.g., Yoga, HIIT, Crossfit) used to categorize gym lectures.
 
-#### 25. System audit logs
+#### 24. System audit logs
 UC24 allows the admin to view a history of critical system changes made by employees to ensure accountability and data integrity.
 
-#### 26. Master data cleanup
-UC26 allows the admin to edit or delete exercise categories and archive old schedule records to maintain database consistency.
+#### 25. Master data cleanup
+UC25 allows the admin to edit or delete exercise categories and archive old schedule records to maintain database consistency.
 [End of admin stuff]
 
 
