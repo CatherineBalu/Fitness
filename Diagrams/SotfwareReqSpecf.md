@@ -62,7 +62,7 @@ UC18 allows the user to toggle between Light and Dark mode using the shadcn-base
 UC19 allows employees (trainers) to create new exercise types (e.g., Pilates, HIIT) to reflect new training programs offered by the gym.
 [START of admin stuff]
 #### 20. Employee lifecycle management
-UC19 allows the admin to create new employee records, assign them to a person in the database, and define their specific job roles.
+UC20 allows the admin to create new employee records, assign them to a person in the database, and define their specific job roles.
 
 #### 21. Subscription plan configuration
 UC21 allows the admin to modify the membership types, including changing prices, plan names, and the duration of valid subscriptions.
