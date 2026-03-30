@@ -1,0 +1,54 @@
+# 1. Define the stages of the pipeline
+stages:
+  - lint_and_format
+  - test
+
+# ==========================================
+# FRONTEND JOBS (Uses Node.js)
+# ==========================================
+
+frontend:lint:
+  stage: lint_and_format
+  image: node:20-alpine # Uses a lightweight Node environment
+  tags:
+    - shared-fi
+  script:
+    - cd frontend
+    - npm ci # Strictly installs dependencies exactly as they are in package-lock.json
+    - npm run format:check # Checks Prettier
+    - npm run lint # Runs ESLint
+
+frontend:test:
+  stage: test
+  image: node:20-alpine
+  tags:
+    - shared-fi
+  script:
+    - cd frontend
+    - npm ci
+    - npm run test # Runs your frontend tests (e.g., Vitest)
+
+# ==========================================
+# BACKEND JOBS (Uses Bun)
+# ==========================================
+
+backend:lint:
+  stage: lint_and_format
+  image: oven/bun:latest # Uses the official Bun environment
+  tags:
+    - shared-fi
+  script:
+    - cd backend
+    - bun install # Installs Bun dependencies
+    - bun run format:check 
+    - bun run lint 
+
+backend:test:
+  stage: test
+  image: oven/bun:latest
+  tags:
+    - shared-fi
+  script:
+    - cd backend
+    - bun install
+    - bun test # Built-in test runner for Bun
