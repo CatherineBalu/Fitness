@@ -10,7 +10,8 @@
     "format:write": "prettier --write ."
   },
   "dependencies": {
-    "elysia": "latest"
+    "elysia": "latest",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
