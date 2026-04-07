@@ -10,6 +10,9 @@
     "format:write": "prettier --write ."
   },
   "dependencies": {
+    "@elysiajs/cookie": "^0.8.0",
+    "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/jwt": "^1.4.1",
     "elysia": "latest",
     "zod": "^4.3.6"
   },
