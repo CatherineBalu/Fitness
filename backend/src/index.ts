@@ -11,6 +11,7 @@ export const app = new Elysia()
     }),
   )
   .use(cookie())
+  .get('/', () => 'OK')
   .use(authRoutes)
   .listen({
     port: 3000,
