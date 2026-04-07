@@ -83,6 +83,41 @@ The app's core feature is a **lecture registration calendar**. Key components by
 | Filters / date pickers | `Popover`, `Select` |
 | Membership management | `Badge`, `Tabs` |
 
+## Git Conventions
+
+### Branch Naming
+
+Format: `xlogin/EPIC-ID`
+
+Examples: `xkolar8/NUE-21`, `jbreja/NUE-14`
+
+Use the `/branch` slash command to create branches interactively — it will ask for your xlogin and Jira epic and run the git command for you.
+
+### Commit Messages
+
+Format: `EPIC-ID: <type>: <short description>`
+
+Where `EPIC-ID` comes from the current branch name (e.g. `NUE-21`), and `<type>` is one of:
+
+| Type | When to use |
+|------|-------------|
+| `add` | New feature or file |
+| `fix` | Bug fix |
+| `chore` | Maintenance, config, deps |
+| `refactor` | Code restructure, no behaviour change |
+| `test` | Adding or updating tests |
+| `docs` | Documentation only |
+| `style` | Formatting, CSS changes |
+
+Examples:
+```
+NUE-21: add: login button component
+NUE-14: fix: calendar not rendering on mobile
+NUE-7: chore: update dependencies
+```
+
+Always derive the epic prefix from the current branch name — never hardcode it.
+
 ## TypeScript
 
 Both packages use `"strict": true`. Backend tsconfig targets Bun types (`@types/bun`).
