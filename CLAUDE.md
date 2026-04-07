@@ -63,6 +63,26 @@ npm run format:write # Prettier auto-fix
 - `Diagrams/SotfwareReqSpecf.md` — Full requirements spec (25 use cases, 10 NFRs)
 - `Diagrams/UseCaseDiagram.puml` — PlantUML use case diagram
 
+## Frontend UI — shadcn/UI Strategy
+
+The frontend uses **shadcn/ui** for all interactive, data-driven UI. It is already fully configured (`components.json`, Radix UI, Tailwind CSS, `lucide-react` are all installed).
+
+- Add components with: `npx shadcn add <component>`
+- The current `App.tsx` landing page uses custom CSS — that's fine to keep as-is
+- For anything behind login (dashboard, calendar, booking, forms), **use shadcn components** rather than building from scratch
+
+The app's core feature is a **lecture registration calendar**. Key components by feature:
+
+| Feature | Components |
+|---|---|
+| Calendar / lecture registration | `Calendar`, `Dialog` |
+| Schedule / lecture list | `Table`, `Card` |
+| Auth forms | `Form`, `Input`, `Label`, `Button` |
+| Role-based navigation | `NavigationMenu`, `DropdownMenu`, `Avatar` |
+| Notifications | `Toast`, `Alert` |
+| Filters / date pickers | `Popover`, `Select` |
+| Membership management | `Badge`, `Tabs` |
+
 ## TypeScript
 
 Both packages use `"strict": true`. Backend tsconfig targets Bun types (`@types/bun`).
