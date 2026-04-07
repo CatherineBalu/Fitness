@@ -4,12 +4,19 @@ Commit all changed files following the project's commit message convention.
 
 2. Run `git status` to show the user what files will be staged and committed.
 
-3. If the user has not provided a commit type and description in $ARGUMENTS, ask for them:
+3. **Run linting and formatting checks** on the relevant package(s) based on which files are changed:
+   - If any `frontend/` files are changed: run `npm run lint` and `npm run format:check` from the `frontend/` directory.
+   - If any `backend/` files are changed: run `bun run lint` and `bun run format:check` from the `backend/` directory.
+   - Show the output to the user. If there are any errors or formatting issues, **ask the user for permission** before auto-fixing them.
+   - If the user approves, run `npm run format:write` (frontend) and/or `bun run format:write` (backend) to fix formatting, then re-run lint to confirm it passes.
+   - Do not proceed to commit if lint errors remain unfixed.
+
+4. If the user has not provided a commit type and description in $ARGUMENTS, ask for them:
    - Type: one of `add`, `fix`, `chore`, `refactor`, `test`, `docs`, `style`
    - Short description: what the commit does (e.g. `login button component`)
 
-4. Construct the commit message as `EPIC-ID: <type>: <description>` (e.g. `NUE-21: add: login button component`).
+5. Construct the commit message as `EPIC-ID: <type>: <description>` (e.g. `NUE-21: add: login button component`).
 
-5. Run `git add -A` to stage all changed files, then `git commit -m "<message>"`.
+6. Run `git add -A` to stage all changed files, then `git commit -m "<message>"`.
 
-6. Confirm the commit was created and show the final commit message used.
+7. Confirm the commit was created and show the final commit message used.

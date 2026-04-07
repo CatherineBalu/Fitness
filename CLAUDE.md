@@ -118,6 +118,15 @@ NUE-7: chore: update dependencies
 
 Always derive the epic prefix from the current branch name — never hardcode it.
 
+### Pre-commit Checks
+
+Before every commit, run ESLint and Prettier check on the affected package(s):
+
+- **Frontend:** `npm run lint` and `npm run format:check` (from `frontend/`)
+- **Backend:** `bun run lint` and `bun run format:check` (from `backend/`)
+
+If issues are found, ask the user for permission before auto-fixing with `format:write`. Do not commit if lint errors remain unfixed. Use the `/commit` skill to handle this automatically.
+
 ## TypeScript
 
 Both packages use `"strict": true`. Backend tsconfig targets Bun types (`@types/bun`).

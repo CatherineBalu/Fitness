@@ -44,10 +44,30 @@ const pricingPlans = [
 ];
 
 const classes = [
-  { emoji: '🧘', name: 'Yoga', schedule: 'Mon, Wed — 9:00 AM', level: 'Beginner' },
-  { emoji: '🔥', name: 'HIIT', schedule: 'Tue, Thu — 6:00 PM', level: 'Intermediate' },
-  { emoji: '🏋️', name: 'Strength', schedule: 'Mon–Fri — 8:00 AM', level: 'All levels' },
-  { emoji: '🚴', name: 'Cycling', schedule: 'Wed, Fri — 7:00 PM', level: 'All levels' },
+  {
+    emoji: '🧘',
+    name: 'Yoga',
+    schedule: 'Mon, Wed — 9:00 AM',
+    level: 'Beginner',
+  },
+  {
+    emoji: '🔥',
+    name: 'HIIT',
+    schedule: 'Tue, Thu — 6:00 PM',
+    level: 'Intermediate',
+  },
+  {
+    emoji: '🏋️',
+    name: 'Strength',
+    schedule: 'Mon–Fri — 8:00 AM',
+    level: 'All levels',
+  },
+  {
+    emoji: '🚴',
+    name: 'Cycling',
+    schedule: 'Wed, Fri — 7:00 PM',
+    level: 'All levels',
+  },
 ];
 
 function App() {
@@ -62,11 +82,21 @@ function App() {
             <img src="/src/assets/logo.png" alt="Logo" className="logo-icon" />
             <span className="logo-text">FITNESS</span>
           </a>
-          <div className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}>
-            <a href="#about" onClick={() => setMenuOpen(false)}>About</a>
-            <a href="#classes" onClick={() => setMenuOpen(false)}>Classes</a>
-            <a href="#pricing" onClick={() => setMenuOpen(false)}>Pricing</a>
-            <a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a>
+          <div
+            className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+          >
+            <a href="#about" onClick={() => setMenuOpen(false)}>
+              About
+            </a>
+            <a href="#classes" onClick={() => setMenuOpen(false)}>
+              Classes
+            </a>
+            <a href="#pricing" onClick={() => setMenuOpen(false)}>
+              Pricing
+            </a>
+            <a href="#contact" onClick={() => setMenuOpen(false)}>
+              Contact
+            </a>
             <button className="btn-primary">Sign Up</button>
           </div>
           <button
@@ -74,7 +104,9 @@ function App() {
             aria-label="Toggle menu"
             onClick={() => setMenuOpen((o) => !o)}
           >
-            <span className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`} />
+            <span
+              className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
+            />
           </button>
         </div>
       </nav>
@@ -90,8 +122,8 @@ function App() {
             <span className="accent">Fitness Performance</span>
           </h1>
           <p className="hero-sub">
-            Join our world-class fitness facility and transform your body. Expert
-            trainers, modern equipment, and flexible membership plans.
+            Join our world-class fitness facility and transform your body.
+            Expert trainers, modern equipment, and flexible membership plans.
           </p>
           <button className="btn-primary btn-large">Get Started</button>
         </div>
@@ -139,7 +171,11 @@ function App() {
                   ))}
                 </ul>
                 <button
-                  className={plan.highlighted ? 'btn-dark btn-block' : 'btn-primary btn-block'}
+                  className={
+                    plan.highlighted
+                      ? 'btn-dark btn-block'
+                      : 'btn-primary btn-block'
+                  }
                 >
                   Get Started
                 </button>
@@ -174,7 +210,9 @@ function App() {
             <img src="/src/assets/logo.png" alt="Logo" className="logo-icon" />
             <span className="logo-text">FITNESS</span>
           </div>
-          <p className="footer-copy">© 2026 Fitness App. All rights reserved.</p>
+          <p className="footer-copy">
+            © 2026 Fitness App. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>

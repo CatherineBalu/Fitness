@@ -136,7 +136,11 @@
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(13,13,13,0.55) 0%, rgba(13,13,13,0.75) 100%);
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 13, 13, 0.55) 0%,
+    rgba(13, 13, 13, 0.75) 100%
+  );
 }
 .hero-content {
   position: relative;
@@ -163,7 +167,7 @@
 }
 .hero-sub {
   font-size: 17px;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   max-width: 520px;
   margin: 0 auto 32px;
   line-height: 1.6;
@@ -384,7 +388,9 @@
   height: 2px;
   background: #fff;
   border-radius: 2px;
-  transition: transform 0.2s, opacity 0.2s;
+  transition:
+    transform 0.2s,
+    opacity 0.2s;
   position: relative;
 }
 .hamburger-bar::before,
@@ -393,10 +399,16 @@
   position: absolute;
   left: 0;
 }
-.hamburger-bar::before { top: -6px; }
-.hamburger-bar::after  { top:  6px; }
+.hamburger-bar::before {
+  top: -6px;
+}
+.hamburger-bar::after {
+  top: 6px;
+}
 
-.hamburger-bar--open { background: transparent; }
+.hamburger-bar--open {
+  background: transparent;
+}
 .hamburger-bar--open::before {
   top: 0;
   transform: rotate(45deg);
