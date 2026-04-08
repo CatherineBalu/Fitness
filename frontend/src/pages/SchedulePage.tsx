@@ -321,13 +321,30 @@ function ActivityCard({ activity }: { activity: Activity }) {
 
 export default function SchedulePage() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
-  const [activeCategory, setActiveCategory] =
-    useState<Category>('All lectures');
+  const [activeCategories, setActiveCategories] = useState<Set<Category>>(
+    new Set(['All lectures']),
+  );
+
+  const toggleCategory = (cat: Category) => {
+    setActiveCategories((prev) => {
+      const next = new Set(prev);
+      if (cat === 'All lectures') {
+        return new Set(['All lectures']);
+      }
+      next.delete('All lectures');
+      if (next.has(cat)) {
+        next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      return next.size === 0 ? new Set(['All lectures']) : next;
+    });
+  };
 
   const filteredActivities = useMemo(() => {
-    if (activeCategory === 'All lectures') return SAMPLE_ACTIVITIES;
-    return SAMPLE_ACTIVITIES.filter((a) => a.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategories.has('All lectures')) return SAMPLE_ACTIVITIES;
+    return SAMPLE_ACTIVITIES.filter((a) => activeCategories.has(a.category));
+  }, [activeCategories]);
 
   const weekDays = useMemo(() => {
     return DAY_NAMES.map((name, i) => {
@@ -361,14 +378,14 @@ export default function SchedulePage() {
           {CATEGORIES.map((cat) => (
             <Button
               key={cat}
-              variant={activeCategory === cat ? 'default' : 'outline'}
+              variant={activeCategories.has(cat) ? 'default' : 'outline'}
               size="sm"
               className={
-                activeCategory === cat
+                activeCategories.has(cat)
                   ? 'cal-cat-btn cal-cat-btn--active'
                   : 'cal-cat-btn'
               }
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => toggleCategory(cat)}
             >
               {cat}
             </Button>
