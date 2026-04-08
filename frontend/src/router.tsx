@@ -3,15 +3,18 @@ import {
   createRoute,
   createRootRoute,
 } from '@tanstack/react-router';
-import App from './App';
-import SchedulePage from './pages/SchedulePage';
+import RootLayout from '@/layouts/RootLayout';
+import HomePage from '@/pages/HomePage';
+import SchedulePage from '@/pages/SchedulePage';
 
-const rootRoute = createRootRoute();
+const rootRoute = createRootRoute({
+  component: RootLayout,
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: App,
+  component: HomePage,
 });
 
 const scheduleRoute = createRoute({
