@@ -595,3 +595,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Schedule page ── */
+.schedule-page-content {
+  padding-top: var(--nav-height);
+  min-height: calc(100svh - var(--nav-height));
+  background: var(--c-bg);
+}

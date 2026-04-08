@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import heroImg from './assets/hero.png';
 import './App.css';
 import {
@@ -126,6 +127,9 @@ function App() {
             <a href="#pricing" onClick={() => setMenuOpen(false)}>
               Pricing
             </a>
+            <Link to="/schedule" onClick={() => setMenuOpen(false)}>
+              Schedule
+            </Link>
             <a href="#contact" onClick={() => setMenuOpen(false)}>
               Contact
             </a>
@@ -285,10 +289,18 @@ function App() {
               Your journey to a better self starts here.
             </p>
             <div className="footer-socials">
-              <a href="#" aria-label="Facebook">fb</a>
-              <a href="#" aria-label="Instagram">ig</a>
-              <a href="#" aria-label="YouTube">yt</a>
-              <a href="#" aria-label="TikTok">tt</a>
+              <a href="#" aria-label="Facebook">
+                fb
+              </a>
+              <a href="#" aria-label="Instagram">
+                ig
+              </a>
+              <a href="#" aria-label="YouTube">
+                yt
+              </a>
+              <a href="#" aria-label="TikTok">
+                tt
+              </a>
             </div>
           </div>
 
