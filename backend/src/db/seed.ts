@@ -14,11 +14,11 @@ import {
 } from './schema';
 
 async function main() {
-  console.log(' Spúšťam seedovanie databázy...');
+  console.log(' Starting seeding the database');
 
   try {
-    // 1. Vyčistíme tabuľky (od detí k rodičom, aby sme neporušili Foreign Keys)
-    console.log(' Čistím staré dáta...');
+    // 1. Clearing database
+    console.log(' Deleting old data');
     await db.delete(tbScheduleInstructor);
     await db.delete(tbSchedule);
     await db.delete(tbLecture);
@@ -30,65 +30,63 @@ async function main() {
     await db.delete(tbRoom);
     await db.delete(tbExerciseType);
 
-    // 2. Vytvoríme číselníky (Typy zamestnancov, miestnosti, predplatné)
-    console.log(' Vytváram číselníky...');
+    console.log(' Creating basic databases');
     const [trainerRole, adminRole] = await db.insert(tbEmployeeType).values([
-      { roleName: 'Tréner' },
-      { roleName: 'Recepcia' },
+      { roleName: 'Instructor' },
+      { roleName: 'Reception' },
     ]).returning();
 
     const [basicSub, proSub] = await db.insert(tbSubscription).values([
-      { name: 'Mesačné Basic', price: '29.99', durationDays: 30 },
-      { name: 'Ročné PRO', price: '299.99', durationDays: 365 },
+      { name: 'Monthly Basic', price: '29.99', durationDays: 30 },
+      { name: 'Year PRO', price: '299.99', durationDays: 365 },
     ]).returning();
 
     const [roomA] = await db.insert(tbRoom).values([
-      { name: 'Veľká Sála', capacity: 30 },
-      { name: 'Spinningová Miestnosť', capacity: 15 },
+      { name: 'Big room', capacity: 30 },
+      { name: 'Small room', capacity: 15 },
     ]).returning();
 
     const [cardio, yoga] = await db.insert(tbExerciseType).values([
-      { name: 'Kardio' },
+      { name: 'ardio' },
       { name: 'Joga' },
     ]).returning();
 
-    // 3. Vytvoríme zopár ľudí (Faker nám vymyslí mená a maily)
-    console.log('🧑‍🤝‍🧑 Vytváram ľudí (Person)...');
+    // Creating persons
+    console.log('🧑‍🤝‍🧑 Creating persons');
     const peopleData = Array.from({ length: 10 }).map(() => ({
       name: faker.person.firstName(),
       surname: faker.person.lastName(),
       email: faker.internet.email(),
-      password: faker.internet.password(), // V reálnej apke by si to hashoval (napr. bcrypt)
+      password: faker.internet.password(), // IN REAL APP HASH THIS
       phoneNumber: faker.phone.number(),
     }));
     
     const createdPeople = await db.insert(tbPerson).values(peopleData).returning();
 
-    // 4. Z prvých dvoch ľudí spravíme Zamestnancov
-    console.log('💪 Vytváram zamestnancov...');
+    // Creating employes
+    console.log(' Creating employes...');
     await db.insert(tbEmployee).values([
       { personId: createdPeople[0].id, employeeTypeId: trainerRole.id, hireDate: new Date().toISOString() },
       { personId: createdPeople[1].id, employeeTypeId: adminRole.id, hireDate: new Date().toISOString() },
     ]);
 
-    // 5. Z ďalších piatich urobíme Zákazníkov
-    console.log('🏋️ Vytváram zákazníkov...');
+    // 5. Creating customers
+    console.log('Creating customers');
     const customersData = createdPeople.slice(2, 7).map((person) => ({
       personId: person.id,
-      subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, null]), // Niekto má Basic, niekto Pro, niekto nič
+      subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, null]),
       subscriptionValidUntil: faker.date.future().toISOString(),
     }));
     await db.insert(tbCustomer).values(customersData);
 
-    console.log('🗓️ Vytváram rozvrh a priraďujem trénerov...');
-    
-    // Vytvoríme 3 rôzne lekcie v rozvrhu
+    console.log('Creating schedule and adding lectures.');
+    // Creating 3 lectures
     const scheduleData = [
       {
         lectureId: (await db.insert(tbLecture).values({ 
           exerciseTypeId: cardio.id, 
-          lectureName: 'Ranný HIIT', 
-          description: 'Intenzívny kardio tréning' 
+          lectureName: 'Morning HIIT', 
+          description: 'Intensive cardio' 
         }).returning())[0].id,
         roomId: roomA.id,
         startTime: new Date('2024-05-20T08:00:00Z'),
@@ -97,8 +95,8 @@ async function main() {
       {
         lectureId: (await db.insert(tbLecture).values({ 
           exerciseTypeId: yoga.id, 
-          lectureName: 'Večerná Joga', 
-          description: 'Relaxácia pri sviečkach' 
+          lectureName: 'Afternoon yoga', 
+          description: 'Relaxative yoga next to candles' 
         }).returning())[0].id,
         roomId: roomA.id,
         startTime: new Date('2024-05-20T18:00:00Z'),
@@ -107,8 +105,8 @@ async function main() {
       {
         lectureId: (await db.insert(tbLecture).values({ 
           exerciseTypeId: cardio.id, 
-          lectureName: 'Kruhové tréningy', 
-          description: 'Pre pokročilých' 
+          lectureName: 'Circle trening', 
+          description: 'For advents' 
         }).returning())[0].id,
         roomId: roomA.id,
         startTime: new Date('2024-05-21T10:00:00Z'),
@@ -118,19 +116,16 @@ async function main() {
 
     const createdSchedules = await db.insert(tbSchedule).values(scheduleData).returning();
 
-    // 7. Priradenie trénerov (M:N vzťah)
+    // 7. Adding instructors (M:N)
     
-    // Získame všetkých zamestnancov, ktorých sme vytvorili
     const allEmployees = await db.select().from(tbEmployee);
 
     await db.insert(tbScheduleInstructor).values([
-      // Lekcia 1: Iba jeden tréner (Hlavný)
       {
         scheduleId: createdSchedules[0].id,
         employeeId: allEmployees[0].id,
         isLead: true,
       },
-      // Lekcia 2: Dva tréneri (Jeden hlavný, jeden pomocný)
       {
         scheduleId: createdSchedules[1].id,
         employeeId: allEmployees[0].id,
@@ -141,7 +136,6 @@ async function main() {
         employeeId: allEmployees[1].id,
         isLead: false,
       },
-      // Lekcia 3: Iný hlavný tréner
       {
         scheduleId: createdSchedules[2].id,
         employeeId: allEmployees[1].id,
@@ -149,14 +143,14 @@ async function main() {
       }
     ]);
 
-    console.log('✅ Rozvrh a inštruktori boli úspešne pridaní!');
+    console.log('Lectures and instructors successfully created');
 
-    console.log('✅ Databáza bola úspešne zaseedovaná!');
+    console.log('Database seed successfully');
 
   } catch (error) {
-    console.error('❌ Chyba pri seedovaní:', error);
+    console.error('Error while seeding', error);
   } finally {
-    // Vždy musíme zatvoriť spojenie, inak terminál "zamrzne" a nevypne sa
+    // Allways close connection
     await closeConnection();
   }
 }

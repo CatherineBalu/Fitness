@@ -58,7 +58,7 @@ export const tbEmployee = pgTable('TB_employee', {
 export const tbCustomer = pgTable('TB_customer', {
   id: uuid('ID_customer').primaryKey().defaultRandom(),
   personId: uuid('ID_person_fk').notNull().references(() => tbPerson.id),
-  subscriptionId: uuid('ID_subscription_fk').references(() => tbSubscription.id), // Toto môže byť null (nemá predplatné)
+  subscriptionId: uuid('ID_subscription_fk').references(() => tbSubscription.id), // This can be null, (person don't have payment)
   subscriptionValidUntil: date('subscription_valid_until').notNull(),
 });
 
@@ -80,13 +80,13 @@ export const tbSchedule = pgTable('TB_schedule', {
   endTime: timestamp('end_time', { withTimezone: true }).notNull(),
 });
 
-// Prepojovacia tabuľka pre trénerov (Zložený kľúč)
+// Connecting table for instructors
 export const tbScheduleInstructor = pgTable('TB_schedule_instructor', {
     scheduleId: uuid('ID_schedule_fk').notNull().references(() => tbSchedule.id),
     employeeId: uuid('ID_employee_fk').notNull().references(() => tbEmployee.id),
     isLead: boolean('is_lead').default(false).notNull(),
   },
-  // Tu vytvárame zložený primárny kľúč z dvoch stĺpcov, presne ako si navrhol
+  // primary key from 2 columns
   (t) => [
     primaryKey({ columns: [t.scheduleId, t.employeeId] })
   ]
