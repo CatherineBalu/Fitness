@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link, Outlet } from '@tanstack/react-router';
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import '../App.css';
 
 export default function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { location } = useRouterState();
+  const isAdmin = location.pathname.startsWith('/admin');
 
   return (
     <div className="app-root">
@@ -15,29 +17,52 @@ export default function RootLayout() {
             <img src="/src/assets/logo.png" alt="Logo" className="logo-icon" />
             <span className="logo-text">FITNESS</span>
           </Link>
-          <div
-            className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
-          >
-            <Link to="/" onClick={() => setMenuOpen(false)}>
-              Home
-            </Link>
-            <Link to="/schedule" onClick={() => setMenuOpen(false)}>
-              Schedule
-            </Link>
-            <a href="#contact" onClick={() => setMenuOpen(false)}>
-              Contact
-            </a>
-            <button className="btn-primary">Sign Up</button>
-          </div>
-          <button
-            className="hamburger"
-            aria-label="Toggle menu"
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            <span
-              className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
-            />
-          </button>
+
+          {isAdmin ? (
+            <div className="navbar-links">
+              <Link to="/admin/staff">Manage Staff</Link>
+              <Link to="/admin/calendar">Calendar</Link>
+              <Link
+                to="/"
+                className="btn-primary"
+                style={{
+                  textDecoration: 'none',
+                  padding: '8px 18px',
+                  borderRadius: 'var(--radius)',
+                  fontSize: '14px',
+                }}
+              >
+                Switch to public view
+              </Link>
+            </div>
+          ) : (
+            <div
+              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+            >
+              <Link to="/" onClick={() => setMenuOpen(false)}>
+                Home
+              </Link>
+              <Link to="/schedule" onClick={() => setMenuOpen(false)}>
+                Schedule
+              </Link>
+              <a href="#contact" onClick={() => setMenuOpen(false)}>
+                Contact
+              </a>
+              <button className="btn-primary">Sign Up</button>
+            </div>
+          )}
+
+          {!isAdmin && (
+            <button
+              className="hamburger"
+              aria-label="Toggle menu"
+              onClick={() => setMenuOpen((o) => !o)}
+            >
+              <span
+                className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
+              />
+            </button>
+          )}
         </div>
       </nav>
 
