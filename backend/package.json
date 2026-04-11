@@ -9,7 +9,7 @@
     "format:check": "prettier --check .",
     "format:write": "prettier --write ."
   },
-"dependencies": {
+  "dependencies": {
     "@elysiajs/cookie": "^0.8.0",
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/jwt": "^1.4.1",
