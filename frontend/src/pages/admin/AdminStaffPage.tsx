@@ -37,7 +37,8 @@ interface Member {
 }
 
 function getInitials(first: string, last: string) {
-  return `${first[0]}${last[0]}`.toUpperCase();
+  if (last) return `${first[0]}${last[0]}`.toUpperCase();
+  return first.slice(0, 2).toUpperCase();
 }
 
 function getLectureStatus(
@@ -48,6 +49,46 @@ function getLectureStatus(
   if (ratio >= 1) return 'full';
   if (ratio >= 0.7) return 'almost-full';
   return 'available';
+}
+
+function DeleteConfirmDialog({
+  name,
+  open,
+  onConfirm,
+  onClose,
+}: {
+  name: string;
+  open: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="delete-confirm-dialog">
+        <DialogHeader>
+          <DialogTitle className="delete-confirm-title">
+            Delete staff member
+          </DialogTitle>
+        </DialogHeader>
+        <p className="delete-confirm-body">
+          Are you sure you want to delete <strong>{name}</strong>? This action
+          cannot be undone.
+        </p>
+        <div className="delete-confirm-actions">
+          <Button
+            variant="outline"
+            className="delete-confirm-cancel"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={onConfirm}>
+            Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function LectureCard({
@@ -329,26 +370,47 @@ function AddMemberDialog({
 
 export default function AdminStaffPage() {
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(true);
   const [search, setSearch] = useState('');
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const [viewStaff, setViewStaff] = useState<StaffMember | null>(null);
   const [classesOpen, setClassesOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   function loadStaff() {
     fetch(`${API_BASE}/api/staff`)
       .then((r) => r.json())
-      .then((data: StaffMember[]) => setStaffList(data))
-      .catch(() => setStaffList([]));
+      .then((data: StaffMember[]) => {
+        setStaffList(data);
+        setLoadingStaff(false);
+      })
+      .catch(() => {
+        setStaffList([]);
+        setLoadingStaff(false);
+      });
   }
 
   useEffect(() => {
     loadStaff();
   }, []);
 
-  async function handleDelete(id: number) {
-    await fetch(`${API_BASE}/api/staff/${id}`, { method: 'DELETE' });
+  function showSuccess(message: string) {
+    setSuccessMessage(message);
+    setTimeout(() => setSuccessMessage(null), 3000);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    await fetch(`${API_BASE}/api/staff/${deleteTarget.id}`, {
+      method: 'DELETE',
+    });
+    setDeleteTarget(null);
     loadStaff();
+    showSuccess(
+      `${deleteTarget.firstName} ${deleteTarget.lastName} has been removed.`,
+    );
   }
 
   const allRoles = Array.from(new Set(staffList.map((s) => s.role)));
@@ -421,42 +483,50 @@ export default function AdminStaffPage() {
           ))}
         </div>
 
+        {successMessage && (
+          <div className="staff-success">{successMessage}</div>
+        )}
+
         <div className="admin-staff-counter">
           Employee counter: {filtered.length}
         </div>
 
         <div className="admin-staff-list">
-          {filtered.map((staff) => (
-            <div key={staff.id} className="staff-row">
-              <div className="staff-row-avatar">
-                {getInitials(staff.firstName, staff.lastName)}
+          {loadingStaff && (
+            <p className="admin-staff-loading">Loading staff...</p>
+          )}
+          {!loadingStaff &&
+            filtered.map((staff) => (
+              <div key={staff.id} className="staff-row">
+                <div className="staff-row-avatar">
+                  {getInitials(staff.firstName, staff.lastName)}
+                </div>
+                <span className="staff-row-name">
+                  {staff.firstName} {staff.lastName}
+                </span>
+                <span className="staff-row-badge">{staff.role}</span>
+                <span className="staff-row-since">{staff.since}</span>
+                <div className="staff-row-actions">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="staff-row-view-btn"
+                    onClick={() => handleView(staff)}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="staff-row-delete-btn"
+                    onClick={() => setDeleteTarget(staff)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
-              <span className="staff-row-name">
-                {staff.firstName} {staff.lastName}
-              </span>
-              <span className="staff-row-badge">{staff.role}</span>
-              <span className="staff-row-since">{staff.since}</span>
-              <div className="staff-row-actions">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="staff-row-view-btn"
-                  onClick={() => handleView(staff)}
-                >
-                  View
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="staff-row-delete-btn"
-                  onClick={() => handleDelete(staff.id)}
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          ))}
-          {filtered.length === 0 && (
+            ))}
+          {!loadingStaff && filtered.length === 0 && (
             <p className="admin-staff-empty">No staff members found.</p>
           )}
         </div>
@@ -470,7 +540,20 @@ export default function AdminStaffPage() {
       <AddMemberDialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onAdded={loadStaff}
+        onAdded={() => {
+          loadStaff();
+          showSuccess('Staff member added successfully.');
+        }}
+      />
+      <DeleteConfirmDialog
+        name={
+          deleteTarget
+            ? `${deleteTarget.firstName} ${deleteTarget.lastName}`
+            : ''
+        }
+        open={deleteTarget !== null}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteTarget(null)}
       />
     </div>
   );
