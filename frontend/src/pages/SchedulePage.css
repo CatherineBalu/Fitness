@@ -1,0 +1,220 @@
+/* ── Calendar Overlay ── */
+/* Uses the mainpage dark color tokens from App.css */
+
+.cal-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 40px 24px 60px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Category filter buttons ── */
+.cal-categories {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cal-cat-btn {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius) !important;
+  color: #000 !important;
+}
+
+.cal-cat-btn--active {
+  background: var(--c-accent) !important;
+  color: #0d0d0d !important;
+  border-color: var(--c-accent) !important;
+}
+
+/* ── Week navigation ── */
+.cal-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+
+.cal-date-range {
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--c-text);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+.cal-nav-arrow {
+  color: var(--c-text) !important;
+}
+
+.cal-nav-arrow:hover {
+  color: var(--c-accent) !important;
+  background: var(--c-surface) !important;
+}
+
+/* ── Weekly grid ── */
+.cal-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+/* ── Day column ── */
+.cal-day-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 4px;
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.cal-day-column--today {
+  border-top: 3px solid var(--c-accent);
+  background: var(--c-surface);
+}
+
+.cal-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.cal-day-name {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--c-text);
+}
+
+.cal-day-date {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--c-text);
+}
+
+.cal-day-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Activity card ── */
+.cal-activity-card {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--radius) !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  ring: none !important;
+  --tw-ring-shadow: none !important;
+}
+
+.cal-activity-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px !important;
+}
+
+.cal-activity-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-activity-time {
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+.cal-badge-members {
+  font-size: 10px;
+  color: var(--c-muted) !important;
+  border-color: var(--c-border) !important;
+  padding: 0 6px;
+  height: 18px;
+}
+
+.cal-activity-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.cal-activity-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--c-muted);
+  gap: 4px;
+}
+
+.cal-activity-capacity {
+  white-space: nowrap;
+}
+
+.cal-register-btn {
+  margin-top: 4px;
+  width: 100%;
+  background: var(--c-accent) !important;
+  color: #0d0d0d !important;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  border-radius: var(--radius) !important;
+}
+
+.cal-register-btn:hover {
+  background: var(--c-accent-hover) !important;
+}
+
+.cal-register-btn:disabled {
+  background: var(--c-surface) !important;
+  color: var(--c-muted) !important;
+  opacity: 0.7;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .cal-week-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .cal-week-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cal-root {
+    gap: 24px;
+    padding: 24px 16px 40px;
+  }
+
+  .cal-week-nav {
+    gap: 24px;
+  }
+
+  .cal-date-range {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .cal-week-grid {
+    grid-template-columns: 1fr;
+  }
+}

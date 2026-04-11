@@ -63,6 +63,70 @@ npm run format:write # Prettier auto-fix
 - `Diagrams/SotfwareReqSpecf.md` — Full requirements spec (25 use cases, 10 NFRs)
 - `Diagrams/UseCaseDiagram.puml` — PlantUML use case diagram
 
+## Frontend UI — shadcn/UI Strategy
+
+The frontend uses **shadcn/ui** for all interactive, data-driven UI. It is already fully configured (`components.json`, Radix UI, Tailwind CSS, `lucide-react` are all installed).
+
+- Add components with: `npx shadcn add <component>`
+- The current `App.tsx` landing page uses custom CSS — that's fine to keep as-is
+- For anything behind login (dashboard, calendar, booking, forms), **use shadcn components** rather than building from scratch
+
+The app's core feature is a **lecture registration calendar**. Key components by feature:
+
+| Feature | Components |
+|---|---|
+| Calendar / lecture registration | `Calendar`, `Dialog` |
+| Schedule / lecture list | `Table`, `Card` |
+| Auth forms | `Form`, `Input`, `Label`, `Button` |
+| Role-based navigation | `NavigationMenu`, `DropdownMenu`, `Avatar` |
+| Notifications | `Toast`, `Alert` |
+| Filters / date pickers | `Popover`, `Select` |
+| Membership management | `Badge`, `Tabs` |
+
+## Git Conventions
+
+### Branch Naming
+
+Format: `xlogin/EPIC-ID`
+
+Examples: `xkolar8/NUE-21`, `jbreja/NUE-14`
+
+Use the `/branch` slash command to create branches interactively — it will ask for your xlogin and Jira epic and run the git command for you.
+
+### Commit Messages
+
+Format: `EPIC-ID: <type>: <short description>`
+
+Where `EPIC-ID` comes from the current branch name (e.g. `NUE-21`), and `<type>` is one of:
+
+| Type | When to use |
+|------|-------------|
+| `add` | New feature or file |
+| `fix` | Bug fix |
+| `chore` | Maintenance, config, deps |
+| `refactor` | Code restructure, no behaviour change |
+| `test` | Adding or updating tests |
+| `docs` | Documentation only |
+| `style` | Formatting, CSS changes |
+
+Examples:
+```
+NUE-21: add: login button component
+NUE-14: fix: calendar not rendering on mobile
+NUE-7: chore: update dependencies
+```
+
+Always derive the epic prefix from the current branch name — never hardcode it.
+
+### Pre-commit Checks
+
+Before every commit, run ESLint and Prettier check on the affected package(s):
+
+- **Frontend:** `npm run lint` and `npm run format:check` (from `frontend/`)
+- **Backend:** `bun run lint` and `bun run format:check` (from `backend/`)
+
+If issues are found, ask the user for permission before auto-fixing with `format:write`. Do not commit if lint errors remain unfixed. Use the `/commit` skill to handle this automatically.
+
 ## TypeScript
 
 Both packages use `"strict": true`. Backend tsconfig targets Bun types (`@types/bun`).
