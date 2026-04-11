@@ -1,6 +1,6 @@
 {
-  "id": "010c7fbf-cb44-4aea-94e3-f246997b3e74",
-  "prevId": "914ed458-2df3-4b5a-b604-93ee351735a1",
+  "id": "af197987-d512-42ae-929d-ea4ac028a07f",
+  "prevId": "010c7fbf-cb44-4aea-94e3-f246997b3e74",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -31,7 +31,7 @@
           "name": "subscription_valid_until",
           "type": "date",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},

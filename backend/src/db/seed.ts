@@ -31,25 +31,31 @@ async function main() {
     await db.delete(tbExerciseType);
 
     console.log(' Creating basic databases');
-    const [trainerRole, adminRole] = await db.insert(tbEmployeeType).values([
-      { roleName: 'Instructor' },
-      { roleName: 'Reception' },
-    ]).returning();
+    const [trainerRole, adminRole] = await db
+      .insert(tbEmployeeType)
+      .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }])
+      .returning();
 
-    const [basicSub, proSub] = await db.insert(tbSubscription).values([
-      { name: 'Monthly Basic', price: '29.99', durationDays: 30 },
-      { name: 'Year PRO', price: '299.99', durationDays: 365 },
-    ]).returning();
+    const [basicSub, proSub] = await db
+      .insert(tbSubscription)
+      .values([
+        { name: 'Monthly Basic', price: '29.99', durationDays: 30 },
+        { name: 'Year PRO', price: '299.99', durationDays: 365 },
+      ])
+      .returning();
 
-    const [roomA] = await db.insert(tbRoom).values([
-      { name: 'Big room', capacity: 30 },
-      { name: 'Small room', capacity: 15 },
-    ]).returning();
+    const [roomA] = await db
+      .insert(tbRoom)
+      .values([
+        { name: 'Big room', capacity: 30 },
+        { name: 'Small room', capacity: 15 },
+      ])
+      .returning();
 
-    const [cardio, yoga] = await db.insert(tbExerciseType).values([
-      { name: 'ardio' },
-      { name: 'Joga' },
-    ]).returning();
+    const [cardio, yoga] = await db
+      .insert(tbExerciseType)
+      .values([{ name: 'Cardio' }, { name: 'Joga' }])
+      .returning();
 
     // Creating persons
     console.log('🧑‍🤝‍🧑 Creating persons');
@@ -60,14 +66,22 @@ async function main() {
       password: faker.internet.password(), // IN REAL APP HASH THIS
       phoneNumber: faker.phone.number(),
     }));
-    
+
     const createdPeople = await db.insert(tbPerson).values(peopleData).returning();
 
     // Creating employes
     console.log(' Creating employes...');
     await db.insert(tbEmployee).values([
-      { personId: createdPeople[0].id, employeeTypeId: trainerRole.id, hireDate: new Date().toISOString() },
-      { personId: createdPeople[1].id, employeeTypeId: adminRole.id, hireDate: new Date().toISOString() },
+      {
+        personId: createdPeople[0].id,
+        employeeTypeId: trainerRole.id,
+        hireDate: new Date().toISOString(),
+      },
+      {
+        personId: createdPeople[1].id,
+        employeeTypeId: adminRole.id,
+        hireDate: new Date().toISOString(),
+      },
     ]);
 
     // 5. Creating customers
@@ -83,41 +97,56 @@ async function main() {
     // Creating 3 lectures
     const scheduleData = [
       {
-        lectureId: (await db.insert(tbLecture).values({ 
-          exerciseTypeId: cardio.id, 
-          lectureName: 'Morning HIIT', 
-          description: 'Intensive cardio' 
-        }).returning())[0].id,
+        lectureId: (
+          await db
+            .insert(tbLecture)
+            .values({
+              exerciseTypeId: cardio.id,
+              lectureName: 'Morning HIIT',
+              description: 'Intensive cardio',
+            })
+            .returning()
+        )[0].id,
         roomId: roomA.id,
         startTime: new Date('2024-05-20T08:00:00Z'),
         endTime: new Date('2024-05-20T09:00:00Z'),
       },
       {
-        lectureId: (await db.insert(tbLecture).values({ 
-          exerciseTypeId: yoga.id, 
-          lectureName: 'Afternoon yoga', 
-          description: 'Relaxative yoga next to candles' 
-        }).returning())[0].id,
+        lectureId: (
+          await db
+            .insert(tbLecture)
+            .values({
+              exerciseTypeId: yoga.id,
+              lectureName: 'Afternoon yoga',
+              description: 'Relaxative yoga next to candles',
+            })
+            .returning()
+        )[0].id,
         roomId: roomA.id,
         startTime: new Date('2024-05-20T18:00:00Z'),
         endTime: new Date('2024-05-20T19:30:00Z'),
       },
       {
-        lectureId: (await db.insert(tbLecture).values({ 
-          exerciseTypeId: cardio.id, 
-          lectureName: 'Circle trening', 
-          description: 'For advents' 
-        }).returning())[0].id,
+        lectureId: (
+          await db
+            .insert(tbLecture)
+            .values({
+              exerciseTypeId: cardio.id,
+              lectureName: 'Circle trening',
+              description: 'For advents',
+            })
+            .returning()
+        )[0].id,
         roomId: roomA.id,
         startTime: new Date('2024-05-21T10:00:00Z'),
         endTime: new Date('2024-05-21T11:00:00Z'),
-      }
+      },
     ];
 
     const createdSchedules = await db.insert(tbSchedule).values(scheduleData).returning();
 
     // 7. Adding instructors (M:N)
-    
+
     const allEmployees = await db.select().from(tbEmployee);
 
     await db.insert(tbScheduleInstructor).values([
@@ -140,13 +169,12 @@ async function main() {
         scheduleId: createdSchedules[2].id,
         employeeId: allEmployees[1].id,
         isLead: true,
-      }
+      },
     ]);
 
     console.log('Lectures and instructors successfully created');
 
     console.log('Database seed successfully');
-
   } catch (error) {
     console.error('Error while seeding', error);
   } finally {
