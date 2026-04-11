@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Clock, MapPin, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import './AdminStaffPage.css';
+
+const API_BASE = 'http://localhost:3000';
 
 interface Lecture {
   id: number;
@@ -26,7 +28,6 @@ interface StaffMember {
   lastName: string;
   role: string;
   since: string;
-  lectures: Lecture[];
 }
 
 interface Member {
@@ -34,152 +35,6 @@ interface Member {
   name: string;
   email: string;
 }
-
-const MOCK_MEMBERS: Member[] = [
-  { id: 1, name: 'Jana Nováková', email: 'jana@example.com' },
-  { id: 2, name: 'Peter Kováč', email: 'peter@example.com' },
-  { id: 3, name: 'Mária Horáková', email: 'maria@example.com' },
-  { id: 4, name: 'Tomáš Blaho', email: 'tomas@example.com' },
-  { id: 5, name: 'Eva Slobodová', email: 'eva@example.com' },
-];
-
-const STAFF: StaffMember[] = [
-  {
-    id: 1,
-    firstName: 'Štefan',
-    lastName: 'Murín',
-    role: 'Pilates',
-    since: '04/2024',
-    lectures: [
-      {
-        id: 1,
-        name: 'Morning Pilates',
-        time: '08:00 - 09:00',
-        room: 'Room A',
-        capacity: 15,
-        registered: 7,
-      },
-      {
-        id: 2,
-        name: 'Evening Pilates',
-        time: '18:00 - 19:00',
-        room: 'Room A',
-        capacity: 15,
-        registered: 14,
-      },
-      {
-        id: 3,
-        name: 'Core Strength',
-        time: '10:00 - 11:00',
-        room: 'Room B',
-        capacity: 12,
-        registered: 12,
-      },
-    ],
-  },
-  {
-    id: 2,
-    firstName: 'Jana',
-    lastName: 'Procházková',
-    role: 'Yoga',
-    since: '01/2023',
-    lectures: [
-      {
-        id: 4,
-        name: 'Vinyasa Yoga',
-        time: '09:00 - 10:00',
-        room: 'Room C',
-        capacity: 20,
-        registered: 10,
-      },
-      {
-        id: 5,
-        name: 'Yin Yoga',
-        time: '17:00 - 18:00',
-        room: 'Room C',
-        capacity: 20,
-        registered: 18,
-      },
-    ],
-  },
-  {
-    id: 3,
-    firstName: 'Martin',
-    lastName: 'Horák',
-    role: 'HIIT',
-    since: '06/2023',
-    lectures: [
-      {
-        id: 6,
-        name: 'HIIT Cardio',
-        time: '07:00 - 08:00',
-        room: 'Room D',
-        capacity: 25,
-        registered: 25,
-      },
-      {
-        id: 7,
-        name: 'Cardio Blast',
-        time: '16:00 - 17:00',
-        room: 'Room D',
-        capacity: 25,
-        registered: 20,
-      },
-    ],
-  },
-  {
-    id: 4,
-    firstName: 'Katarína',
-    lastName: 'Blahová',
-    role: 'Spinning',
-    since: '09/2024',
-    lectures: [
-      {
-        id: 8,
-        name: 'Spin Class',
-        time: '06:30 - 07:30',
-        room: 'Room B',
-        capacity: 18,
-        registered: 9,
-      },
-    ],
-  },
-  {
-    id: 5,
-    firstName: 'Ján',
-    lastName: 'Breja',
-    role: 'CrossFit',
-    since: '03/2022',
-    lectures: [
-      {
-        id: 9,
-        name: 'CrossFit Basics',
-        time: '12:00 - 13:00',
-        room: 'Room D',
-        capacity: 15,
-        registered: 6,
-      },
-      {
-        id: 10,
-        name: 'Power Lifting',
-        time: '15:00 - 16:00',
-        room: 'Room B',
-        capacity: 10,
-        registered: 4,
-      },
-      {
-        id: 11,
-        name: 'CrossFit Advanced',
-        time: '19:00 - 20:00',
-        room: 'Room D',
-        capacity: 12,
-        registered: 11,
-      },
-    ],
-  },
-];
-
-const ALL_ROLES = Array.from(new Set(STAFF.map((s) => s.role)));
 
 function getInitials(first: string, last: string) {
   return `${first[0]}${last[0]}`.toUpperCase();
@@ -248,6 +103,16 @@ function MembersDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const [members, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    if (!open || !lecture) return;
+    fetch(`${API_BASE}/api/lectures/${lecture.id}/members`)
+      .then((r) => r.json())
+      .then((data: Member[]) => setMembers(data))
+      .catch(() => setMembers([]));
+  }, [open, lecture]);
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="members-dialog">
@@ -257,7 +122,7 @@ function MembersDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="members-list">
-          {MOCK_MEMBERS.slice(0, lecture?.registered ?? 0).map((m) => (
+          {members.map((m) => (
             <div key={m.id} className="members-list-row">
               <div className="member-avatar">{m.name[0]}</div>
               <div className="member-info">
@@ -266,7 +131,7 @@ function MembersDialog({
               </div>
             </div>
           ))}
-          {(lecture?.registered ?? 0) === 0 && (
+          {members.length === 0 && (
             <p className="members-empty">No members registered.</p>
           )}
         </div>
@@ -284,8 +149,17 @@ function ViewClassesDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const [lectures, setLectures] = useState<Lecture[]>([]);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
+
+  useEffect(() => {
+    if (!open || !staff) return;
+    fetch(`${API_BASE}/api/staff/${staff.id}/lectures`)
+      .then((r) => r.json())
+      .then((data: Lecture[]) => setLectures(data))
+      .catch(() => setLectures([]));
+  }, [open, staff]);
 
   function handleViewMembers(lecture: Lecture) {
     setSelectedLecture(lecture);
@@ -316,13 +190,16 @@ function ViewClassesDialog({
             </span>
           </div>
           <div className="classes-dialog-grid">
-            {staff?.lectures.map((lecture) => (
+            {lectures.map((lecture) => (
               <LectureCard
                 key={lecture.id}
                 lecture={lecture}
                 onViewMembers={handleViewMembers}
               />
             ))}
+            {lectures.length === 0 && (
+              <p className="members-empty">No classes assigned.</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -338,9 +215,11 @@ function ViewClassesDialog({
 function AddMemberDialog({
   open,
   onClose,
+  onAdded,
 }: {
   open: boolean;
   onClose: () => void;
+  onAdded: () => void;
 }) {
   const [form, setForm] = useState({
     fullName: '',
@@ -348,15 +227,35 @@ function AddMemberDialog({
     email: '',
     password: '',
   });
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onClose();
+    setError(null);
+    setLoading(true);
+
+    const res = await fetch(`${API_BASE}/api/staff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+
+    setLoading(false);
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError((data as { error: string }).error ?? 'Something went wrong');
+      return;
+    }
+
     setForm({ fullName: '', role: '', email: '', password: '' });
+    onAdded();
+    onClose();
   }
 
   return (
@@ -368,6 +267,7 @@ function AddMemberDialog({
           </DialogTitle>
         </DialogHeader>
         <form className="add-member-form" onSubmit={handleSubmit}>
+          {error && <p className="add-member-error">{error}</p>}
           <div className="add-member-field">
             <label className="add-member-label">Full name</label>
             <Input
@@ -414,8 +314,12 @@ function AddMemberDialog({
               required
             />
           </div>
-          <Button type="submit" className="add-member-submit">
-            Create
+          <Button
+            type="submit"
+            className="add-member-submit"
+            disabled={loading}
+          >
+            {loading ? 'Creating...' : 'Create'}
           </Button>
         </form>
       </DialogContent>
@@ -424,13 +328,32 @@ function AddMemberDialog({
 }
 
 export default function AdminStaffPage() {
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [search, setSearch] = useState('');
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const [viewStaff, setViewStaff] = useState<StaffMember | null>(null);
   const [classesOpen, setClassesOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  const filtered = STAFF.filter((s) => {
+  function loadStaff() {
+    fetch(`${API_BASE}/api/staff`)
+      .then((r) => r.json())
+      .then((data: StaffMember[]) => setStaffList(data))
+      .catch(() => setStaffList([]));
+  }
+
+  useEffect(() => {
+    loadStaff();
+  }, []);
+
+  async function handleDelete(id: number) {
+    await fetch(`${API_BASE}/api/staff/${id}`, { method: 'DELETE' });
+    loadStaff();
+  }
+
+  const allRoles = Array.from(new Set(staffList.map((s) => s.role)));
+
+  const filtered = staffList.filter((s) => {
     const matchesSearch =
       search === '' ||
       `${s.firstName} ${s.lastName}`
@@ -479,7 +402,7 @@ export default function AdminStaffPage() {
         </div>
 
         <div className="admin-staff-filters">
-          {ALL_ROLES.map((role) => (
+          {allRoles.map((role) => (
             <Button
               key={role}
               size="sm"
@@ -526,6 +449,7 @@ export default function AdminStaffPage() {
                   size="sm"
                   variant="destructive"
                   className="staff-row-delete-btn"
+                  onClick={() => handleDelete(staff.id)}
                 >
                   Delete
                 </Button>
@@ -543,7 +467,11 @@ export default function AdminStaffPage() {
         open={classesOpen}
         onClose={() => setClassesOpen(false)}
       />
-      <AddMemberDialog open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddMemberDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdded={loadStaff}
+      />
     </div>
   );
 }
