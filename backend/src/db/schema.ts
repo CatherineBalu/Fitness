@@ -67,7 +67,7 @@ export const tbCustomer = pgTable('TB_customer', {
   subscriptionValidUntil: date('subscription_valid_until'),
 });
 
-// --- LECTIONS AND SCHEDULE ---
+// --- LECTURES AND SCHEDULE ---
 
 export const tbLecture = pgTable('TB_lecture', {
   id: uuid('ID_lecture').primaryKey().defaultRandom(),
