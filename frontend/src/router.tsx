@@ -6,9 +6,11 @@ import {
 import RootLayout from '@/layouts/RootLayout';
 import HomePage from '@/pages/HomePage';
 import SchedulePage from '@/pages/SchedulePage';
+import NotFoundPage from '@/pages/NotFoundPage';
 
 const rootRoute = createRootRoute({
   component: RootLayout,
+  notFoundComponent: NotFoundPage,
 });
 
 const indexRoute = createRoute({
