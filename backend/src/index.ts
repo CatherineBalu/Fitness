@@ -7,7 +7,7 @@ import { scheduleRoutes } from './routes/schedule';
 export const app = new Elysia()
   .use(
     cors({
-      origin: 'http://localhost:5173', // Vite dev server
+      origin: true, // allow all origins in development
       credentials: true, // required for cookies
     }),
   )

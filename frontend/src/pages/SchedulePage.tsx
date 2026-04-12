@@ -79,33 +79,34 @@ const DAY_NAMES = [
 ];
 
 function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() + diff);
   return d;
 }
 
 function formatDate(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
   return `${dd}.${mm}.`;
 }
 
 function formatDateRange(weekStart: Date): string {
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const year = weekStart.getFullYear();
-  return `${formatDate(weekStart)} ${year} - ${formatDate(weekEnd)} ${weekEnd.getFullYear()}`;
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+  const year = weekStart.getUTCFullYear();
+  return `${formatDate(weekStart)} ${year} - ${formatDate(weekEnd)} ${weekEnd.getUTCFullYear()}`;
 }
 
 function isToday(date: Date): boolean {
   const now = new Date();
   return (
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
+    date.getUTCDate() === now.getDate() &&
+    date.getUTCMonth() === now.getMonth() &&
+    date.getUTCFullYear() === now.getFullYear()
   );
 }
 
@@ -148,10 +149,11 @@ export default function SchedulePage() {
 
   useEffect(() => {
     let cancelled = false;
-    const from = weekStart.toISOString().split('T')[0];
-    const to = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0];
+    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+    const from = fmtISO(weekStart);
+    const toDate = new Date(weekStart);
+    toDate.setUTCDate(toDate.getUTCDate() + 6);
+    const to = fmtISO(toDate);
 
     fetch(`${API_URL}/schedule?from=${from}&to=${to}`)
       .then((res) => res.json())
@@ -197,7 +199,7 @@ export default function SchedulePage() {
   const weekDays = useMemo(() => {
     return DAY_NAMES.map((name, i) => {
       const date = new Date(weekStart);
-      date.setDate(date.getDate() + i);
+      date.setUTCDate(date.getUTCDate() + i);
       return { name, date, dayIndex: i };
     });
   }, [weekStart]);
@@ -205,7 +207,7 @@ export default function SchedulePage() {
   const prevWeek = () => {
     setWeekStart((prev) => {
       const d = new Date(prev);
-      d.setDate(d.getDate() - 7);
+      d.setUTCDate(d.getUTCDate() - 7);
       return d;
     });
   };
@@ -213,7 +215,7 @@ export default function SchedulePage() {
   const nextWeek = () => {
     setWeekStart((prev) => {
       const d = new Date(prev);
-      d.setDate(d.getDate() + 7);
+      d.setUTCDate(d.getUTCDate() + 7);
       return d;
     });
   };
