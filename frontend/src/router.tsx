@@ -6,6 +6,9 @@ import {
 import RootLayout from '@/layouts/RootLayout';
 import HomePage from '@/pages/HomePage';
 import SchedulePage from '@/pages/SchedulePage';
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import AdminStaffPage from '@/pages/admin/AdminStaffPage';
+import AdminCalendarPage from '@/pages/admin/AdminCalendarPage';
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -23,7 +26,31 @@ const scheduleRoute = createRoute({
   component: SchedulePage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, scheduleRoute]);
+const adminDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
+  component: AdminDashboardPage,
+});
+
+const adminStaffRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin/staff',
+  component: AdminStaffPage,
+});
+
+const adminCalendarRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin/calendar',
+  component: AdminCalendarPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  scheduleRoute,
+  adminDashboardRoute,
+  adminStaffRoute,
+  adminCalendarRoute,
+]);
 
 export const router = createRouter({ routeTree });
 
