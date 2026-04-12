@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import '../App.css';
+import { SignUpForm } from '@/components/ui/signUpForm';
 
 export default function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -27,7 +28,7 @@ export default function RootLayout() {
             <a href="#contact" onClick={() => setMenuOpen(false)}>
               Contact
             </a>
-            <button className="btn-primary">Sign Up</button>
+            <SignUpForm />
           </div>
           <button
             className="hamburger"
