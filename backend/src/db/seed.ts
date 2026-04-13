@@ -491,23 +491,30 @@ async function main() {
       },
     ];
 
-    const scheduleValues = scheduleEntries.map((e) => ({
-      lectureId: lec[e.lectureName],
-      roomId: e.room.id,
-      startTime: weekDay(mon, e.day, e.startH, e.startM),
-      endTime: weekDay(mon, e.day, e.endH, e.endM),
-    }));
+    // Create schedules for previous, current, and next week
+    const weekOffsets = [-1, 0, 1];
+    const scheduleValues = weekOffsets.flatMap((weekOffset) => {
+      const weekMon = new Date(mon);
+      weekMon.setUTCDate(weekMon.getUTCDate() + weekOffset * 7);
+      return scheduleEntries.map((e) => ({
+        lectureId: lec[e.lectureName],
+        roomId: e.room.id,
+        startTime: weekDay(weekMon, e.day, e.startH, e.startM),
+        endTime: weekDay(weekMon, e.day, e.endH, e.endM),
+      }));
+    });
 
     const createdSchedules = await db.insert(tbSchedule).values(scheduleValues).returning();
 
-    // 8. Assign instructors
+    // 8. Assign instructors — one block of entries per week
     console.log('Assigning instructors');
-    const instructorValues = scheduleEntries.flatMap((e, i) => {
-      const entries = [{ scheduleId: createdSchedules[i].id, employeeId: e.lead.id, isLead: true }];
-      if (e.assist) {
+    const instructorValues = createdSchedules.flatMap((schedule, i) => {
+      const entry = scheduleEntries[i % scheduleEntries.length];
+      const entries = [{ scheduleId: schedule.id, employeeId: entry.lead.id, isLead: true }];
+      if (entry.assist) {
         entries.push({
-          scheduleId: createdSchedules[i].id,
-          employeeId: e.assist.id,
+          scheduleId: schedule.id,
+          employeeId: entry.assist.id,
           isLead: false,
         });
       }
