@@ -1,6 +1,7 @@
 // frontend/src/components/auth/SignUpForm.tsx
 import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
+import {  Loader2 } from "lucide-react" // Pridaný Loader2
 import {
   Dialog,
   DialogContent,
@@ -90,7 +91,7 @@ const registerSchema = z.object({
 // REGISTER COMPONENT
 // ==========================================
 
-export function Register() {
+function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
   // Form data state
   const [formData, setFormData] = useState({
     firstName: "",
@@ -103,6 +104,8 @@ export function Register() {
 
   // Error messages state
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{type: 'success' | 'error' | null, message: string}>({ type: null, message: "" })
 
   // Generic change handler for inputs
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,57 +120,113 @@ export function Register() {
 
   // Real-time email check (Triggered onBlur)
   const checkEmailAvailability = async (emailToCheck: string) => {
-    // Basic pre-check so we don't spam the backend with incomplete emails
+    // Skip checking if it's empty or doesn't look like an email yet
     if (!emailToCheck || !emailToCheck.includes("@")) return
 
     try {
+      console.log("Checking email:", emailToCheck) // Debugging: see if it fires
+      
       const response = await fetch("http://localhost:3000/auth/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailToCheck }),
       })
       
+      if (!response.ok) {
+        console.error("Backend rejected the check. Status:", response.status)
+        return
+      }
+
       const data = await response.json()
       
-      // If the backend says the email is NOT available, show an error
+      // If the backend says the email is NOT available, set the error state
       if (!data.available) {
         setErrors(prev => ({ ...prev, email: "This email is already registered." }))
       }
     } catch (error) {
-      console.error("Failed to check email:", error)
+      console.error("Failed to check email (Network/CORS):", error)
     }
   }
 
-  // Validation and submission logic
-  const handleSubmit = (e: React.FormEvent) => {
+// Handle the final form submission
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 1. Run Zod validation against the current form data
+    // 1. Reset any previous success/error messages
+    setSubmitStatus({ type: null, message: "" }) 
+    
+    // 2. Validate all form fields using Zod schema
     const result = registerSchema.safeParse(formData)
 
-    // 2. If Zod validation fails, map the errors and stop submission
     if (!result.success) {
+      // If validation fails, map Zod errors to our React state
       const formattedErrors: Record<string, string> = {}
       result.error.issues.forEach(issue => {
-        formattedErrors[issue.path[0] as string] = issue.message 
+        formattedErrors[issue.path[0] as string] = issue.message
       })
       setErrors(formattedErrors)
-      return
+      return // Stop execution
     }
 
-    // 3. Check if the async email validation previously caught an error
+    // 3. Block submission if the real-time check already flagged the email
     if (errors.email === "This email is already registered.") {
-      return // Stop submission if the email is taken
+      return 
     }
 
-    // 4. If everything passes, send the data to the backend
-    console.log("Validation passed! Ready to send to API:", result.data)
-    // TODO: Main fetch request to actually create the account goes here
+    // 4. Lock the submit button and show loading spinner
+    setIsSubmitting(true)
+
+    try {
+      // 5. Send validated data to the backend
+      const response = await fetch("http://localhost:3000/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result.data),
+      })
+      
+      const data = await response.json()
+
+      // 6. Handle backend errors (e.g., 409 Conflict if email is taken right at submission)
+      if (!response.ok) {
+        setSubmitStatus({ type: 'error', message: data.error || "Registration failed." })
+        return
+      }
+
+      // 7. Handle success: Show success banner and clear the form
+      setSubmitStatus({ type: 'success', message: "Account created successfully! You can now log in." })
+      setFormData({ 
+        firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "" 
+      })
+
+    } catch (error) {
+      // 8. Handle complete network failures (backend is down)
+      console.error("Failed to connect to the backend:", error)
+      setSubmitStatus({ type: 'error', message: "Network error. Is the backend running?" })
+    } finally {
+      // 9. Unlock the submit button regardless of outcome
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 animate-in fade-in slide-in-from-right-8 duration-300">
-      
+    {submitStatus.type === 'success' && (
+        <div className="p-3 text-sm text-green-400 bg-green-500/10 border border-green-500/20 rounded-md">
+          Account created successfully! You can now{" "}
+          <button 
+            type="button" 
+            onClick={onSwitchToLogin} 
+            className="underline font-semibold hover:text-green-300"
+          >
+            log in
+          </button>.
+        </div>
+      )}
+      {submitStatus.type === 'error' && (
+        <div className="p-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-md">
+          {submitStatus.message}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4">
         {/* First Name */}
         <div className="space-y-2">
@@ -254,8 +313,20 @@ export function Register() {
       </div>
 
       {/* Submit Button */}
-      <Button type="submit" variant="default" className="w-full mt-4">
-        Sign Up
+      <Button 
+        type="submit" 
+        variant="default" 
+        disabled={isSubmitting} 
+        className="w-full mt-4 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Signing Up...
+          </>
+        ) : (
+          "Sign Up"
+        )}
       </Button>
     </form>
   )
@@ -304,7 +375,7 @@ export function SignUpForm() {
         <div className="py-2 relative">
           {/* Render Login or Register based on 'view' state */}
           {view === 'login' && <Login onSwitchToRegister={() => setView('register')} />}
-          {view === 'register' && <Register />}
+          {view === 'register' && <Register onSwitchToLogin={() => setView('login')} />}
         </div>
 
       </DialogContent>

@@ -12,6 +12,7 @@ import {
   tbSchedule,
   tbScheduleInstructor,
 } from './schema';
+console.log("TESTING DB URL:", process.env.DATABASE_URL);
 
 async function main() {
   console.log(' Starting seeding the database');
@@ -58,7 +59,7 @@ async function main() {
       .returning();
 
     // Creating persons
-    console.log('🧑‍🤝‍🧑 Creating persons');
+    console.log('Creating persons');
     const peopleData = Array.from({ length: 10 }).map(() => ({
       name: faker.person.firstName(),
       surname: faker.person.lastName(),
