@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { z } from "zod"
+
 // ==========================================
 // 1. LOGIN COMPONENT
 // ==========================================
+
 function Login({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-left-4 duration-300">
@@ -64,9 +66,11 @@ function Login({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
     </div>
   )
 }
+
 // ==========================================
 // ZOD SCHEMA (Defined outside the component)
 // ==========================================
+
 const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
   lastName: z.string().min(1, "Last name is required."),
@@ -83,11 +87,9 @@ const registerSchema = z.object({
 })
 
 // ==========================================
-// 2. REGISTER COMPONENT
-// ==========================================
-// ==========================================
 // REGISTER COMPONENT
 // ==========================================
+
 export function Register() {
   // Form data state
   const [formData, setFormData] = useState({
