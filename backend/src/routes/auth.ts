@@ -3,13 +3,7 @@ import { jwtPlugin, authGuard, type JwtPayload } from '../middleware/auth';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/db';
 import { tbPerson, tbCustomer } from '../db/schema';
-
-// TODO: replace mock user lookup with Drizzle DB queries
-const MOCK_USERS = [
-  { id: '1', email: 'admin@gym.com', password: 'admin123', role: 'admin' as const },
-  { id: '2', email: 'staff@gym.com', password: 'staff123', role: 'staff' as const },
-  { id: '3', email: 'customer@gym.com', password: 'customer123', role: 'customer' as const },
-];
+import { sendVerificationEmail } from '../services/email';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .use(jwtPlugin)
@@ -44,7 +38,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 .post(
     '/register',
     async ({ body, set }) => {
-      // 1. Double check pre istotu, či email už neexistuje
       const existingUser = await db
         .select()
         .from(tbPerson)
@@ -55,12 +48,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         set.status = 409;
         return { error: 'Email is already registered' };
       }
-
-      // 2. Hash hesla pomocou natívnej funkcie v Bun
+      // using Argon2
       const hashedPassword = await Bun.password.hash(body.password);
 
       try {
-        // 3. Uloženie do tabuľky tbPerson
         const [newPerson] = await db.insert(tbPerson).values({
           name: body.firstName,
           surname: body.lastName,
@@ -69,21 +60,22 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
           phoneNumber: body.phone,
         }).returning();
 
-        // 4. Uloženie aj do tabuľky tbCustomer (ako sme sa bavili)
         await db.insert(tbCustomer).values({
           personId: newPerson.id,
         });
 
-        // ==========================================================
-        // 5. DEBUG: VÝPIS DO TERMINÁLU (Môžeš neskôr zmazať)
-        // ==========================================================
-        const allPersons = await db.select().from(tbPerson);
-        console.log('\n✅ NOVÝ POUŽÍVATEĽ PRIDANÝ! Aktuálny zoznam v tbPerson:');
-        console.table(allPersons);
-        console.log('--------------------------------------------------\n');
+        // Sending mail
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const emailSent = await sendVerificationEmail(body.email, verificationCode);
+        
+        if (!emailSent) {
+          console.warn(`Warning: The verification email for ${body.email} could not be sent.`);
+          // In practice, you can add logic here to resend it later
+        }
 
         set.status = 201;
         return { success: true, message: 'Account created successfully in DB!' };
+
         
       } catch (error) {
         console.error("Database insert error:", error);
@@ -92,7 +84,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }
     },
     {
-      // Validácia prijatých dát
+      // Validation of current data
       body: t.Object({
         firstName: t.String({ minLength: 1 }),
         lastName: t.String({ minLength: 1 }),
