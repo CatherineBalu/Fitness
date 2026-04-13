@@ -40,3 +40,5 @@ pnpm-lock.yaml
 *.njsproj
 *.sln
 *.sw?
+
+*:Zone.Identifier

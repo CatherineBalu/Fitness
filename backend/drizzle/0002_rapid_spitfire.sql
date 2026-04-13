@@ -1,0 +1,1 @@
+ALTER TABLE "TB_customer" ALTER COLUMN "subscription_valid_until" DROP NOT NULL;
