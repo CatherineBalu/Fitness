@@ -3,6 +3,7 @@ import { Link, Outlet } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import '../App.css';
 import { SignUpForm } from '@/components/ui/signUpForm';
+import { Toaster } from 'sonner';
 
 export default function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -118,6 +119,11 @@ export default function RootLayout() {
           <p>© 2026 Fitness XY. All rights reserved.</p>
         </div>
       </footer>
+      <Toaster 
+        theme="dark" 
+        position="bottom-right" 
+        richColors 
+      />
     </div>
   );
 }

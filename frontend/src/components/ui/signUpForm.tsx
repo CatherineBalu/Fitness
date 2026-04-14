@@ -1,7 +1,8 @@
 // frontend/src/components/auth/SignUpForm.tsx
 import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
-import {  Loader2 } from "lucide-react" // Pridaný Loader2
+import {  Loader2 } from "lucide-react"
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +24,6 @@ function Login({ onSwitchToRegister, onSuccess }: { onSwitchToRegister: () => vo
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Changed: We now only keep the error message, success is handled by the parent
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -39,18 +38,28 @@ function Login({ onSwitchToRegister, onSuccess }: { onSwitchToRegister: () => vo
     setIsSubmitting(true);
 
     try {
-      // REAL FETCH TO BACKEND WILL BE HERE LATER
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch("http://localhost:3000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.error || "Login failed.");
+        return;
+      }
       
-      // SUCCESS: Instead of displaying text, we call a function from the parent
       onSuccess();
 
     } catch (error) {
-      setErrorMessage("Invalid email or password.");
+      console.error("Network error:", error);
+      setErrorMessage("Failed to connect to the server. Is the backend running?");
     } finally {
       setIsSubmitting(false);
     }
-};
+  };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-left-4 duration-300">
@@ -152,7 +161,7 @@ const registerSchema = z.object({
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
-  path: ["confirmPassword"], // This tells Zod to attach the error to the confirmPassword field
+  path: ["confirmPassword"],
 })
 
 // ==========================================
@@ -160,7 +169,6 @@ const registerSchema = z.object({
 // ==========================================
 
 function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
-  // Form data state
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -170,17 +178,14 @@ function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
     confirmPassword: ""
   })
 
-  // Error messages state
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<{type: 'success' | 'error' | null, message: string}>({ type: null, message: "" })
 
-  // Generic change handler for inputs
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
     setFormData(prev => ({ ...prev, [id]: value }))
     
-    // Clear the specific error when the user starts typing again
     if (errors[id]) {
       setErrors(prev => ({ ...prev, [id]: "" }))
     }
@@ -192,7 +197,6 @@ function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
     if (!emailToCheck || !emailToCheck.includes("@")) return
 
     try {
-      console.log("Checking email:", emailToCheck) // Debugging: see if it fires
       
       const response = await fetch("http://localhost:3000/auth/check-email", {
         method: "POST",
@@ -220,10 +224,8 @@ function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 1. Reset any previous success/error messages
     setSubmitStatus({ type: null, message: "" }) 
     
-    // 2. Validate all form fields using Zod schema
     const result = registerSchema.safeParse(formData)
 
     if (!result.success) {
@@ -233,19 +235,15 @@ function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
         formattedErrors[issue.path[0] as string] = issue.message
       })
       setErrors(formattedErrors)
-      return // Stop execution
+      return
     }
 
-    // 3. Block submission if the real-time check already flagged the email
     if (errors.email === "This email is already registered.") {
       return 
     }
-
-    // 4. Lock the submit button and show loading spinner
     setIsSubmitting(true)
 
     try {
-      // 5. Send validated data to the backend
       const response = await fetch("http://localhost:3000/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -254,24 +252,20 @@ function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
       
       const data = await response.json()
 
-      // 6. Handle backend errors (e.g., 409 Conflict if email is taken right at submission)
       if (!response.ok) {
         setSubmitStatus({ type: 'error', message: data.error || "Registration failed." })
         return
       }
 
-      // 7. Handle success: Show success banner and clear the form
       setSubmitStatus({ type: 'success', message: "Account created successfully! You can now log in." })
       setFormData({ 
         firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "" 
       })
 
     } catch (error) {
-      // 8. Handle complete network failures (backend is down)
       console.error("Failed to connect to the backend:", error)
       setSubmitStatus({ type: 'error', message: "Network error. Is the backend running?" })
     } finally {
-      // 9. Unlock the submit button regardless of outcome
       setIsSubmitting(false)
     }
   }
@@ -403,14 +397,18 @@ function Register({ onSwitchToLogin }: { onSwitchToLogin: () => void }){
 // MAIN WRAPPER COMPONENT (Exported)
 // ==========================================
 export function SignUpForm() {
-  const [view, setView] = useState<'login' | 'register'>('login')
-  const [isModalOpen, setIsModalOpen] = useState(true);
+  const [view, setView] = useState<'login' | 'register'>('login')  
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <Dialog onOpenChange={(open) => {
-      // Reset to login view shortly after modal closes
-      if (!open) setTimeout(() => setView('login'), 300)
-    }}>
+    <Dialog 
+      open={isModalOpen} 
+      
+      onOpenChange={(open) => {
+        setIsModalOpen(open);        
+        if (!open) setTimeout(() => setView('login'), 300)
+      }}
+    >
       <DialogTrigger asChild>
         <button className="btn-primary">Sign Up</button>
       </DialogTrigger>
@@ -442,15 +440,17 @@ export function SignUpForm() {
         
         {/* CONTENT SECTION */}
         <div className="py-2 relative">
-          {/* Render Login or Register based on 'view' state */}
-          <Login
-          // TODO Finish, correct login close LOGIN UI
+          {view === 'login' && (
+            <Login
               onSwitchToRegister={() => setView('register')} 
               onSuccess={() => {
                 setIsModalOpen(false);
-                alert("Successfully logged in!");
+                toast.success("Successfully logged in!", {
+                  description: "Welcome back to the gym!"
+                });
               }} 
             />
+          )}
           {view === 'register' && <Register onSwitchToLogin={() => setView('login')} />}
         </div>
 

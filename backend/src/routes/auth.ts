@@ -94,7 +94,59 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }),
     }
   )
+// ==========================================
+// POST /auth/login
+// User verification and login
+// ==========================================
+.post(
+  '/login',
+  async ({ body, set }) => {
+    try {
+      const users = await db
+        .select()
+        .from(tbPerson)
+        .where(eq(tbPerson.email, body.email))
+        .limit(1);
 
+      const user = users[0];
+
+      if (!user) {
+        set.status = 401; // Unauthorized
+        return { error: 'Invalid email or password' };
+      }
+
+      const isPasswordValid = await Bun.password.verify(body.password, user.password);
+
+      if (!isPasswordValid) {
+        set.status = 401;
+        return { error: 'Invalid email or password' };
+      }
+
+      set.status = 200;
+      console.log("connected user: ", user)
+      return { 
+        success: true, 
+        message: 'Logged in successfully',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        }
+      };
+
+    } catch (error) {
+      console.error("Login error:", error);
+      set.status = 500;
+      return { error: 'Internal server error' };
+    }
+  },
+  {
+    body: t.Object({
+      email: t.String({ format: 'email' }),
+      password: t.String() 
+    })
+  }
+)
   // GET /auth/me — returns current user from JWT cookie (requires auth)
   .use(authGuard)
   .get('/me', ({ user }) => {
