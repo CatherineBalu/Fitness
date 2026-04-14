@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import './SchedulePage.css';
+
+const API_URL = 'http://localhost:3000';
 
 const CATEGORIES = [
   'All lectures',
@@ -15,237 +17,56 @@ const CATEGORIES = [
 
 type Category = (typeof CATEGORIES)[number];
 
+interface ScheduleItem {
+  id: string;
+  startTime: string;
+  endTime: string;
+  lectureName: string;
+  description: string;
+  roomName: string;
+  roomCapacity: number;
+  exerciseType: string;
+  instructors: { name: string; isLead: boolean }[];
+  registered: number;
+}
+
 interface Activity {
-  id: number;
+  id: string;
   time: string;
   name: string;
   room: string;
   trainer: string;
   capacity: number;
   registered: number;
-  membersOnly: boolean;
-  category: Category;
+  category: string;
   dayIndex: number; // 0=Monday ... 6=Sunday
 }
 
-const SAMPLE_ACTIVITIES: Activity[] = [
-  {
-    id: 1,
-    time: '9:00 - 10:00',
-    name: 'Vinyasa Yoga',
-    room: 'Room A',
-    trainer: 'Sarah',
-    capacity: 15,
-    registered: 3,
-    membersOnly: true,
-    category: 'Yoga',
-    dayIndex: 0,
-  },
-  {
-    id: 2,
-    time: '17:00 - 18:00',
-    name: 'Power Training',
-    room: 'Room B',
-    trainer: 'Mike',
-    capacity: 20,
-    registered: 12,
-    membersOnly: false,
-    category: 'Power',
-    dayIndex: 0,
-  },
-  {
-    id: 3,
-    time: '10:00 - 11:00',
-    name: 'HIIT Cardio',
-    room: 'Room C',
-    trainer: 'Jana',
-    capacity: 25,
-    registered: 18,
-    membersOnly: true,
-    category: 'Cardio',
-    dayIndex: 1,
-  },
-  {
-    id: 4,
-    time: '8:00 - 9:00',
-    name: 'Morning Yoga',
-    room: 'Room A',
-    trainer: 'Sarah',
-    capacity: 15,
-    registered: 7,
-    membersOnly: false,
-    category: 'Yoga',
-    dayIndex: 1,
-  },
-  {
-    id: 5,
-    time: '18:00 - 19:00',
-    name: 'Jumping Fitness',
-    room: 'Room D',
-    trainer: 'Lucia',
-    capacity: 12,
-    registered: 12,
-    membersOnly: true,
-    category: 'Jumping fitness',
-    dayIndex: 2,
-  },
-  {
-    id: 6,
-    time: '11:00 - 12:00',
-    name: 'Vinyasa Yoga',
-    room: 'Room A',
-    trainer: 'Sarah',
-    capacity: 15,
-    registered: 5,
-    membersOnly: false,
-    category: 'Yoga',
-    dayIndex: 2,
-  },
-  {
-    id: 7,
-    time: '16:00 - 17:00',
-    name: 'Power Lifting',
-    room: 'Room B',
-    trainer: 'Mike',
-    capacity: 10,
-    registered: 8,
-    membersOnly: true,
-    category: 'Power',
-    dayIndex: 2,
-  },
-  {
-    id: 8,
-    time: '7:00 - 8:00',
-    name: 'Spin Class',
-    room: 'Room C',
-    trainer: 'Jana',
-    capacity: 20,
-    registered: 14,
-    membersOnly: false,
-    category: 'Cardio',
-    dayIndex: 3,
-  },
-  {
-    id: 9,
-    time: '17:00 - 18:00',
-    name: 'Vinyasa Yoga',
-    room: 'Room A',
-    trainer: 'Sarah',
-    capacity: 15,
-    registered: 3,
-    membersOnly: true,
-    category: 'Yoga',
-    dayIndex: 3,
-  },
-  {
-    id: 10,
-    time: '9:00 - 10:00',
-    name: 'Morning Power',
-    room: 'Room B',
-    trainer: 'Mike',
-    capacity: 20,
-    registered: 11,
-    membersOnly: false,
-    category: 'Power',
-    dayIndex: 4,
-  },
-  {
-    id: 11,
-    time: '18:00 - 19:00',
-    name: 'Cardio Blast',
-    room: 'Room C',
-    trainer: 'Jana',
-    capacity: 25,
-    registered: 20,
-    membersOnly: true,
-    category: 'Cardio',
-    dayIndex: 4,
-  },
-  {
-    id: 12,
-    time: '10:00 - 11:00',
-    name: 'Jumping Fitness',
-    room: 'Room D',
-    trainer: 'Lucia',
-    capacity: 12,
-    registered: 6,
-    membersOnly: false,
-    category: 'Jumping fitness',
-    dayIndex: 4,
-  },
-  {
-    id: 13,
-    time: '10:00 - 11:00',
-    name: 'Weekend Yoga',
-    room: 'Room A',
-    trainer: 'Sarah',
-    capacity: 15,
-    registered: 9,
-    membersOnly: false,
-    category: 'Yoga',
-    dayIndex: 5,
-  },
-  {
-    id: 14,
-    time: '14:00 - 15:00',
-    name: 'Power Hour',
-    room: 'Room B',
-    trainer: 'Mike',
-    capacity: 20,
-    registered: 15,
-    membersOnly: true,
-    category: 'Power',
-    dayIndex: 5,
-  },
-  {
-    id: 15,
-    time: '9:00 - 10:00',
-    name: 'Sunday Yoga',
-    room: 'Room A',
-    trainer: 'Sarah',
-    capacity: 15,
-    registered: 4,
-    membersOnly: false,
-    category: 'Yoga',
-    dayIndex: 6,
-  },
-  {
-    id: 16,
-    time: '11:00 - 12:00',
-    name: 'Cardio Mix',
-    room: 'Room C',
-    trainer: 'Jana',
-    capacity: 25,
-    registered: 10,
-    membersOnly: true,
-    category: 'Cardio',
-    dayIndex: 6,
-  },
-  {
-    id: 17,
-    time: '15:00 - 16:00',
-    name: 'Jumping Fitness',
-    room: 'Room D',
-    trainer: 'Lucia',
-    capacity: 12,
-    registered: 8,
-    membersOnly: false,
-    category: 'Jumping fitness',
-    dayIndex: 6,
-  },
-  {
-    id: 18,
-    time: '17:00 - 18:00',
-    name: 'Evening Yoga',
-    room: 'Room A',
-    trainer: 'Sarah',
-    capacity: 15,
-    registered: 11,
-    membersOnly: true,
-    category: 'Yoga',
-    dayIndex: 6,
-  },
-];
+function toActivity(item: ScheduleItem, weekStart: Date): Activity {
+  const start = new Date(item.startTime);
+  const end = new Date(item.endTime);
+  const fmt = (d: Date) =>
+    `${d.getUTCHours()}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+
+  // Calculate day index relative to week start (Monday=0)
+  const diffMs = start.getTime() - weekStart.getTime();
+  const dayIndex = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const lead = item.instructors.find((i) => i.isLead);
+  const trainer = lead ? lead.name : (item.instructors[0]?.name ?? 'TBD');
+
+  return {
+    id: item.id,
+    time: `${fmt(start)} - ${fmt(end)}`,
+    name: item.lectureName,
+    room: item.roomName,
+    trainer,
+    capacity: item.roomCapacity,
+    registered: item.registered,
+    category: item.exerciseType,
+    dayIndex,
+  };
+}
 
 const DAY_NAMES = [
   'Monday',
@@ -258,33 +79,34 @@ const DAY_NAMES = [
 ];
 
 function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() + diff);
   return d;
 }
 
 function formatDate(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
   return `${dd}.${mm}.`;
 }
 
 function formatDateRange(weekStart: Date): string {
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const year = weekStart.getFullYear();
-  return `${formatDate(weekStart)} ${year} - ${formatDate(weekEnd)} ${weekEnd.getFullYear()}`;
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+  const year = weekStart.getUTCFullYear();
+  return `${formatDate(weekStart)} ${year} - ${formatDate(weekEnd)} ${weekEnd.getUTCFullYear()}`;
 }
 
 function isToday(date: Date): boolean {
   const now = new Date();
   return (
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
+    date.getUTCDate() === now.getDate() &&
+    date.getUTCMonth() === now.getMonth() &&
+    date.getUTCFullYear() === now.getFullYear()
   );
 }
 
@@ -296,11 +118,9 @@ function ActivityCard({ activity }: { activity: Activity }) {
       <CardContent className="cal-activity-content">
         <div className="cal-activity-top">
           <span className="cal-activity-time">{activity.time}</span>
-          {activity.membersOnly && (
-            <Badge variant="outline" className="cal-badge-members">
-              Members only
-            </Badge>
-          )}
+          <Badge variant="outline" className="cal-badge-members">
+            {activity.category}
+          </Badge>
         </div>
         <h4 className="cal-activity-name">{activity.name}</h4>
         <div className="cal-activity-details">
@@ -324,6 +144,36 @@ export default function SchedulePage() {
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(
     new Set(['All lectures']),
   );
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+    const from = fmtISO(weekStart);
+    const toDate = new Date(weekStart);
+    toDate.setUTCDate(toDate.getUTCDate() + 6);
+    const to = fmtISO(toDate);
+
+    fetch(`${API_URL}/schedule?from=${from}&to=${to}`)
+      .then((res) => res.json())
+      .then((data: ScheduleItem[]) => {
+        if (!cancelled) {
+          setActivities(data.map((item) => toActivity(item, weekStart)));
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('Failed to fetch schedule:', err);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [weekStart]);
 
   const toggleCategory = (cat: Category) => {
     setActiveCategories((prev) => {
@@ -342,14 +192,14 @@ export default function SchedulePage() {
   };
 
   const filteredActivities = useMemo(() => {
-    if (activeCategories.has('All lectures')) return SAMPLE_ACTIVITIES;
-    return SAMPLE_ACTIVITIES.filter((a) => activeCategories.has(a.category));
-  }, [activeCategories]);
+    if (activeCategories.has('All lectures')) return activities;
+    return activities.filter((a) => activeCategories.has(a.category));
+  }, [activeCategories, activities]);
 
   const weekDays = useMemo(() => {
     return DAY_NAMES.map((name, i) => {
       const date = new Date(weekStart);
-      date.setDate(date.getDate() + i);
+      date.setUTCDate(date.getUTCDate() + i);
       return { name, date, dayIndex: i };
     });
   }, [weekStart]);
@@ -357,7 +207,7 @@ export default function SchedulePage() {
   const prevWeek = () => {
     setWeekStart((prev) => {
       const d = new Date(prev);
-      d.setDate(d.getDate() - 7);
+      d.setUTCDate(d.getUTCDate() - 7);
       return d;
     });
   };
@@ -365,7 +215,7 @@ export default function SchedulePage() {
   const nextWeek = () => {
     setWeekStart((prev) => {
       const d = new Date(prev);
-      d.setDate(d.getDate() + 7);
+      d.setUTCDate(d.getUTCDate() + 7);
       return d;
     });
   };
@@ -414,6 +264,9 @@ export default function SchedulePage() {
         </div>
 
         {/* Weekly grid */}
+        {loading && (
+          <p style={{ color: 'var(--c-muted)' }}>Loading schedule...</p>
+        )}
         <div className="cal-week-grid">
           {weekDays.map((day) => {
             const dayActivities = filteredActivities.filter(
