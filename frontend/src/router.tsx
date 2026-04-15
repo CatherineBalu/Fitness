@@ -6,12 +6,14 @@ import {
 import RootLayout from '@/layouts/RootLayout';
 import HomePage from '@/pages/HomePage';
 import SchedulePage from '@/pages/SchedulePage';
+import NotFoundPage from '@/pages/NotFoundPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminStaffPage from '@/pages/admin/AdminStaffPage';
 import AdminCalendarPage from '@/pages/admin/AdminCalendarPage';
 
 const rootRoute = createRootRoute({
   component: RootLayout,
+  notFoundComponent: NotFoundPage,
 });
 
 const indexRoute = createRoute({
