@@ -196,7 +196,7 @@
 
 @media (max-width: 700px) {
   .cal-week-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .cal-root {
@@ -211,10 +211,13 @@
   .cal-date-range {
     font-size: 18px;
   }
-}
 
-@media (max-width: 400px) {
-  .cal-week-grid {
-    grid-template-columns: 1fr;
+  .cal-day-column--today {
+    border-top: none;
+    background: transparent;
+  }
+
+  .cal-day-header {
+    display: none;
   }
 }
