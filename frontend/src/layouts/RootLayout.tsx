@@ -42,10 +42,7 @@ export default function RootLayout() {
             <div className="navbar-links">
               <Link to="/admin/staff">Manage Staff</Link>
               <Link to="/admin/calendar">Calendar</Link>
-              <Link
-                to="/"
-                className="btn-primary"
-              >
+              <Link to="/" className="btn-primary">
                 Switch to public view
               </Link>
             </div>
