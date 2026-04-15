@@ -1,14 +1,18 @@
-import { useState } from 'react';
-import { Clock, MapPin, Users, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, MapPin, Users, Plus, CalendarDays } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import AddScheduleDialog from './AddScheduleDialog';
 import './AdminCalendarPage.css';
+
+const API_URL = 'http://localhost:3000';
 
 type Filter = 'all' | 'today' | 'this-week' | 'upcoming';
 
 interface Lecture {
-  id: number;
+  id: string;
   name: string;
+  date: string; // e.g. "Mon 13.04."
   time: string;
   room: string;
   capacity: number;
@@ -16,98 +20,51 @@ interface Lecture {
   dayOffset: number; // 0 = today, positive = days from now
 }
 
-const LECTURES: Lecture[] = [
-  {
-    id: 1,
-    name: 'Vinyasa Yoga',
-    time: '09:00 - 10:00',
-    room: 'Room A',
-    capacity: 15,
-    registered: 3,
-    dayOffset: 0,
-  },
-  {
-    id: 2,
-    name: 'Power Training',
-    time: '10:00 - 11:00',
-    room: 'Room B',
-    capacity: 20,
-    registered: 14,
-    dayOffset: 0,
-  },
-  {
-    id: 3,
-    name: 'HIIT Cardio',
-    time: '11:00 - 12:00',
-    room: 'Room C',
-    capacity: 25,
-    registered: 25,
-    dayOffset: 0,
-  },
-  {
-    id: 4,
-    name: 'Jumping Fitness',
-    time: '13:00 - 14:00',
-    room: 'Room D',
-    capacity: 12,
-    registered: 10,
-    dayOffset: 0,
-  },
-  {
-    id: 5,
-    name: 'Morning Yoga',
-    time: '08:00 - 09:00',
-    room: 'Room A',
-    capacity: 15,
-    registered: 7,
-    dayOffset: 1,
-  },
-  {
-    id: 6,
-    name: 'Spin Class',
-    time: '17:00 - 18:00',
-    room: 'Room C',
-    capacity: 20,
-    registered: 18,
-    dayOffset: 1,
-  },
-  {
-    id: 7,
-    name: 'Power Lifting',
-    time: '16:00 - 17:00',
-    room: 'Room B',
-    capacity: 10,
-    registered: 4,
-    dayOffset: 2,
-  },
-  {
-    id: 8,
-    name: 'Cardio Blast',
-    time: '18:00 - 19:00',
-    room: 'Room C',
-    capacity: 25,
-    registered: 20,
-    dayOffset: 3,
-  },
-  {
-    id: 9,
-    name: 'Evening Yoga',
-    time: '19:00 - 20:00',
-    room: 'Room A',
-    capacity: 15,
-    registered: 11,
-    dayOffset: 4,
-  },
-  {
-    id: 10,
-    name: 'Sunday Yoga',
-    time: '09:00 - 10:00',
-    room: 'Room A',
-    capacity: 15,
-    registered: 4,
-    dayOffset: 6,
-  },
-];
+interface ScheduleItem {
+  id: string;
+  startTime: string;
+  endTime: string;
+  lectureName: string;
+  roomName: string;
+  roomCapacity: number;
+  registered: number;
+}
+
+function toUTCDateOnly(date: Date): Date {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function scheduleItemToLecture(item: ScheduleItem, todayStart: Date): Lecture {
+  const start = new Date(item.startTime);
+  const end = new Date(item.endTime);
+  const fmtTime = (d: Date) =>
+    `${d.getUTCHours()}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+
+  const itemDay = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()),
+  );
+  const dayOffset = Math.round(
+    (itemDay.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  const dd = String(start.getUTCDate()).padStart(2, '0');
+  const mm = String(start.getUTCMonth() + 1).padStart(2, '0');
+  const dayName = DAY_ABBR[start.getUTCDay()];
+  const date = `${dayName} ${dd}.${mm}.`;
+
+  return {
+    id: item.id,
+    name: item.lectureName,
+    date,
+    time: `${fmtTime(start)} - ${fmtTime(end)}`,
+    room: item.roomName,
+    capacity: item.roomCapacity,
+    registered: item.registered,
+    dayOffset,
+  };
+}
 
 function getStatus(
   registered: number,
@@ -140,6 +97,10 @@ function LectureCard({ lecture }: { lecture: Lecture }) {
         <h3 className="lecture-name">{lecture.name}</h3>
         <div className="lecture-meta">
           <div className="lecture-meta-row">
+            <CalendarDays size={13} />
+            <span>{lecture.date}</span>
+          </div>
+          <div className="lecture-meta-row">
             <Clock size={13} />
             <span>{lecture.time}</span>
           </div>
@@ -171,14 +132,41 @@ const FILTERS: { label: string; value: Filter }[] = [
 
 export default function AdminCalendarPage() {
   const [filter, setFilter] = useState<Filter>('all');
-  const filtered = filterLectures(LECTURES, filter);
+  const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  function fetchLectures() {
+    const today = toUTCDateOnly(new Date());
+    const toDate = new Date(today);
+    toDate.setUTCDate(toDate.getUTCDate() + 29);
+    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+
+    setLoading(true);
+    fetch(`${API_URL}/schedule?from=${fmtISO(today)}&to=${fmtISO(toDate)}`)
+      .then((res) => res.json())
+      .then((data: ScheduleItem[]) => {
+        setLectures(data.map((item) => scheduleItemToLecture(item, today)));
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch schedule:', err);
+        setLoading(false);
+      });
+  }
+
+  useEffect(() => {
+    fetchLectures();
+  }, []);
+
+  const filtered = filterLectures(lectures, filter);
 
   return (
     <div className="admin-cal-page">
       <div className="admin-cal-inner">
         <div className="admin-cal-header">
           <h1 className="admin-cal-title">My lectures</h1>
-          <Button className="admin-cal-add-btn">
+          <Button className="admin-cal-add-btn" onClick={() => setDialogOpen(true)}>
             <Plus size={15} />
             Add
           </Button>
@@ -217,12 +205,21 @@ export default function AdminCalendarPage() {
           </span>
         </div>
 
+        {loading && (
+          <p style={{ color: 'var(--c-muted)' }}>Loading schedule...</p>
+        )}
         <div className="admin-cal-grid">
           {filtered.map((lecture) => (
             <LectureCard key={lecture.id} lecture={lecture} />
           ))}
         </div>
       </div>
+
+      <AddScheduleDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onCreated={fetchLectures}
+      />
     </div>
   );
 }

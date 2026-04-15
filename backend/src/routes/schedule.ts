@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+import { z } from 'zod';
 import { db } from '../db/db';
 import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
 import {
@@ -32,12 +33,34 @@ function isSubscriptionActive(validUntil: string | null): boolean {
   return new Date(validUntil) >= new Date(new Date().toISOString().split('T')[0]);
 }
 
+const createScheduleSchema = z
+  .object({
+    lectureId: z.string().uuid('lectureId must be a valid UUID'),
+    roomId: z.string().uuid('roomId must be a valid UUID'),
+    startTime: z.iso.datetime('startTime must be a valid ISO datetime'),
+    endTime: z.iso.datetime('endTime must be a valid ISO datetime'),
+    instructors: z
+      .array(
+        z.object({
+          employeeId: z.string().uuid('employeeId must be a valid UUID'),
+          isLead: z.boolean(),
+        }),
+      )
+      .optional(),
+  })
+  .refine((d) => new Date(d.endTime) > new Date(d.startTime), {
+    message: 'End time must be after start time',
+    path: ['endTime'],
+  });
+
 export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
 
   // GET /schedule?from=2026-04-13&to=2026-04-19
   .get(
     '/',
-    async ({ query, auth }) => {
+    async ({ query, ...rest }) => {
+      const auth = (rest as any).auth;
+      
       const from = new Date(query.from);
       const to = new Date(query.to);
       to.setHours(23, 59, 59, 999);
@@ -133,7 +156,9 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
   .group('/:id/reservations', (app) =>
     app
       .use(requirePermission('reservation:write'))
-      .post('/', async ({ params, auth, set }) => {
+      .post('/', async ({ params, set, ...rest }) => {
+        const auth = (rest as any).auth;
+        
         const customer = await getCustomerByClerkId(auth!.userId);
         if (!customer) {
           set.status = 404;
@@ -202,7 +227,9 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
       })
 
       // DELETE /schedule/:id/reservations — cancel current user's reservation
-      .delete('/', async ({ params, auth, set }) => {
+      .delete('/', async ({ params, set, ...rest }) => {
+        const auth = (rest as any).auth;
+        
         const customer = await getCustomerByClerkId(auth!.userId);
         if (!customer) {
           set.status = 404;
@@ -225,5 +252,99 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
         }
 
         return { success: true };
+      })
+  )
+
+  // GET /schedule/lectures — list all lecture templates
+  .get('/lectures', async () => {
+    const lectures = await db
+      .select({
+        id: tbLecture.id,
+        lectureName: tbLecture.lectureName,
+        exerciseType: tbExerciseType.name,
+      })
+      .from(tbLecture)
+      .innerJoin(tbExerciseType, eq(tbLecture.exerciseTypeId, tbExerciseType.id))
+      .orderBy(tbLecture.lectureName);
+
+    return lectures;
+  })
+
+  // GET /schedule/rooms — list all rooms
+  .get('/rooms', async () => {
+    const rooms = await db
+      .select({ id: tbRoom.id, name: tbRoom.name, capacity: tbRoom.capacity })
+      .from(tbRoom)
+      .orderBy(tbRoom.name);
+
+    return rooms;
+  })
+
+  // GET /schedule/instructors — list all employees
+  .get('/instructors', async () => {
+    const instructors = await db
+      .select({
+        id: tbEmployee.id,
+        name: tbPerson.name,
+        surname: tbPerson.surname,
+      })
+      .from(tbEmployee)
+      .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
+      .orderBy(tbPerson.surname);
+
+    return instructors.map((i) => ({ id: i.id, name: `${i.name} ${i.surname}` }));
+  })
+
+  // POST /schedule — create a new scheduled lecture
+  .post(
+    '/',
+    async ({ body, set }) => {
+      const result = createScheduleSchema.safeParse(body);
+
+      if (!result.success) {
+        set.status = 422;
+        return { errors: result.error.flatten().fieldErrors };
+      }
+
+      const { lectureId, roomId, startTime, endTime, instructors } = result.data;
+
+      const [schedule] = await db
+        .insert(tbSchedule)
+        .values({
+          lectureId,
+          roomId,
+          startTime: new Date(startTime),
+          endTime: new Date(endTime),
+        })
+        .returning();
+
+      if (instructors && instructors.length > 0) {
+        await db.insert(tbScheduleInstructor).values(
+          instructors.map((inst) => ({
+            scheduleId: schedule.id,
+            employeeId: inst.employeeId,
+            isLead: inst.isLead,
+          })),
+        );
+      }
+
+      set.status = 201;
+      return { id: schedule.id };
+    },
+    {
+      body: t.Object({
+        lectureId: t.String(),
+        roomId: t.String(),
+        startTime: t.String(),
+        endTime: t.String(),
+        instructors: t.Optional(
+          t.Array(
+            t.Object({
+              employeeId: t.String(),
+              isLead: t.Boolean(),
+            }),
+          ),
+        ),
       }),
+    },
   );
