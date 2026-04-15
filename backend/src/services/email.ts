@@ -11,10 +11,10 @@ export const sendVerificationEmail = async (email: string, code: string): Promis
     console.log(`Recipient: ${email}`);
     console.log(`Your verification code is: ${code}`);
     console.log(`----------------------------------------\n`);
-    
+
     return true; // We pretend the email was successfully sent
   } catch (error) {
-    console.error("Error while sending email:", error);
+    console.error('Error while sending email:', error);
     return false;
   }
 };

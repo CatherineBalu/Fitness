@@ -13,7 +13,7 @@ import {
   tbScheduleInstructor,
   tbCustomerReservation,
 } from './schema';
-console.log("TESTING DB URL:", process.env.DATABASE_URL);
+console.log('TESTING DB URL:', process.env.DATABASE_URL);
 
 /** Returns the Monday of the current week at 00:00 UTC */
 function getCurrentWeekMonday(): Date {
@@ -228,21 +228,11 @@ async function main() {
       ])
       .returning();
 
-// Map lectures by name for easy reference
-const lec = Object.fromEntries(lectures.map((l) => [l.lectureName, l.id]));
+    // Map lectures by name for easy reference
+    const lec = Object.fromEntries(lectures.map((l) => [l.lectureName, l.id]));
 
-// Creating persons
-console.log('Creating persons');
-const peopleData = Array.from({ length: 10 }).map(() => ({
-  name: faker.person.firstName(),
-  surname: faker.person.lastName(),
-  email: faker.internet.email(),
-  password: faker.internet.password(), // IN REAL APP HASH THIS
-  phoneNumber: faker.phone.number(),
-}));
-
-// Map trainers: Sarah=yoga, Mike=power, Jana=cardio, Lucia=jumping, Tom=mixed
-const [sarah, mike, jana, lucia, tom] = trainers;
+    // Map trainers: Sarah=yoga, Mike=power, Jana=cardio, Lucia=jumping, Tom=mixed
+    const [sarah, mike, jana, lucia, tom] = trainers;
 
     // 7. Schedule — spread across current week (Mon-Sun)
     console.log('Creating schedule for current week');
