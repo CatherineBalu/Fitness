@@ -39,11 +39,11 @@ export const tbRoom = pgTable('TB_room', {
 
 export const tbPerson = pgTable('TB_person', {
   id: uuid('ID_person').primaryKey().defaultRandom(),
+  clerkId: text('clerk_id').notNull().unique(),
   name: text('name').notNull(),
   surname: text('surname').notNull(),
   email: text('email').notNull().unique(),
-  password: text('password').notNull(),
-  phoneNumber: text('phone_number').notNull(),
+  phoneNumber: text('phone_number'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
