@@ -61,7 +61,7 @@ export default function RootLayout() {
               <a href="#contact" onClick={() => setMenuOpen(false)}>
                 Contact
               </a>
-              <button className="btn-primary">Log in</button>
+              <SignUpForm />
             </div>
           )}
 
@@ -150,11 +150,7 @@ export default function RootLayout() {
           <p>© 2026 Fitness XY. All rights reserved.</p>
         </div>
       </footer>
-      <Toaster 
-        theme="dark" 
-        position="bottom-right" 
-        richColors 
-      />
+      <Toaster theme="dark" position="bottom-right" richColors />
     </div>
   );
 }
