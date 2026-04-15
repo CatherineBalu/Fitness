@@ -139,8 +139,29 @@ function ActivityCard({ activity }: { activity: Activity }) {
   );
 }
 
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(max-width: 700px)').matches
+      : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 700px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+}
+
 export default function SchedulePage() {
+  const isMobile = useIsMobile();
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
+    const today = new Date();
+    const day = today.getUTCDay();
+    return day === 0 ? 6 : day - 1; // Monday = 0, Sunday = 6
+  });
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(
     new Set(['All lectures']),
   );
@@ -204,20 +225,46 @@ export default function SchedulePage() {
     });
   }, [weekStart]);
 
-  const prevWeek = () => {
-    setWeekStart((prev) => {
-      const d = new Date(prev);
-      d.setUTCDate(d.getUTCDate() - 7);
-      return d;
-    });
+  const goPrev = () => {
+    if (isMobile) {
+      if (selectedDayIndex === 0) {
+        setWeekStart((prev) => {
+          const d = new Date(prev);
+          d.setUTCDate(d.getUTCDate() - 7);
+          return d;
+        });
+        setSelectedDayIndex(6);
+      } else {
+        setSelectedDayIndex((i) => i - 1);
+      }
+    } else {
+      setWeekStart((prev) => {
+        const d = new Date(prev);
+        d.setUTCDate(d.getUTCDate() - 7);
+        return d;
+      });
+    }
   };
 
-  const nextWeek = () => {
-    setWeekStart((prev) => {
-      const d = new Date(prev);
-      d.setUTCDate(d.getUTCDate() + 7);
-      return d;
-    });
+  const goNext = () => {
+    if (isMobile) {
+      if (selectedDayIndex === 6) {
+        setWeekStart((prev) => {
+          const d = new Date(prev);
+          d.setUTCDate(d.getUTCDate() + 7);
+          return d;
+        });
+        setSelectedDayIndex(0);
+      } else {
+        setSelectedDayIndex((i) => i + 1);
+      }
+    } else {
+      setWeekStart((prev) => {
+        const d = new Date(prev);
+        d.setUTCDate(d.getUTCDate() + 7);
+        return d;
+      });
+    }
   };
 
   return (
@@ -242,21 +289,25 @@ export default function SchedulePage() {
           ))}
         </div>
 
-        {/* Week navigation */}
+        {/* Week / day navigation */}
         <div className="cal-week-nav">
           <Button
             variant="ghost"
             size="icon"
-            onClick={prevWeek}
+            onClick={goPrev}
             className="cal-nav-arrow"
           >
             <ChevronLeft />
           </Button>
-          <span className="cal-date-range">{formatDateRange(weekStart)}</span>
+          <span className="cal-date-range">
+            {isMobile
+              ? `${weekDays[selectedDayIndex].name} ${formatDate(weekDays[selectedDayIndex].date)} ${weekDays[selectedDayIndex].date.getFullYear()}`
+              : formatDateRange(weekStart)}
+          </span>
           <Button
             variant="ghost"
             size="icon"
-            onClick={nextWeek}
+            onClick={goNext}
             className="cal-nav-arrow"
           >
             <ChevronRight />
@@ -268,7 +319,10 @@ export default function SchedulePage() {
           <p style={{ color: 'var(--c-muted)' }}>Loading schedule...</p>
         )}
         <div className="cal-week-grid">
-          {weekDays.map((day) => {
+          {(isMobile
+            ? weekDays.filter((d) => d.dayIndex === selectedDayIndex)
+            : weekDays
+          ).map((day) => {
             const dayActivities = filteredActivities.filter(
               (a) => a.dayIndex === day.dayIndex,
             );
