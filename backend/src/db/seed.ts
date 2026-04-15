@@ -13,6 +13,7 @@ import {
   tbScheduleInstructor,
   tbCustomerReservation,
 } from './schema';
+console.log('TESTING DB URL:', process.env.DATABASE_URL);
 
 /** Returns the Monday of the current week at 00:00 UTC */
 function getCurrentWeekMonday(): Date {

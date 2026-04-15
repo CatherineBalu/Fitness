@@ -1,57 +1,152 @@
 import { Elysia, t } from 'elysia';
-import { jwtPlugin, authGuard, type JwtPayload } from '../middleware/auth';
-
-// TODO: replace mock user lookup with Drizzle DB queries
-const MOCK_USERS = [
-  { id: '1', email: 'admin@gym.com', password: 'admin123', role: 'admin' as const },
-  { id: '2', email: 'staff@gym.com', password: 'staff123', role: 'staff' as const },
-  { id: '3', email: 'customer@gym.com', password: 'customer123', role: 'customer' as const },
-];
+import { jwtPlugin, authGuard } from '../middleware/auth';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/db';
+import { tbPerson, tbCustomer } from '../db/schema';
+import { sendVerificationEmail } from '../services/email';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .use(jwtPlugin)
 
-  // POST /auth/login
+  // ==========================================
+  // POST /auth/check-email
+  // Checks if an email is already registered (used for real-time validation on frontend)
+  // ==========================================
   .post(
-    '/login',
-    async ({ body, jwt, cookie: { session }, set }) => {
-      // TODO: replace with db.query.users.findFirst({ where: eq(users.email, body.email) })
-      const user = MOCK_USERS.find((u) => u.email === body.email);
+    '/check-email',
+    async ({ body }) => {
+      const existingUser = await db
+        .select()
+        .from(tbPerson)
+        .where(eq(tbPerson.email, body.email))
+        .limit(1);
 
-      if (!user || user.password !== body.password) {
-        // TODO: use proper password hashing (e.g. Bun.password.verify)
-        set.status = 401;
-        return 'Invalid email or password';
-      }
-
-      const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
-      const token = await jwt.sign(payload);
-
-      session.set({
-        value: token,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        path: '/',
-      });
-
-      return { user: payload };
+      console.log('running: ', existingUser);
+      return { available: existingUser.length === 0 };
     },
     {
       body: t.Object({
         email: t.String({ format: 'email' }),
-        password: t.String({ minLength: 1 }),
       }),
     },
   )
 
-  // POST /auth/logout
-  .post('/logout', ({ cookie: { session } }) => {
-    session.remove();
-    return { success: true };
-  })
+  // ==========================================
+  // POST /auth/register
+  // Handles the actual sign-up process
+  // ==========================================
+  .post(
+    '/register',
+    async ({ body, set }) => {
+      const existingUser = await db
+        .select()
+        .from(tbPerson)
+        .where(eq(tbPerson.email, body.email))
+        .limit(1);
 
+      if (existingUser.length > 0) {
+        set.status = 409;
+        return { error: 'Email is already registered' };
+      }
+      // using Argon2
+      const hashedPassword = await Bun.password.hash(body.password);
+
+      try {
+        const [newPerson] = await db
+          .insert(tbPerson)
+          .values({
+            name: body.firstName,
+            surname: body.lastName,
+            email: body.email,
+            password: hashedPassword,
+            phoneNumber: body.phone,
+          })
+          .returning();
+
+        await db.insert(tbCustomer).values({
+          personId: newPerson.id,
+        });
+
+        // Sending mail
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const emailSent = await sendVerificationEmail(body.email, verificationCode);
+
+        if (!emailSent) {
+          console.warn(`Warning: The verification email for ${body.email} could not be sent.`);
+          // In practice, you can add logic here to resend it later
+        }
+
+        set.status = 201;
+        return { success: true, message: 'Account created successfully in DB!' };
+      } catch (error) {
+        console.error('Database insert error:', error);
+        set.status = 500;
+        return { error: 'Failed to create account in the database' };
+      }
+    },
+    {
+      // Validation of current data
+      body: t.Object({
+        firstName: t.String({ minLength: 1 }),
+        lastName: t.String({ minLength: 1 }),
+        email: t.String({ format: 'email' }),
+        phone: t.String(),
+        password: t.String({ minLength: 8 }),
+      }),
+    },
+  )
+  // ==========================================
+  // POST /auth/login
+  // User verification and login
+  // ==========================================
+  .post(
+    '/login',
+    async ({ body, set }) => {
+      try {
+        const users = await db
+          .select()
+          .from(tbPerson)
+          .where(eq(tbPerson.email, body.email))
+          .limit(1);
+
+        const user = users[0];
+
+        if (!user) {
+          set.status = 401; // Unauthorized
+          return { error: 'Invalid email or password' };
+        }
+
+        const isPasswordValid = await Bun.password.verify(body.password, user.password);
+
+        if (!isPasswordValid) {
+          set.status = 401;
+          return { error: 'Invalid email or password' };
+        }
+
+        set.status = 200;
+        console.log('connected user: ', user);
+        return {
+          success: true,
+          message: 'Logged in successfully',
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+        };
+      } catch (error) {
+        console.error('Login error:', error);
+        set.status = 500;
+        return { error: 'Internal server error' };
+      }
+    },
+    {
+      body: t.Object({
+        email: t.String({ format: 'email' }),
+        password: t.String(),
+      }),
+    },
+  )
   // GET /auth/me — returns current user from JWT cookie (requires auth)
   .use(authGuard)
   .get('/me', ({ user }) => {

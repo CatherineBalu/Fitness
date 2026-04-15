@@ -23,6 +23,8 @@ const YOUTUBE_PATH =
 const TIKTOK_PATH =
   'M19.6 6.32a5.6 5.6 0 01-3.36-1.12 5.6 5.6 0 01-2.24-3.2H10.4v13.12a2.56 2.56 0 11-2.56-2.56c.28 0 .55.05.8.13V9.36a6 6 0 00-.8-.06 5.92 5.92 0 105.92 5.92V9.6a8 8 0 005.84 2.24V8.4a5.4 5.4 0 01-1.6-.16 5.6 5.6 0 01-1.4-.92z';
 import '../App.css';
+import { SignUpForm } from '@/components/ui/signUpForm';
+import { Toaster } from 'sonner';
 
 export default function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -59,7 +61,7 @@ export default function RootLayout() {
               <a href="#contact" onClick={() => setMenuOpen(false)}>
                 Contact
               </a>
-              <button className="btn-primary">Log in</button>
+              <SignUpForm />
             </div>
           )}
 
@@ -148,6 +150,7 @@ export default function RootLayout() {
           <p>© 2026 Fitness XY. All rights reserved.</p>
         </div>
       </footer>
+      <Toaster theme="dark" position="bottom-right" richColors />
     </div>
   );
 }
