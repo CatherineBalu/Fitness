@@ -1,14 +1,14 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
 
 // ── Mock @clerk/backend before importing anything that pulls it in ────
-const mockVerifyToken = mock(async (_token: string, _opts: unknown) => {
+const mockVerifyToken = mock(async () => {
   throw new Error('verifyToken not configured for this test');
 });
 
 mock.module('@clerk/backend', () => ({
   createClerkClient: () => ({
     users: {
-      getUser: async (_id: string) => ({
+      getUser: async () => ({
         emailAddresses: [{ emailAddress: 'test@example.com' }],
         firstName: 'Test',
         lastName: 'User',
