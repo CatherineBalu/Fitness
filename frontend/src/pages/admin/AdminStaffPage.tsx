@@ -390,6 +390,7 @@ export default function AdminStaffPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadStaff = useCallback(() => {
     setLoadingStaff(true);
@@ -414,14 +415,24 @@ export default function AdminStaffPage() {
     setTimeout(() => setSuccessMessage(null), 3000);
   }
 
+  function showError(message: string) {
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(null), 4000);
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return;
-    await apiRequest(`/api/staff/${deleteTarget.id}`, { method: 'DELETE' });
+    const target = deleteTarget;
     setDeleteTarget(null);
-    loadStaff();
-    showSuccess(
-      `${deleteTarget.firstName} ${deleteTarget.lastName} has been removed.`,
-    );
+    try {
+      await apiRequest(`/api/staff/${target.id}`, { method: 'DELETE' });
+      loadStaff();
+      showSuccess(`${target.firstName} ${target.lastName} has been removed.`);
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : 'Failed to delete staff member.',
+      );
+    }
   }
 
   const allRoles = Array.from(new Set(staffList.map((s) => s.roleType)));
@@ -497,6 +508,7 @@ export default function AdminStaffPage() {
         {successMessage && (
           <div className="staff-success">{successMessage}</div>
         )}
+        {errorMessage && <div className="staff-error">{errorMessage}</div>}
 
         <div className="admin-staff-counter">
           Employee counter: {filtered.length}

@@ -60,17 +60,14 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
     if (!token) {
-      console.log('[auth] no token in request');
       return { auth: null };
     }
 
     try {
-      console.log('[auth] verifying token...');
       const verified = await verifyToken(token, {
         secretKey: process.env.CLERK_SECRET_KEY,
-        authorizedParties: ['http://localhost:5173'],
+        authorizedParties: [process.env.FRONTEND_URL ?? 'http://localhost:5173'],
       });
-      console.log('[auth] publicMetadata from JWT:', verified.publicMetadata);
       const role = (verified.publicMetadata as { role?: string })?.role ?? 'customer';
       const clerkId = verified.sub;
 
@@ -102,8 +99,7 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
           can: (permission: Permission) => hasPermission(role, permission),
         },
       };
-    } catch (err) {
-      console.log('[auth] verifyToken failed:', err);
+    } catch {
       return { auth: null };
     }
   },

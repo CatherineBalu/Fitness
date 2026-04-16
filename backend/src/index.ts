@@ -6,15 +6,14 @@ import { scheduleRoutes } from './routes/schedule';
 import { staffRoutes, lectureRoutes } from './routes/staff';
 
 export const app = new Elysia()
-  .onRequest(({ request }) => {
-    console.log(`[request] ${request.method} ${request.url}`);
-  })
-  .use(cors({ origin: true, credentials: true }))
+  .use(
+    cors({
+      origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+      credentials: true,
+    }),
+  )
   .use(clerkMiddleware)
-  .get('/', () => {
-    console.log('[test] root route hit');
-    return 'OK';
-  })
+  .get('/', () => 'OK')
   .use(profileRoutes)
   .use(scheduleRoutes)
   .use(staffRoutes)
