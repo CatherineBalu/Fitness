@@ -136,7 +136,7 @@ export const tbPaymentHistory = pgTable('TB_payment_history', {
 // --- SESSIONS AND COOKIES ---
 
 export const tbSession = pgTable('TB_session', {
-  id: text('ID_session').primaryKey(), 
+  id: text('ID_session').primaryKey(),
   personId: uuid('ID_person_fk')
     .notNull()
     .references(() => tbPerson.id, { onDelete: 'cascade' }),
