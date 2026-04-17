@@ -35,7 +35,6 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
   .post(
     '/',
     async ({ body, set, auth }) => {
-      console.log('[POST /api/staff] reached, auth:', auth);
       if (!auth!.can('staff:write')) {
         set.status = 403;
         return { error: 'Forbidden' };
@@ -60,7 +59,6 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
           publicMetadata: { role: 'employee' },
         });
       } catch (err: unknown) {
-        console.log('[POST /api/staff] Clerk error:', JSON.stringify(err, null, 2));
         set.status = 400;
         const clerkErr = err as { errors?: Array<{ longMessage?: string; message?: string }> };
         const message =
@@ -89,7 +87,6 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
           hireDate: today,
         });
       } catch (err) {
-        console.log('[POST /api/staff] DB error:', err);
         // Clerk user was created — clean it up to avoid orphans
         await clerk.users.deleteUser(clerkUser.id).catch(() => {});
         set.status = 500;
