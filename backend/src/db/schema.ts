@@ -133,13 +133,3 @@ export const tbPaymentHistory = pgTable('TB_payment_history', {
   paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
   paymentMethod: text('payment_method').notNull(),
 });
-
-// --- SESSIONS AND COOKIES ---
-
-export const tbSession = pgTable('TB_session', {
-  id: text('ID_session').primaryKey(),
-  personId: uuid('ID_person_fk')
-    .notNull()
-    .references(() => tbPerson.id, { onDelete: 'cascade' }),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-});
