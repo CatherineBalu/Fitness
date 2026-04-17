@@ -60,8 +60,18 @@ export const clerkAppearance: Appearance = {
       backgroundColor: '#161616',
       border: '1px solid #2a2a2a',
     },
-    userButtonPopoverActionButton: { color: '#e5e5e5' },
-    userButtonPopoverActionButtonText: { color: '#e5e5e5' },
+    userButtonPopoverActionButton: {
+      color: '#e5e5e5',
+      '&:hover': { backgroundColor: '#2a2a2a', color: '#aacc00' },
+    },
+    userButtonPopoverActionButtonText: {
+      color: '#e5e5e5',
+      '&:hover': { color: '#aacc00' },
+    },
+    userButtonPopoverActionButtonIcon: {
+      color: '#e5e5e5',
+      '&:hover': { color: '#aacc00' },
+    },
     userButtonPopoverFooter: { display: 'none' },
   },
 };

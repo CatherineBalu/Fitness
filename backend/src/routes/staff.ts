@@ -86,7 +86,7 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
           employeeTypeId: empType.id,
           hireDate: today,
         });
-      } catch (err) {
+      } catch {
         // Clerk user was created — clean it up to avoid orphans
         await clerk.users.deleteUser(clerkUser.id).catch(() => {});
         set.status = 500;
