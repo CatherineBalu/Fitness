@@ -7,12 +7,14 @@ import {
   tbExerciseType,
   tbPerson,
   tbEmployee,
+  tbEmployeeSpecialization, // <-- ADDED
   tbCustomer,
   tbLecture,
   tbSchedule,
   tbScheduleInstructor,
   tbCustomerReservation,
 } from './schema';
+
 console.log('TESTING DB URL:', process.env.DATABASE_URL);
 
 /** Returns the Monday of the current week at 00:00 UTC */
@@ -38,13 +40,14 @@ async function main() {
   console.log('Starting seeding the database');
 
   try {
-    // 1. Clearing database
+    // 1. Clearing database (Important: deletion order matters due to foreign keys)
     console.log('Deleting old data');
     await db.delete(tbCustomerReservation);
     await db.delete(tbScheduleInstructor);
     await db.delete(tbSchedule);
     await db.delete(tbLecture);
     await db.delete(tbCustomer);
+    await db.delete(tbEmployeeSpecialization); // <-- ADDED
     await db.delete(tbEmployee);
     await db.delete(tbPerson);
     await db.delete(tbEmployeeType);
@@ -85,9 +88,11 @@ async function main() {
         { name: 'Power' },
         { name: 'Cardio' },
         { name: 'Jumping fitness' },
+        { name: 'Pilates' },  // <-- ADDED
+        { name: 'Spinning' }, // <-- ADDED
       ])
       .returning();
-    const [yoga, power, cardio, jumping] = exerciseTypes;
+    const [yoga, power, cardio, jumping, pilates, spinning] = exerciseTypes;
 
     // 3. Persons — 5 trainers + 1 receptionist + 10 customers
     console.log('Creating persons');
@@ -103,10 +108,10 @@ async function main() {
       .insert(tbPerson)
       .values(
         trainerNames.map((t) => ({
+          clerkId: `user_${faker.string.uuid()}`, // <-- ADDED CLERK ID
           name: t.name,
           surname: t.surname,
           email: `${t.name.toLowerCase()}@gym.com`,
-          password: faker.internet.password(),
           phoneNumber: faker.phone.number(),
         })),
       )
@@ -116,10 +121,10 @@ async function main() {
       await db
         .insert(tbPerson)
         .values({
+          clerkId: `user_${faker.string.uuid()}`, // <-- ADDED CLERK ID
           name: 'Admin',
           surname: 'User',
           email: 'admin@gym.com',
-          password: 'admin123',
           phoneNumber: faker.phone.number(),
         })
         .returning()
@@ -129,10 +134,10 @@ async function main() {
       .insert(tbPerson)
       .values(
         Array.from({ length: 10 }).map(() => ({
+          clerkId: `user_${faker.string.uuid()}`, // <-- ADDED CLERK ID
           name: faker.person.firstName(),
           surname: faker.person.lastName(),
           email: faker.internet.email(),
-          password: faker.internet.password(),
           phoneNumber: faker.phone.number(),
         })),
       )
@@ -157,6 +162,20 @@ async function main() {
       hireDate: new Date().toISOString(),
     });
 
+    const [sarah, mike, jana, lucia, tom] = trainers;
+
+    // 4.5 Assign Specializations to Instructors
+    console.log('Assigning specializations to trainers');
+    await db.insert(tbEmployeeSpecialization).values([
+      { employeeId: sarah.id, exerciseTypeId: yoga.id },
+      { employeeId: mike.id, exerciseTypeId: power.id },
+      { employeeId: jana.id, exerciseTypeId: cardio.id },
+      { employeeId: jana.id, exerciseTypeId: spinning.id }, // Jana teaches 2 types
+      { employeeId: lucia.id, exerciseTypeId: jumping.id },
+      { employeeId: tom.id, exerciseTypeId: power.id },
+      { employeeId: tom.id, exerciseTypeId: pilates.id },   // Tom teaches 2 types
+    ]);
+
     // 5. Customers
     console.log('Creating customers');
     const customers = await db
@@ -179,60 +198,67 @@ async function main() {
           exerciseTypeId: yoga.id,
           lectureName: 'Vinyasa Yoga',
           description: 'Flowing yoga sequences',
+          forMembers: false, // <-- ADDED
         },
         {
           exerciseTypeId: yoga.id,
           lectureName: 'Morning Yoga',
           description: 'Gentle morning stretch',
+          forMembers: false,
         },
         {
           exerciseTypeId: yoga.id,
           lectureName: 'Power Yoga',
           description: 'Strength-focused yoga',
+          forMembers: false,
         },
         {
           exerciseTypeId: power.id,
           lectureName: 'Power Training',
           description: 'Full body strength',
+          forMembers: false,
         },
         {
           exerciseTypeId: power.id,
           lectureName: 'Power Lifting',
           description: 'Heavy compound lifts',
+          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
         },
         {
           exerciseTypeId: power.id,
           lectureName: 'Power Hour',
           description: 'Intense power session',
+          forMembers: false,
         },
         {
           exerciseTypeId: cardio.id,
           lectureName: 'HIIT Cardio',
           description: 'High intensity intervals',
+          forMembers: false,
         },
         {
-          exerciseTypeId: cardio.id,
+          exerciseTypeId: spinning.id, // <-- USING NEW SPINNING TYPE
           lectureName: 'Spin Class',
           description: 'Indoor cycling workout',
+          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
         },
         {
           exerciseTypeId: cardio.id,
           lectureName: 'Cardio Blast',
           description: 'Mixed cardio drills',
+          forMembers: false,
         },
         {
           exerciseTypeId: jumping.id,
           lectureName: 'Jumping Fitness',
           description: 'Trampoline-based workout',
+          forMembers: false,
         },
       ])
       .returning();
 
     // Map lectures by name for easy reference
     const lec = Object.fromEntries(lectures.map((l) => [l.lectureName, l.id]));
-
-    // Map trainers: Sarah=yoga, Mike=power, Jana=cardio, Lucia=jumping, Tom=mixed
-    const [sarah, mike, jana, lucia, tom] = trainers;
 
     // 7. Schedule — spread across current week (Mon-Sun)
     console.log('Creating schedule for current week');
@@ -251,245 +277,35 @@ async function main() {
       assist?: (typeof trainers)[number];
     }[] = [
       // Monday
-      {
-        lectureName: 'Morning Yoga',
-        room: roomA,
-        day: 0,
-        startH: 7,
-        startM: 0,
-        endH: 8,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'HIIT Cardio',
-        room: roomC,
-        day: 0,
-        startH: 9,
-        startM: 0,
-        endH: 10,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Power Training',
-        room: roomB,
-        day: 0,
-        startH: 17,
-        startM: 0,
-        endH: 18,
-        endM: 0,
-        lead: mike,
-      },
+      { lectureName: 'Morning Yoga', room: roomA, day: 0, startH: 7, startM: 0, endH: 8, endM: 0, lead: sarah },
+      { lectureName: 'HIIT Cardio', room: roomC, day: 0, startH: 9, startM: 0, endH: 10, endM: 0, lead: jana },
+      { lectureName: 'Power Training', room: roomB, day: 0, startH: 17, startM: 0, endH: 18, endM: 0, lead: mike },
       // Tuesday
-      {
-        lectureName: 'Spin Class',
-        room: roomC,
-        day: 1,
-        startH: 7,
-        startM: 0,
-        endH: 8,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Vinyasa Yoga',
-        room: roomA,
-        day: 1,
-        startH: 10,
-        startM: 0,
-        endH: 11,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'Jumping Fitness',
-        room: roomD,
-        day: 1,
-        startH: 18,
-        startM: 0,
-        endH: 19,
-        endM: 0,
-        lead: lucia,
-      },
+      { lectureName: 'Spin Class', room: roomC, day: 1, startH: 7, startM: 0, endH: 8, endM: 0, lead: jana },
+      { lectureName: 'Vinyasa Yoga', room: roomA, day: 1, startH: 10, startM: 0, endH: 11, endM: 0, lead: sarah },
+      { lectureName: 'Jumping Fitness', room: roomD, day: 1, startH: 18, startM: 0, endH: 19, endM: 0, lead: lucia },
       // Wednesday
-      {
-        lectureName: 'Morning Yoga',
-        room: roomA,
-        day: 2,
-        startH: 7,
-        startM: 0,
-        endH: 8,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'Cardio Blast',
-        room: roomC,
-        day: 2,
-        startH: 11,
-        startM: 0,
-        endH: 12,
-        endM: 0,
-        lead: jana,
-        assist: tom,
-      },
-      {
-        lectureName: 'Power Lifting',
-        room: roomB,
-        day: 2,
-        startH: 16,
-        startM: 0,
-        endH: 17,
-        endM: 0,
-        lead: mike,
-      },
-      {
-        lectureName: 'Vinyasa Yoga',
-        room: roomA,
-        day: 2,
-        startH: 18,
-        startM: 0,
-        endH: 19,
-        endM: 0,
-        lead: sarah,
-      },
+      { lectureName: 'Morning Yoga', room: roomA, day: 2, startH: 7, startM: 0, endH: 8, endM: 0, lead: sarah },
+      { lectureName: 'Cardio Blast', room: roomC, day: 2, startH: 11, startM: 0, endH: 12, endM: 0, lead: jana, assist: tom },
+      { lectureName: 'Power Lifting', room: roomB, day: 2, startH: 16, startM: 0, endH: 17, endM: 0, lead: mike },
+      { lectureName: 'Vinyasa Yoga', room: roomA, day: 2, startH: 18, startM: 0, endH: 19, endM: 0, lead: sarah },
       // Thursday
-      {
-        lectureName: 'Spin Class',
-        room: roomC,
-        day: 3,
-        startH: 7,
-        startM: 0,
-        endH: 8,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Power Hour',
-        room: roomB,
-        day: 3,
-        startH: 12,
-        startM: 0,
-        endH: 13,
-        endM: 0,
-        lead: mike,
-        assist: tom,
-      },
-      {
-        lectureName: 'Power Yoga',
-        room: roomA,
-        day: 3,
-        startH: 17,
-        startM: 0,
-        endH: 18,
-        endM: 0,
-        lead: sarah,
-      },
+      { lectureName: 'Spin Class', room: roomC, day: 3, startH: 7, startM: 0, endH: 8, endM: 0, lead: jana },
+      { lectureName: 'Power Hour', room: roomB, day: 3, startH: 12, startM: 0, endH: 13, endM: 0, lead: mike, assist: tom },
+      { lectureName: 'Power Yoga', room: roomA, day: 3, startH: 17, startM: 0, endH: 18, endM: 0, lead: sarah },
       // Friday
-      {
-        lectureName: 'HIIT Cardio',
-        room: roomC,
-        day: 4,
-        startH: 9,
-        startM: 0,
-        endH: 10,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Power Training',
-        room: roomB,
-        day: 4,
-        startH: 10,
-        startM: 0,
-        endH: 11,
-        endM: 0,
-        lead: mike,
-      },
-      {
-        lectureName: 'Jumping Fitness',
-        room: roomD,
-        day: 4,
-        startH: 17,
-        startM: 0,
-        endH: 18,
-        endM: 0,
-        lead: lucia,
-      },
-      {
-        lectureName: 'Cardio Blast',
-        room: roomC,
-        day: 4,
-        startH: 18,
-        startM: 0,
-        endH: 19,
-        endM: 0,
-        lead: tom,
-      },
+      { lectureName: 'HIIT Cardio', room: roomC, day: 4, startH: 9, startM: 0, endH: 10, endM: 0, lead: jana },
+      { lectureName: 'Power Training', room: roomB, day: 4, startH: 10, startM: 0, endH: 11, endM: 0, lead: mike },
+      { lectureName: 'Jumping Fitness', room: roomD, day: 4, startH: 17, startM: 0, endH: 18, endM: 0, lead: lucia },
+      { lectureName: 'Cardio Blast', room: roomC, day: 4, startH: 18, startM: 0, endH: 19, endM: 0, lead: tom },
       // Saturday
-      {
-        lectureName: 'Vinyasa Yoga',
-        room: roomA,
-        day: 5,
-        startH: 10,
-        startM: 0,
-        endH: 11,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'Power Hour',
-        room: roomB,
-        day: 5,
-        startH: 14,
-        startM: 0,
-        endH: 15,
-        endM: 0,
-        lead: mike,
-      },
-      {
-        lectureName: 'Jumping Fitness',
-        room: roomD,
-        day: 5,
-        startH: 16,
-        startM: 0,
-        endH: 17,
-        endM: 0,
-        lead: lucia,
-        assist: tom,
-      },
+      { lectureName: 'Vinyasa Yoga', room: roomA, day: 5, startH: 10, startM: 0, endH: 11, endM: 0, lead: sarah },
+      { lectureName: 'Power Hour', room: roomB, day: 5, startH: 14, startM: 0, endH: 15, endM: 0, lead: mike },
+      { lectureName: 'Jumping Fitness', room: roomD, day: 5, startH: 16, startM: 0, endH: 17, endM: 0, lead: lucia, assist: tom },
       // Sunday
-      {
-        lectureName: 'Morning Yoga',
-        room: roomA,
-        day: 6,
-        startH: 9,
-        startM: 0,
-        endH: 10,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'Cardio Blast',
-        room: roomC,
-        day: 6,
-        startH: 11,
-        startM: 0,
-        endH: 12,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Jumping Fitness',
-        room: roomD,
-        day: 6,
-        startH: 15,
-        startM: 0,
-        endH: 16,
-        endM: 0,
-        lead: lucia,
-      },
+      { lectureName: 'Morning Yoga', room: roomA, day: 6, startH: 9, startM: 0, endH: 10, endM: 0, lead: sarah },
+      { lectureName: 'Cardio Blast', room: roomC, day: 6, startH: 11, startM: 0, endH: 12, endM: 0, lead: jana },
+      { lectureName: 'Jumping Fitness', room: roomD, day: 6, startH: 15, startM: 0, endH: 16, endM: 0, lead: lucia },
     ];
 
     // Create schedules for previous, current, and next week
