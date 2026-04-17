@@ -216,31 +216,33 @@ function ViewClassesDialog({
               {staff ? `${staff.firstName} ${staff.lastName}` : ''} — Classes
             </DialogTitle>
           </DialogHeader>
-          <div className="classes-dialog-legend">
-            <span className="legend-item">
-              <span className="status-dot status-dot--available" />
-              Available
-            </span>
-            <span className="legend-item">
-              <span className="status-dot status-dot--almost-full" />
-              Almost full
-            </span>
-            <span className="legend-item">
-              <span className="status-dot status-dot--full" />
-              Full
-            </span>
-          </div>
-          <div className="classes-dialog-grid">
-            {lectures.map((lecture) => (
-              <LectureCard
-                key={lecture.id}
-                lecture={lecture}
-                onViewMembers={handleViewMembers}
-              />
-            ))}
-            {lectures.length === 0 && (
-              <p className="members-empty">No classes assigned.</p>
-            )}
+          <div className="classes-dialog-body">
+            <div className="classes-dialog-legend">
+              <span className="legend-item">
+                <span className="status-dot status-dot--available" />
+                Available
+              </span>
+              <span className="legend-item">
+                <span className="status-dot status-dot--almost-full" />
+                Almost full
+              </span>
+              <span className="legend-item">
+                <span className="status-dot status-dot--full" />
+                Full
+              </span>
+            </div>
+            <div className="classes-dialog-grid">
+              {lectures.map((lecture) => (
+                <LectureCard
+                  key={lecture.id}
+                  lecture={lecture}
+                  onViewMembers={handleViewMembers}
+                />
+              ))}
+              {lectures.length === 0 && (
+                <p className="members-empty">No classes assigned.</p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

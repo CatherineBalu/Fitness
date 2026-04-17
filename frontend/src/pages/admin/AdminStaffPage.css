@@ -245,12 +245,23 @@
   color: var(--c-text) !important;
   max-width: 760px !important;
   width: 90vw !important;
+  max-height: 85vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 
 .classes-dialog-title {
   color: var(--c-text) !important;
   font-size: 1.2rem;
   font-weight: 700;
+}
+
+.classes-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .classes-dialog-legend {
