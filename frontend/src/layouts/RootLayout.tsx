@@ -50,7 +50,7 @@ export default function RootLayout() {
               <Link to="/" className="btn-primary">
                 Switch to public view
               </Link>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </div>
           ) : (
             <div
@@ -70,7 +70,7 @@ export default function RootLayout() {
                   <button className="btn-primary">Log in</button>
                 </SignInButton>
               )}
-              {isLoaded && isSignedIn && <UserButton afterSignOutUrl="/" />}
+              {isLoaded && isSignedIn && <UserButton />}
             </div>
           )}
 

@@ -63,6 +63,5 @@ export const clerkAppearance: Appearance = {
     userButtonPopoverActionButton: { color: '#e5e5e5' },
     userButtonPopoverActionButtonText: { color: '#e5e5e5' },
     userButtonPopoverFooter: { display: 'none' },
-    footer: { display: 'none' },
   },
 };
