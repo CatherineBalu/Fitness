@@ -1,46 +1,125 @@
 import { Elysia } from 'elysia';
-import { jwt } from '@elysiajs/jwt';
+import { createClerkClient, verifyToken } from '@clerk/backend';
+import { db } from '../db/db';
+import { tbPerson, tbCustomer } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
-export type UserRole = 'admin' | 'staff' | 'customer';
+export const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
-export interface JwtPayload {
-  sub: string; // user id
-  email: string;
-  role: UserRole;
+// ── Permission system ────────────────────────────────────────────────
+export type Permission =
+  | 'schedule:read'
+  | 'schedule:write'
+  | 'staff:read'
+  | 'staff:write'
+  | 'staff:delete'
+  | 'customer:read'
+  | 'customer:write'
+  | 'reservation:read'
+  | 'reservation:write'
+  | 'reservation:manage'
+  | 'profile:read'
+  | 'profile:write';
+
+// Employee permissions — admin inherits all of these
+const EMPLOYEE_PERMISSIONS: Permission[] = [
+  'schedule:read',
+  'schedule:write',
+  'staff:read',
+  'staff:write',
+  'staff:delete',
+  'customer:read',
+  'customer:write',
+  'reservation:read',
+  'reservation:write',
+  'reservation:manage',
+  'profile:read',
+  'profile:write',
+];
+
+const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  customer: [
+    'schedule:read',
+    'reservation:read',
+    'reservation:write',
+    'profile:read',
+    'profile:write',
+  ],
+  employee: EMPLOYEE_PERMISSIONS,
+  admin: [...EMPLOYEE_PERMISSIONS], // same as employee for now; extend here when roles diverge
+};
+
+export function hasPermission(role: string, permission: Permission): boolean {
+  return (ROLE_PERMISSIONS[role] ?? []).includes(permission);
 }
 
-// Reusable JWT plugin — import this wherever you need token signing/verification
-export const jwtPlugin = new Elysia({ name: 'jwt' }).use(
-  jwt({
-    name: 'jwt',
-    secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production',
-    exp: '7d',
-  }),
+// ── Clerk token verification + JIT provisioning ──────────────────────
+export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
+  { as: 'global' },
+  async ({ request }) => {
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) {
+      return { auth: null };
+    }
+
+    try {
+      const verified = await verifyToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY,
+        authorizedParties: [process.env.FRONTEND_URL ?? 'http://localhost:5173'],
+      });
+      const role = (verified.publicMetadata as { role?: string })?.role ?? 'customer';
+      const clerkId = verified.sub;
+
+      // JIT provisioning: create tbPerson + tbCustomer on first authenticated request
+      const [existing] = await db
+        .select()
+        .from(tbPerson)
+        .where(eq(tbPerson.clerkId, clerkId))
+        .limit(1);
+
+      if (!existing) {
+        const clerkUser = await clerk.users.getUser(clerkId);
+        const email = clerkUser.emailAddresses[0]?.emailAddress ?? '';
+        const firstName = clerkUser.firstName ?? '';
+        const lastName = clerkUser.lastName ?? '';
+
+        const [person] = await db
+          .insert(tbPerson)
+          .values({ clerkId, name: firstName, surname: lastName, email })
+          .returning();
+
+        await db.insert(tbCustomer).values({ personId: person.id });
+      }
+
+      return {
+        auth: {
+          userId: clerkId,
+          role,
+          can: (permission: Permission) => hasPermission(role, permission),
+        },
+      };
+    } catch {
+      return { auth: null };
+    }
+  },
 );
 
-// Guard plugin — protects a route group, injects `user` into context
-// Usage: new Elysia().use(authGuard).get('/protected', ({ user }) => user)
-export const authGuard = new Elysia({ name: 'auth-guard' })
-  .use(jwtPlugin)
-  .derive({ as: 'scoped' }, async ({ jwt, cookie: { session } }) => {
-    const payload = await jwt.verify(session.value);
-    return { user: (payload || null) as JwtPayload | null };
-  })
-  .onBeforeHandle({ as: 'scoped' }, ({ user, set }) => {
-    if (!user) {
+// ── Route guards ─────────────────────────────────────────────────────
+export const authenticated = new Elysia({ name: 'authenticated' }).onBeforeHandle(
+  { as: 'scoped' },
+  ({ auth, set }) => {
+    if (!auth) {
       set.status = 401;
       return 'Unauthorized';
     }
-  });
+  },
+);
 
-// Role guard — use after authGuard to restrict to specific roles
-// Usage: .use(requireRole('admin'))
-export const requireRole = (...roles: UserRole[]) =>
-  new Elysia({ name: `role-${roles.join('-')}` })
-    .use(authGuard)
-    .onBeforeHandle({ as: 'scoped' }, ({ user, set }) => {
-      if (!user || !roles.includes(user.role)) {
-        set.status = 403;
-        return 'Forbidden';
-      }
-    });
+export const requirePermission = (permission: Permission) =>
+  new Elysia({ name: `perm:${permission}` }).onBeforeHandle({ as: 'scoped' }, ({ auth, set }) => {
+    if (!auth?.can(permission)) {
+      set.status = 403;
+      return 'Forbidden';
+    }
+  });

@@ -59,7 +59,7 @@ async function main() {
       .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }])
       .returning();
 
-    const [basicSub, proSub] = await db
+    await db
       .insert(tbSubscription)
       .values([
         { name: 'Monthly Basic', price: '29.99', durationDays: 30 },
@@ -99,14 +99,15 @@ async function main() {
       { name: 'Tom', surname: 'Kral' },
     ];
 
+    // Seed persons use placeholder clerkIds — real users are created via Clerk signup
     const trainerPersons = await db
       .insert(tbPerson)
       .values(
-        trainerNames.map((t) => ({
+        trainerNames.map((t, i) => ({
+          clerkId: `seed_instructor_${i + 1}`,
           name: t.name,
           surname: t.surname,
           email: `${t.name.toLowerCase()}@gym.com`,
-          password: faker.internet.password(),
           phoneNumber: faker.phone.number(),
         })),
       )
@@ -116,27 +117,14 @@ async function main() {
       await db
         .insert(tbPerson)
         .values({
+          clerkId: 'seed_reception_1',
           name: 'Admin',
           surname: 'User',
           email: 'admin@gym.com',
-          password: 'admin123',
           phoneNumber: faker.phone.number(),
         })
         .returning()
     )[0];
-
-    const customerPersons = await db
-      .insert(tbPerson)
-      .values(
-        Array.from({ length: 10 }).map(() => ({
-          name: faker.person.firstName(),
-          surname: faker.person.lastName(),
-          email: faker.internet.email(),
-          password: faker.internet.password(),
-          phoneNumber: faker.phone.number(),
-        })),
-      )
-      .returning();
 
     // 4. Employees — trainers + reception
     console.log('Creating employees');
@@ -157,20 +145,7 @@ async function main() {
       hireDate: new Date().toISOString(),
     });
 
-    // 5. Customers
-    console.log('Creating customers');
-    const customers = await db
-      .insert(tbCustomer)
-      .values(
-        customerPersons.map((p) => ({
-          personId: p.id,
-          subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, null]),
-          subscriptionValidUntil: faker.date.future().toISOString(),
-        })),
-      )
-      .returning();
-
-    // 6. Lectures
+    // 5. Lectures (customers are created via Clerk signup, not seeded)
     console.log('Creating lectures');
     const lectures = await db
       .insert(tbLecture)
@@ -522,20 +497,6 @@ async function main() {
       return entries;
     });
     await db.insert(tbScheduleInstructor).values(instructorValues);
-
-    // 9. Create some reservations so the calendar shows registration counts
-    console.log('Creating reservations');
-    const reservationValues = createdSchedules.flatMap((schedule) => {
-      const count = faker.number.int({ min: 0, max: Math.min(8, customers.length) });
-      const shuffled = faker.helpers.shuffle([...customers]);
-      return shuffled.slice(0, count).map((c) => ({
-        customerId: c.id,
-        scheduleId: schedule.id,
-      }));
-    });
-    if (reservationValues.length > 0) {
-      await db.insert(tbCustomerReservation).values(reservationValues);
-    }
 
     console.log(`Seed complete: ${createdSchedules.length} scheduled lectures this week`);
   } catch (error) {

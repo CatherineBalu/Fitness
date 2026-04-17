@@ -257,3 +257,7 @@ code {
     @apply font-sans;
   }
 }
+
+.cl-userButtonPopoverActionButton:hover .cl-userButtonPopoverActionButtonIcon {
+  color: #aacc00;
+}

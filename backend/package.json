@@ -10,9 +10,8 @@
     "format:write": "prettier --write ."
   },
   "dependencies": {
-    "@elysiajs/cookie": "^0.8.0",
+    "@clerk/backend": "^3.2.11",
     "@elysiajs/cors": "^1.4.1",
-    "@elysiajs/jwt": "^1.4.1",
     "drizzle-orm": "^0.45.2",
     "elysia": "latest",
     "pg": "^8.20.0",

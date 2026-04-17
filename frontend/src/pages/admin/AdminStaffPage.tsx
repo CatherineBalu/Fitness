@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Clock, MapPin, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useApi } from '@/lib/api';
 import './AdminStaffPage.css';
 
-const API_BASE = 'http://localhost:3000';
-
 interface Lecture {
-  id: number;
+  id: string;
   name: string;
   time: string;
   room: string;
@@ -23,15 +22,17 @@ interface Lecture {
 }
 
 interface StaffMember {
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
-  role: string;
-  since: string;
+  email: string;
+  clerkId: string;
+  roleType: string;
+  hireDate: string;
 }
 
 interface Member {
-  id: number;
+  id: string;
   name: string;
   email: string;
 }
@@ -144,14 +145,16 @@ function MembersDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { apiRequest } = useApi();
   const [members, setMembers] = useState<Member[]>([]);
 
   useEffect(() => {
     if (!open || !lecture) return;
-    fetch(`${API_BASE}/api/lectures/${lecture.id}/members`)
-      .then((r) => r.json())
-      .then((data: Member[]) => setMembers(data))
+    apiRequest<Member[]>(`/api/lectures/${lecture.id}/members`)
+      .then((data) => setMembers(data))
       .catch(() => setMembers([]));
+    // apiRequest is stable via useCallback; lecture.id and open are the real triggers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lecture]);
 
   return (
@@ -190,16 +193,17 @@ function ViewClassesDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { apiRequest } = useApi();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
 
   useEffect(() => {
     if (!open || !staff) return;
-    fetch(`${API_BASE}/api/staff/${staff.id}/lectures`)
-      .then((r) => r.json())
-      .then((data: Lecture[]) => setLectures(data))
+    apiRequest<Lecture[]>(`/api/staff/${staff.id}/lectures`)
+      .then((data) => setLectures(data))
       .catch(() => setLectures([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, staff]);
 
   function handleViewMembers(lecture: Lecture) {
@@ -262,14 +266,11 @@ function AddMemberDialog({
   onClose: () => void;
   onAdded: () => void;
 }) {
-  const [form, setForm] = useState({
-    fullName: '',
-    role: '',
-    email: '',
-    password: '',
-  });
+  const { apiRequest } = useApi();
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '' });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -280,95 +281,106 @@ function AddMemberDialog({
     setError(null);
     setLoading(true);
 
-    const res = await fetch(`${API_BASE}/api/staff`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-
-    setLoading(false);
-
-    if (!res.ok) {
-      const data = await res.json();
-      setError((data as { error: string }).error ?? 'Something went wrong');
-      return;
+    try {
+      const data = await apiRequest<{
+        success: boolean;
+        temporaryPassword: string;
+      }>('/api/staff', {
+        method: 'POST',
+        body: JSON.stringify(form),
+      });
+      setTempPassword(data.temporaryPassword);
+      onAdded();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to create staff member',
+      );
+    } finally {
+      setLoading(false);
     }
+  }
 
-    setForm({ fullName: '', role: '', email: '', password: '' });
-    onAdded();
+  function handleClose() {
+    setForm({ firstName: '', lastName: '', email: '' });
+    setError(null);
+    setTempPassword(null);
     onClose();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="add-member-dialog">
         <DialogHeader>
           <DialogTitle className="add-member-dialog-title">
-            Add member
+            {tempPassword ? 'Staff member created' : 'Add staff member'}
           </DialogTitle>
         </DialogHeader>
-        <form className="add-member-form" onSubmit={handleSubmit}>
-          {error && <p className="add-member-error">{error}</p>}
-          <div className="add-member-field">
-            <label className="add-member-label">Full name</label>
-            <Input
-              name="fullName"
-              placeholder="Enter text here"
-              value={form.fullName}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
+
+        {tempPassword ? (
+          <div className="add-member-success">
+            <p className="add-member-success-text">
+              Account created successfully. Share this temporary password with
+              the new staff member — they can change it after first login.
+            </p>
+            <div className="add-member-temp-password">{tempPassword}</div>
+            <Button className="add-member-submit" onClick={handleClose}>
+              Done
+            </Button>
           </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Role</label>
-            <Input
-              name="role"
-              placeholder="Enter text here"
-              value={form.role}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
-          </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Email</label>
-            <Input
-              name="email"
-              type="email"
-              placeholder="Enter text here"
-              value={form.email}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
-          </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Password</label>
-            <Input
-              name="password"
-              type="password"
-              placeholder="Enter text here"
-              value={form.password}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
-          </div>
-          <Button
-            type="submit"
-            className="add-member-submit"
-            disabled={loading}
-          >
-            {loading ? 'Creating...' : 'Create'}
-          </Button>
-        </form>
+        ) : (
+          <form className="add-member-form" onSubmit={handleSubmit}>
+            {error && <p className="add-member-error">{error}</p>}
+            <div className="add-member-field">
+              <label className="add-member-label">First name</label>
+              <Input
+                name="firstName"
+                placeholder="Enter first name"
+                value={form.firstName}
+                onChange={handleChange}
+                className="add-member-input"
+                required
+              />
+            </div>
+            <div className="add-member-field">
+              <label className="add-member-label">Last name</label>
+              <Input
+                name="lastName"
+                placeholder="Enter last name"
+                value={form.lastName}
+                onChange={handleChange}
+                className="add-member-input"
+                required
+              />
+            </div>
+            <div className="add-member-field">
+              <label className="add-member-label">Email</label>
+              <Input
+                name="email"
+                type="email"
+                placeholder="Enter email"
+                value={form.email}
+                onChange={handleChange}
+                className="add-member-input"
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="add-member-submit"
+              disabled={loading}
+            >
+              {loading ? 'Creating...' : 'Create'}
+            </Button>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
 export default function AdminStaffPage() {
+  const { apiRequest } = useApi();
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
   const [search, setSearch] = useState('');
@@ -378,11 +390,12 @@ export default function AdminStaffPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  function loadStaff() {
-    fetch(`${API_BASE}/api/staff`)
-      .then((r) => r.json())
-      .then((data: StaffMember[]) => {
+  const loadStaff = useCallback(() => {
+    setLoadingStaff(true);
+    apiRequest<StaffMember[]>('/api/staff')
+      .then((data) => {
         setStaffList(data);
         setLoadingStaff(false);
       })
@@ -390,30 +403,39 @@ export default function AdminStaffPage() {
         setStaffList([]);
         setLoadingStaff(false);
       });
-  }
+  }, [apiRequest]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStaff();
-  }, []);
+  }, [loadStaff]);
 
   function showSuccess(message: string) {
     setSuccessMessage(message);
     setTimeout(() => setSuccessMessage(null), 3000);
   }
 
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    await fetch(`${API_BASE}/api/staff/${deleteTarget.id}`, {
-      method: 'DELETE',
-    });
-    setDeleteTarget(null);
-    loadStaff();
-    showSuccess(
-      `${deleteTarget.firstName} ${deleteTarget.lastName} has been removed.`,
-    );
+  function showError(message: string) {
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(null), 4000);
   }
 
-  const allRoles = Array.from(new Set(staffList.map((s) => s.role)));
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    try {
+      await apiRequest(`/api/staff/${target.id}`, { method: 'DELETE' });
+      loadStaff();
+      showSuccess(`${target.firstName} ${target.lastName} has been removed.`);
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : 'Failed to delete staff member.',
+      );
+    }
+  }
+
+  const allRoles = Array.from(new Set(staffList.map((s) => s.roleType)));
 
   const filtered = staffList.filter((s) => {
     const matchesSearch =
@@ -421,7 +443,7 @@ export default function AdminStaffPage() {
       `${s.firstName} ${s.lastName}`
         .toLowerCase()
         .includes(search.toLowerCase());
-    const matchesRole = activeRole === null || s.role === activeRole;
+    const matchesRole = activeRole === null || s.roleType === activeRole;
     return matchesSearch && matchesRole;
   });
 
@@ -486,6 +508,7 @@ export default function AdminStaffPage() {
         {successMessage && (
           <div className="staff-success">{successMessage}</div>
         )}
+        {errorMessage && <div className="staff-error">{errorMessage}</div>}
 
         <div className="admin-staff-counter">
           Employee counter: {filtered.length}
@@ -504,8 +527,8 @@ export default function AdminStaffPage() {
                 <span className="staff-row-name">
                   {staff.firstName} {staff.lastName}
                 </span>
-                <span className="staff-row-badge">{staff.role}</span>
-                <span className="staff-row-since">{staff.since}</span>
+                <span className="staff-row-badge">{staff.roleType}</span>
+                <span className="staff-row-since">{staff.hireDate}</span>
                 <div className="staff-row-actions">
                   <Button
                     size="sm"
