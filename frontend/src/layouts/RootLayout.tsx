@@ -36,46 +36,54 @@ export default function RootLayout() {
       {/* ── Navbar ── */}
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link to="/" className="navbar-logo">
+          <Link to={isAdmin ? '/admin' : '/'} className="navbar-logo">
             <img src="/src/assets/logo.png" alt="Logo" className="logo-icon" />
             <span className="logo-text">FITNESS</span>
           </Link>
-          {isAdmin ? (
-            <div className="navbar-links">
-              <Link to="/admin/staff">Manage Staff</Link>
-              <Link to="/admin/calendar">Calendar</Link>
-              <Link to="/" className="btn-primary">
-                Switch to public view
-              </Link>
-            </div>
-          ) : (
-            <div
-              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
-            >
-              <Link to="/" onClick={() => setMenuOpen(false)}>
-                Home
-              </Link>
-              <Link to="/schedule" onClick={() => setMenuOpen(false)}>
-                Schedule
-              </Link>
-              <a href="#contact" onClick={() => setMenuOpen(false)}>
-                Contact
-              </a>
-              <SignUpForm />
-            </div>
-          )}
+          <div
+            className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+          >
+            {isAdmin ? (
+              <>
+                <Link to="/admin/staff" onClick={() => setMenuOpen(false)}>
+                  Manage Staff
+                </Link>
+                <Link to="/admin/calendar" onClick={() => setMenuOpen(false)}>
+                  Calendar
+                </Link>
+                <Link
+                  to="/"
+                  className="btn-primary"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Switch to public view
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/" onClick={() => setMenuOpen(false)}>
+                  Home
+                </Link>
+                <Link to="/schedule" onClick={() => setMenuOpen(false)}>
+                  Schedule
+                </Link>
+                <a href="#contact" onClick={() => setMenuOpen(false)}>
+                  Contact
+                </a>
+                <SignUpForm />
+              </>
+            )}
+          </div>
 
-          {!isAdmin && (
-            <button
-              className="hamburger"
-              aria-label="Toggle menu"
-              onClick={() => setMenuOpen((o) => !o)}
-            >
-              <span
-                className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
-              />
-            </button>
-          )}
+          <button
+            className="hamburger"
+            aria-label="Toggle menu"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <span
+              className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
+            />
+          </button>
         </div>
       </nav>
 

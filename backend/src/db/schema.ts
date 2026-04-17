@@ -70,7 +70,7 @@ export const tbEmployeeSpecialization = pgTable(
       .references(() => tbExerciseType.id),
   },
   // Composite primary key
-  (t) => [primaryKey({ columns: [t.employeeId, t.exerciseTypeId] })]
+  (t) => [primaryKey({ columns: [t.employeeId, t.exerciseTypeId] })],
 );
 
 export const tbCustomer = pgTable('TB_customer', {
@@ -119,7 +119,7 @@ export const tbScheduleInstructor = pgTable(
     isLead: boolean('is_lead').default(false).notNull(),
   },
   // Composite primary key
-  (t) => [primaryKey({ columns: [t.scheduleId, t.employeeId] })]
+  (t) => [primaryKey({ columns: [t.scheduleId, t.employeeId] })],
 );
 
 // --- RESERVATION AND PAYMENT HISTORY ---

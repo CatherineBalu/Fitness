@@ -5,7 +5,9 @@ import {
   tbCustomer,
   tbCustomerReservation,
   tbEmployee,
+  tbEmployeeSpecialization,
   tbEmployeeType,
+  tbExerciseType,
   tbLecture,
   tbPerson,
   tbRoom,
@@ -19,7 +21,7 @@ function formatTimeRange(start: Date, end: Date): string {
 }
 
 export const staffRoutes = new Elysia({ prefix: '/api/staff' })
-  // GET /api/staff — list all employees (Instructors + Reception)
+  // GET /api/staff — list all employees (Instructors + Reception) with their specializations
   .get('/', async () => {
     const rows = await db
       .select({
@@ -34,7 +36,25 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
       .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id))
       .orderBy(asc(tbPerson.surname));
 
-    return rows;
+    const specRows = await db
+      .select({
+        employeeId: tbEmployeeSpecialization.employeeId,
+        name: tbExerciseType.name,
+      })
+      .from(tbEmployeeSpecialization)
+      .innerJoin(tbExerciseType, eq(tbEmployeeSpecialization.exerciseTypeId, tbExerciseType.id));
+
+    const byEmployee = new Map<string, string[]>();
+    for (const r of specRows) {
+      const list = byEmployee.get(r.employeeId) ?? [];
+      list.push(r.name);
+      byEmployee.set(r.employeeId, list);
+    }
+
+    return rows.map((r) => ({
+      ...r,
+      specializations: byEmployee.get(r.id) ?? [],
+    }));
   })
 
   // POST /api/staff — create new employee (person + employee row)
@@ -167,6 +187,28 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
         };
       }),
     );
+  });
+
+export const exerciseTypeRoutes = new Elysia({ prefix: '/api/exercise-types' })
+  // GET /api/exercise-types — list all exercise types (used for staff filter chips and specializations)
+  .get('/', async () => {
+    const rows = await db
+      .select({ id: tbExerciseType.id, name: tbExerciseType.name })
+      .from(tbExerciseType)
+      .orderBy(asc(tbExerciseType.name));
+
+    return rows;
+  });
+
+export const employeeTypeRoutes = new Elysia({ prefix: '/api/employee-types' })
+  // GET /api/employee-types — list all employee roles (used for Add staff role dropdown)
+  .get('/', async () => {
+    const rows = await db
+      .select({ id: tbEmployeeType.id, roleName: tbEmployeeType.roleName })
+      .from(tbEmployeeType)
+      .orderBy(asc(tbEmployeeType.roleName));
+
+    return rows;
   });
 
 export const lectureRoutes = new Elysia({ prefix: '/api/lectures' })

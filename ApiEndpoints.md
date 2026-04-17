@@ -13,7 +13,7 @@
 
 ### Staff (admin)
 
-- GET `/api/staff` — list all employees (Instructors + Reception)
+- GET `/api/staff` — list all employees with their `specializations: string[]` (Instructors + Reception)
 - POST `/api/staff` — create new employee (body: `fullName`, `role`, `email`, `password`)
 - DELETE `/api/staff/:id` — remove employee and underlying person
 - GET `/api/staff/:id/lectures` — all scheduled lectures this employee teaches
@@ -21,3 +21,11 @@
 ### Lectures (admin)
 
 - GET `/api/lectures/:id/members` — customers registered on a given schedule instance
+
+### Exercise types
+
+- GET `/api/exercise-types` — list all exercise types (used for staff filter chips and specializations)
+
+### Employee types
+
+- GET `/api/employee-types` — list all employee roles (used for Add staff role dropdown)

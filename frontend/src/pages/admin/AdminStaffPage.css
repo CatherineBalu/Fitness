@@ -178,6 +178,12 @@
   min-width: 0;
 }
 
+.staff-row-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .staff-row-badge {
   background: var(--c-surface2);
   border: 1px solid var(--c-border);

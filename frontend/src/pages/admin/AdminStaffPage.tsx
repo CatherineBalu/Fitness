@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import './AdminStaffPage.css';
 
 const API_BASE = 'http://localhost:3000';
@@ -28,7 +35,20 @@ interface StaffMember {
   lastName: string;
   role: string;
   since: string;
+  specializations: string[];
 }
+
+interface ExerciseType {
+  id: string;
+  name: string;
+}
+
+interface EmployeeType {
+  id: string;
+  roleName: string;
+}
+
+const RECEPTION_FILTER = 'Reception';
 
 interface Member {
   id: number;
@@ -270,8 +290,17 @@ function AddMemberDialog({
     email: '',
     password: '',
   });
+  const [employeeTypes, setEmployeeTypes] = useState<EmployeeType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    fetch(`${API_BASE}/api/employee-types`)
+      .then((r) => r.json())
+      .then((data: EmployeeType[]) => setEmployeeTypes(data))
+      .catch(() => setEmployeeTypes([]));
+  }, [open]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -280,6 +309,12 @@ function AddMemberDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!form.role) {
+      setError('Please select a role');
+      return;
+    }
+
     setLoading(true);
 
     const res = await fetch(`${API_BASE}/api/staff`, {
@@ -324,14 +359,23 @@ function AddMemberDialog({
           </div>
           <div className="add-member-field">
             <label className="add-member-label">Role</label>
-            <Input
-              name="role"
-              placeholder="Enter text here"
+            <Select
               value={form.role}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
+              onValueChange={(value) =>
+                setForm((prev) => ({ ...prev, role: value }))
+              }
+            >
+              <SelectTrigger className="add-member-input">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {employeeTypes.map((t) => (
+                  <SelectItem key={t.id} value={t.roleName}>
+                    {t.roleName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="add-member-field">
             <label className="add-member-label">Email</label>
@@ -372,9 +416,10 @@ function AddMemberDialog({
 
 export default function AdminStaffPage() {
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [exerciseTypes, setExerciseTypes] = useState<ExerciseType[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeRole, setActiveRole] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [viewStaff, setViewStaff] = useState<StaffMember | null>(null);
   const [classesOpen, setClassesOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -396,6 +441,10 @@ export default function AdminStaffPage() {
 
   useEffect(() => {
     loadStaff();
+    fetch(`${API_BASE}/api/exercise-types`)
+      .then((r) => r.json())
+      .then((data: ExerciseType[]) => setExerciseTypes(data))
+      .catch(() => setExerciseTypes([]));
   }, []);
 
   function showSuccess(message: string) {
@@ -415,7 +464,7 @@ export default function AdminStaffPage() {
     );
   }
 
-  const allRoles = Array.from(new Set(staffList.map((s) => s.role)));
+  const filterChips = [...exerciseTypes.map((t) => t.name), RECEPTION_FILTER];
 
   const filtered = staffList.filter((s) => {
     const matchesSearch =
@@ -423,8 +472,15 @@ export default function AdminStaffPage() {
       `${s.firstName} ${s.lastName}`
         .toLowerCase()
         .includes(search.toLowerCase());
-    const matchesRole = activeRole === null || s.role === activeRole;
-    return matchesSearch && matchesRole;
+
+    let matchesFilter = true;
+    if (activeFilter !== null) {
+      matchesFilter =
+        activeFilter === RECEPTION_FILTER
+          ? s.role === RECEPTION_FILTER
+          : s.specializations.includes(activeFilter);
+    }
+    return matchesSearch && matchesFilter;
   });
 
   function handleView(staff: StaffMember) {
@@ -466,21 +522,21 @@ export default function AdminStaffPage() {
         </div>
 
         <div className="admin-staff-filters">
-          {allRoles.map((role) => (
+          {filterChips.map((chip) => (
             <Button
-              key={role}
+              key={chip}
               size="sm"
-              variant={activeRole === role ? 'default' : 'outline'}
+              variant={activeFilter === chip ? 'default' : 'outline'}
               className={
-                activeRole === role
+                activeFilter === chip
                   ? 'staff-filter-btn staff-filter-btn--active'
                   : 'staff-filter-btn'
               }
               onClick={() =>
-                setActiveRole((prev) => (prev === role ? null : role))
+                setActiveFilter((prev) => (prev === chip ? null : chip))
               }
             >
-              {role}
+              {chip}
             </Button>
           ))}
         </div>
@@ -506,7 +562,19 @@ export default function AdminStaffPage() {
                 <span className="staff-row-name">
                   {staff.firstName} {staff.lastName}
                 </span>
-                <span className="staff-row-badge">{staff.role}</span>
+                <div className="staff-row-badges">
+                  {staff.role === RECEPTION_FILTER ? (
+                    <span className="staff-row-badge">{staff.role}</span>
+                  ) : staff.specializations.length > 0 ? (
+                    staff.specializations.map((spec) => (
+                      <span key={spec} className="staff-row-badge">
+                        {spec}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="staff-row-badge">{staff.role}</span>
+                  )}
+                </div>
                 <span className="staff-row-since">{staff.since}</span>
                 <div className="staff-row-actions">
                   <Button
