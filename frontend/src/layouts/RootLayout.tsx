@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { Link, Outlet } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
+import { can } from '@/lib/permissions';
+import { Toaster } from 'sonner';
+import '../App.css';
 
 const SocialIcon = ({ d }: { d: string }) => (
   <svg
@@ -21,69 +25,66 @@ const INSTAGRAM_PATH =
 const YOUTUBE_PATH =
   'M21.6 7.2a2.5 2.5 0 00-1.76-1.77C18.27 5 12 5 12 5s-6.27 0-7.84.43A2.5 2.5 0 002.4 7.2C2 8.78 2 12 2 12s0 3.22.4 4.8a2.5 2.5 0 001.76 1.77C5.73 19 12 19 12 19s6.27 0 7.84-.43a2.5 2.5 0 001.76-1.77C22 15.22 22 12 22 12s0-3.22-.4-4.8zM10 15V9l5 3-5 3z';
 const TIKTOK_PATH =
-  'M19.6 6.32a5.6 5.6 0 01-3.36-1.12 5.6 5.6 0 01-2.24-3.2H10.4v13.12a2.56 2.56 0 11-2.56-2.56c.28 0 .55.05.8.13V9.36a6 6 0 00-.8-.06 5.92 5.92 0 105.92 5.92V9.6a8 8 0 005.84 2.24V8.4a5.4 5.4 0 01-1.6-.16 5.6 5.6 0 01-1.4-.92z';
-import '../App.css';
-import { SignUpForm } from '@/components/ui/signUpForm';
-import { Toaster } from 'sonner';
+  'M19.6 6.32a5.6 5.6 0 01-3.36-1.12 5.6 5.5 0 01-2.24-3.2H10.4v13.12a2.56 2.56 0 11-2.56-2.56c.28 0 .55.05.8.13V9.36a6 6 0 00-.8-.06 5.92 5.92 0 105.92 5.92V9.6a8 8 0 005.84 2.24V8.4a5.4 5.4 0 01-1.6-.16 5.6 5.6 0 01-1.4-.92z';
 
 export default function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { location } = useRouterState();
-  const isAdmin = location.pathname.startsWith('/admin');
+  const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const role = (user?.publicMetadata as { role?: string })?.role ?? null;
+  const isStaffOrAdmin = can(role, 'staff:read');
 
   return (
     <div className="app-root">
       {/* ── Navbar ── */}
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link to={isAdmin ? '/admin' : '/'} className="navbar-logo">
+          <Link to={isStaffOrAdmin ? '/admin' : '/'} className="navbar-logo">
             <img src="/src/assets/logo.png" alt="Logo" className="logo-icon" />
             <span className="logo-text">FITNESS</span>
           </Link>
-          <div
-            className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
-          >
-            {isAdmin ? (
-              <>
-                <Link to="/admin/staff" onClick={() => setMenuOpen(false)}>
-                  Manage Staff
-                </Link>
-                <Link to="/admin/calendar" onClick={() => setMenuOpen(false)}>
-                  Calendar
-                </Link>
-                <Link
-                  to="/"
-                  className="btn-primary"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Switch to public view
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/" onClick={() => setMenuOpen(false)}>
-                  Home
-                </Link>
-                <Link to="/schedule" onClick={() => setMenuOpen(false)}>
-                  Schedule
-                </Link>
-                <a href="#contact" onClick={() => setMenuOpen(false)}>
-                  Contact
-                </a>
-                <SignUpForm />
-              </>
-            )}
-          </div>
+          {isStaffOrAdmin ? (
+            <div className="navbar-links">
+              <Link to="/admin/staff">Manage Staff</Link>
+              <Link to="/admin/calendar">Calendar</Link>
+              <Link to="/" className="btn-primary">
+                Switch to public view
+              </Link>
+              <UserButton />
+            </div>
+          ) : (
+            <div
+              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+            >
+              <Link to="/" onClick={() => setMenuOpen(false)}>
+                Home
+              </Link>
+              <Link to="/schedule" onClick={() => setMenuOpen(false)}>
+                Schedule
+              </Link>
+              <a href="#contact" onClick={() => setMenuOpen(false)}>
+                Contact
+              </a>
+              {isLoaded && !isSignedIn && (
+                <SignInButton mode="modal">
+                  <button className="btn-primary">Log in</button>
+                </SignInButton>
+              )}
+              {isLoaded && isSignedIn && <UserButton />}
+            </div>
+          )}
 
-          <button
-            className="hamburger"
-            aria-label="Toggle menu"
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            <span
-              className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
-            />
-          </button>
+          {!isStaffOrAdmin && (
+            <button
+              className="hamburger"
+              aria-label="Toggle menu"
+              onClick={() => setMenuOpen((o) => !o)}
+            >
+              <span
+                className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
+              />
+            </button>
+          )}
         </div>
       </nav>
 

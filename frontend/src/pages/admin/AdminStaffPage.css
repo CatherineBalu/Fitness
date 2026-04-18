@@ -501,6 +501,16 @@
   margin-bottom: 12px;
 }
 
+.staff-error {
+  font-size: 13px;
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  margin-bottom: 12px;
+}
+
 /* ── Delete confirm dialog ── */
 .delete-confirm-dialog {
   background: var(--c-surface) !important;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Clock, MapPin, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,12 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useApi } from '@/lib/api';
 import './AdminStaffPage.css';
 
-const API_BASE = 'http://localhost:3000';
-
 interface Lecture {
-  id: number;
+  id: string;
   name: string;
   time: string;
   room: string;
@@ -30,9 +29,11 @@ interface Lecture {
 }
 
 interface StaffMember {
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
+  email: string;
+  clerkId: string;
   role: string;
   since: string;
   specializations: string[];
@@ -51,7 +52,7 @@ interface EmployeeType {
 const RECEPTION_FILTER = 'Reception';
 
 interface Member {
-  id: number;
+  id: string;
   name: string;
   email: string;
 }
@@ -164,14 +165,16 @@ function MembersDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { apiRequest } = useApi();
   const [members, setMembers] = useState<Member[]>([]);
 
   useEffect(() => {
     if (!open || !lecture) return;
-    fetch(`${API_BASE}/api/lectures/${lecture.id}/members`)
-      .then((r) => r.json())
-      .then((data: Member[]) => setMembers(data))
+    apiRequest<Member[]>(`/api/lectures/${lecture.id}/members`)
+      .then((data) => setMembers(data))
       .catch(() => setMembers([]));
+    // apiRequest is stable via useCallback; lecture.id and open are the real triggers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lecture]);
 
   return (
@@ -210,16 +213,17 @@ function ViewClassesDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { apiRequest } = useApi();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
 
   useEffect(() => {
     if (!open || !staff) return;
-    fetch(`${API_BASE}/api/staff/${staff.id}/lectures`)
-      .then((r) => r.json())
-      .then((data: Lecture[]) => setLectures(data))
+    apiRequest<Lecture[]>(`/api/staff/${staff.id}/lectures`)
+      .then((data) => setLectures(data))
       .catch(() => setLectures([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, staff]);
 
   function handleViewMembers(lecture: Lecture) {
@@ -279,31 +283,42 @@ function AddMemberDialog({
   open,
   onClose,
   onAdded,
+  exerciseTypes,
 }: {
   open: boolean;
   onClose: () => void;
   onAdded: () => void;
+  exerciseTypes: ExerciseType[];
 }) {
+  const { apiRequest } = useApi();
   const [form, setForm] = useState({
-    fullName: '',
-    role: '',
+    firstName: '',
+    lastName: '',
     email: '',
-    password: '',
+    role: '',
   });
+  const [specializations, setSpecializations] = useState<string[]>([]);
   const [employeeTypes, setEmployeeTypes] = useState<EmployeeType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    fetch(`${API_BASE}/api/employee-types`)
-      .then((r) => r.json())
-      .then((data: EmployeeType[]) => setEmployeeTypes(data))
+    apiRequest<EmployeeType[]>('/api/employee-types')
+      .then((data) => setEmployeeTypes(data))
       .catch(() => setEmployeeTypes([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function toggleSpecialization(id: string) {
+    setSpecializations((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -317,104 +332,157 @@ function AddMemberDialog({
 
     setLoading(true);
 
-    const res = await fetch(`${API_BASE}/api/staff`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-
-    setLoading(false);
-
-    if (!res.ok) {
-      const data = await res.json();
-      setError((data as { error: string }).error ?? 'Something went wrong');
-      return;
+    try {
+      const data = await apiRequest<{
+        success: boolean;
+        temporaryPassword: string;
+      }>('/api/staff', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          specializations: form.role === 'Instructor' ? specializations : [],
+        }),
+      });
+      setTempPassword(data.temporaryPassword);
+      onAdded();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to create staff member',
+      );
+    } finally {
+      setLoading(false);
     }
+  }
 
-    setForm({ fullName: '', role: '', email: '', password: '' });
-    onAdded();
+  function handleClose() {
+    setForm({ firstName: '', lastName: '', email: '', role: '' });
+    setSpecializations([]);
+    setError(null);
+    setTempPassword(null);
     onClose();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="add-member-dialog">
         <DialogHeader>
           <DialogTitle className="add-member-dialog-title">
-            Add member
+            {tempPassword ? 'Staff member created' : 'Add staff member'}
           </DialogTitle>
         </DialogHeader>
-        <form className="add-member-form" onSubmit={handleSubmit}>
-          {error && <p className="add-member-error">{error}</p>}
-          <div className="add-member-field">
-            <label className="add-member-label">Full name</label>
-            <Input
-              name="fullName"
-              placeholder="Enter text here"
-              value={form.fullName}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
+
+        {tempPassword ? (
+          <div className="add-member-success">
+            <p className="add-member-success-text">
+              Account created successfully. Share this temporary password with
+              the new staff member — they can change it after first login.
+            </p>
+            <div className="add-member-temp-password">{tempPassword}</div>
+            <Button className="add-member-submit" onClick={handleClose}>
+              Done
+            </Button>
           </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Role</label>
-            <Select
-              value={form.role}
-              onValueChange={(value) =>
-                setForm((prev) => ({ ...prev, role: value }))
-              }
+        ) : (
+          <form className="add-member-form" onSubmit={handleSubmit}>
+            {error && <p className="add-member-error">{error}</p>}
+            <div className="add-member-field">
+              <label className="add-member-label">First name</label>
+              <Input
+                name="firstName"
+                placeholder="Enter first name"
+                value={form.firstName}
+                onChange={handleChange}
+                className="add-member-input"
+                required
+              />
+            </div>
+            <div className="add-member-field">
+              <label className="add-member-label">Last name</label>
+              <Input
+                name="lastName"
+                placeholder="Enter last name"
+                value={form.lastName}
+                onChange={handleChange}
+                className="add-member-input"
+                required
+              />
+            </div>
+            <div className="add-member-field">
+              <label className="add-member-label">Email</label>
+              <Input
+                name="email"
+                type="email"
+                placeholder="Enter email"
+                value={form.email}
+                onChange={handleChange}
+                className="add-member-input"
+                required
+              />
+            </div>
+            <div className="add-member-field">
+              <label className="add-member-label">Role</label>
+              <Select
+                value={form.role}
+                onValueChange={(value) => {
+                  setForm((prev) => ({ ...prev, role: value }));
+                  if (value !== 'Instructor') setSpecializations([]);
+                }}
+              >
+                <SelectTrigger className="add-member-input">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employeeTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.roleName}>
+                      {t.roleName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.role === 'Instructor' && (
+              <div className="add-member-field">
+                <label className="add-member-label">Specializations</label>
+                <div className="add-member-specializations">
+                  {exerciseTypes.map((et) => {
+                    const active = specializations.includes(et.id);
+                    return (
+                      <Button
+                        type="button"
+                        key={et.id}
+                        size="sm"
+                        variant={active ? 'default' : 'outline'}
+                        className={
+                          active
+                            ? 'staff-filter-btn staff-filter-btn--active'
+                            : 'staff-filter-btn'
+                        }
+                        onClick={() => toggleSpecialization(et.id)}
+                      >
+                        {et.name}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="add-member-submit"
+              disabled={loading}
             >
-              <SelectTrigger className="add-member-input">
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                {employeeTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.roleName}>
-                    {t.roleName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Email</label>
-            <Input
-              name="email"
-              type="email"
-              placeholder="Enter text here"
-              value={form.email}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
-          </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Password</label>
-            <Input
-              name="password"
-              type="password"
-              placeholder="Enter text here"
-              value={form.password}
-              onChange={handleChange}
-              className="add-member-input"
-              required
-            />
-          </div>
-          <Button
-            type="submit"
-            className="add-member-submit"
-            disabled={loading}
-          >
-            {loading ? 'Creating...' : 'Create'}
-          </Button>
-        </form>
+              {loading ? 'Creating...' : 'Create'}
+            </Button>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
 export default function AdminStaffPage() {
+  const { apiRequest } = useApi();
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [exerciseTypes, setExerciseTypes] = useState<ExerciseType[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
@@ -425,11 +493,12 @@ export default function AdminStaffPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  function loadStaff() {
-    fetch(`${API_BASE}/api/staff`)
-      .then((r) => r.json())
-      .then((data: StaffMember[]) => {
+  const loadStaff = useCallback(() => {
+    setLoadingStaff(true);
+    apiRequest<StaffMember[]>('/api/staff')
+      .then((data) => {
         setStaffList(data);
         setLoadingStaff(false);
       })
@@ -437,31 +506,39 @@ export default function AdminStaffPage() {
         setStaffList([]);
         setLoadingStaff(false);
       });
-  }
+  }, [apiRequest]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStaff();
-    fetch(`${API_BASE}/api/exercise-types`)
-      .then((r) => r.json())
-      .then((data: ExerciseType[]) => setExerciseTypes(data))
+    apiRequest<ExerciseType[]>('/api/exercise-types')
+      .then((data) => setExerciseTypes(data))
       .catch(() => setExerciseTypes([]));
-  }, []);
+  }, [loadStaff, apiRequest]);
 
   function showSuccess(message: string) {
     setSuccessMessage(message);
     setTimeout(() => setSuccessMessage(null), 3000);
   }
 
+  function showError(message: string) {
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(null), 4000);
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return;
-    await fetch(`${API_BASE}/api/staff/${deleteTarget.id}`, {
-      method: 'DELETE',
-    });
+    const target = deleteTarget;
     setDeleteTarget(null);
-    loadStaff();
-    showSuccess(
-      `${deleteTarget.firstName} ${deleteTarget.lastName} has been removed.`,
-    );
+    try {
+      await apiRequest(`/api/staff/${target.id}`, { method: 'DELETE' });
+      loadStaff();
+      showSuccess(`${target.firstName} ${target.lastName} has been removed.`);
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : 'Failed to delete staff member.',
+      );
+    }
   }
 
   const filterChips = [...exerciseTypes.map((t) => t.name), RECEPTION_FILTER];
@@ -544,6 +621,7 @@ export default function AdminStaffPage() {
         {successMessage && (
           <div className="staff-success">{successMessage}</div>
         )}
+        {errorMessage && <div className="staff-error">{errorMessage}</div>}
 
         <div className="admin-staff-counter">
           Employee counter: {filtered.length}
@@ -614,6 +692,7 @@ export default function AdminStaffPage() {
           loadStaff();
           showSuccess('Staff member added successfully.');
         }}
+        exerciseTypes={exerciseTypes}
       />
       <DeleteConfirmDialog
         name={

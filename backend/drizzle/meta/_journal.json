@@ -22,13 +22,6 @@
       "when": 1775907846865,
       "tag": "0002_rapid_spitfire",
       "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1776456193182,
-      "tag": "0003_spooky_caretaker",
-      "breakpoints": true
     }
   ]
 }

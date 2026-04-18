@@ -104,6 +104,7 @@ export const tbSchedule = pgTable('TB_schedule', {
     .references(() => tbRoom.id),
   startTime: timestamp('start_time', { withTimezone: true }).notNull(),
   endTime: timestamp('end_time', { withTimezone: true }).notNull(),
+  forMembers: boolean('for_members').default(false).notNull(), // Added membership requirement
 });
 
 // Connecting table for instructors and schedules

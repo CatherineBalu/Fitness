@@ -14,20 +14,32 @@ import {
   tbSchedule,
   tbScheduleInstructor,
 } from '../db/schema';
+import { clerk, requirePermission } from '../middleware/auth';
 
 function formatTimeRange(start: Date, end: Date): string {
   const hhmm = (d: Date) => d.toISOString().slice(11, 16);
   return `${hhmm(start)} - ${hhmm(end)}`;
 }
 
+function generateTempPassword(): string {
+  const lower = Math.random().toString(36).slice(2, 7);
+  const upper = Math.random().toString(36).slice(2, 5).toUpperCase();
+  const digits = Math.floor(100 + Math.random() * 900).toString();
+  return `${lower}${upper}${digits}!`;
+}
+
 export const staffRoutes = new Elysia({ prefix: '/api/staff' })
-  // GET /api/staff — list all employees (Instructors + Reception) with their specializations
+  .use(requirePermission('staff:read'))
+
+  // GET /api/staff — list all employees with their specializations
   .get('/', async () => {
     const rows = await db
       .select({
         id: tbEmployee.id,
         firstName: tbPerson.name,
         lastName: tbPerson.surname,
+        email: tbPerson.email,
+        clerkId: tbPerson.clerkId,
         role: tbEmployeeType.roleName,
         since: tbEmployee.hireDate,
       })
@@ -57,16 +69,13 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
     }));
   })
 
-  // POST /api/staff — create new employee (person + employee row)
+  // POST /api/staff — Clerk invite + DB insert; for Instructor role also writes specializations
   .post(
     '/',
-    async ({ body, set }) => {
-      const [first, ...rest] = body.fullName.trim().split(/\s+/);
-      const last = rest.join(' ');
-
-      if (!first || !last) {
-        set.status = 400;
-        return { error: 'Full name must contain first and last name' };
+    async ({ body, set, auth }) => {
+      if (!auth!.can('staff:write')) {
+        set.status = 403;
+        return { error: 'Forbidden' };
       }
 
       const [roleRow] = await db
@@ -80,73 +89,113 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
         return { error: `Unknown role: ${body.role}` };
       }
 
-      const [existing] = await db
-        .select({ id: tbPerson.id })
-        .from(tbPerson)
-        .where(eq(tbPerson.email, body.email))
-        .limit(1);
+      const tempPassword = generateTempPassword();
 
-      if (existing) {
-        set.status = 409;
-        return { error: 'Email already registered' };
+      let clerkUser: Awaited<ReturnType<typeof clerk.users.createUser>>;
+      try {
+        clerkUser = await clerk.users.createUser({
+          emailAddress: [body.email],
+          firstName: body.firstName,
+          lastName: body.lastName,
+          password: tempPassword,
+          publicMetadata: { role: 'employee' },
+        });
+      } catch (err: unknown) {
+        set.status = 400;
+        const clerkErr = err as { errors?: Array<{ longMessage?: string; message?: string }> };
+        const message =
+          clerkErr.errors?.[0]?.longMessage ??
+          clerkErr.errors?.[0]?.message ??
+          (err instanceof Error ? err.message : 'Failed to create user');
+        return { error: message };
       }
 
-      const hashedPassword = await Bun.password.hash(body.password);
+      const today = new Date().toISOString().split('T')[0];
 
-      const [newPerson] = await db
-        .insert(tbPerson)
-        .values({
-          name: first,
-          surname: last,
-          email: body.email,
-          password: hashedPassword,
-          phoneNumber: '',
-        })
-        .returning();
+      try {
+        const [person] = await db
+          .insert(tbPerson)
+          .values({
+            clerkId: clerkUser.id,
+            name: body.firstName,
+            surname: body.lastName,
+            email: body.email,
+          })
+          .returning();
 
-      const [newEmployee] = await db
-        .insert(tbEmployee)
-        .values({
-          personId: newPerson.id,
-          employeeTypeId: roleRow.id,
-          hireDate: new Date().toISOString().slice(0, 10),
-        })
-        .returning();
+        const [employee] = await db
+          .insert(tbEmployee)
+          .values({
+            personId: person.id,
+            employeeTypeId: roleRow.id,
+            hireDate: today,
+          })
+          .returning();
+
+        if (
+          roleRow.roleName === 'Instructor' &&
+          body.specializations &&
+          body.specializations.length > 0
+        ) {
+          await db.insert(tbEmployeeSpecialization).values(
+            body.specializations.map((exerciseTypeId) => ({
+              employeeId: employee.id,
+              exerciseTypeId,
+            })),
+          );
+        }
+      } catch {
+        // Clerk user was created — clean it up to avoid orphans
+        await clerk.users.deleteUser(clerkUser.id).catch(() => {});
+        set.status = 500;
+        return { error: 'Failed to save staff member to database' };
+      }
 
       set.status = 201;
-      return {
-        id: newEmployee.id,
-        firstName: newPerson.name,
-        lastName: newPerson.surname,
-        role: roleRow.roleName,
-        since: newEmployee.hireDate,
-      };
+      return { success: true, temporaryPassword: tempPassword };
     },
     {
       body: t.Object({
-        fullName: t.String({ minLength: 1 }),
+        firstName: t.String({ minLength: 1 }),
+        lastName: t.String({ minLength: 1 }),
+        email: t.String({ minLength: 5 }),
         role: t.String({ minLength: 1 }),
-        email: t.String({ format: 'email' }),
-        password: t.String({ minLength: 6 }),
+        specializations: t.Optional(t.Array(t.String())),
       }),
     },
   )
 
-  // DELETE /api/staff/:id — remove employee and underlying person
-  .delete('/:id', async ({ params, set }) => {
+  // DELETE /api/staff/:id — remove Clerk user, employee, specializations, schedule links, and person
+  .delete('/:id', async ({ params, set, auth }) => {
+    if (!auth!.can('staff:delete')) {
+      set.status = 403;
+      return { error: 'Forbidden' };
+    }
+
     const [employee] = await db
-      .select({ personId: tbEmployee.personId })
+      .select({
+        employeeId: tbEmployee.id,
+        personId: tbPerson.id,
+        clerkId: tbPerson.clerkId,
+      })
       .from(tbEmployee)
+      .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
       .where(eq(tbEmployee.id, params.id))
       .limit(1);
 
     if (!employee) {
       set.status = 404;
-      return { error: 'Employee not found' };
+      return { error: 'Staff member not found' };
     }
 
-    await db.delete(tbScheduleInstructor).where(eq(tbScheduleInstructor.employeeId, params.id));
-    await db.delete(tbEmployee).where(eq(tbEmployee.id, params.id));
+    await clerk.users.deleteUser(employee.clerkId).catch(() => {});
+    await db
+      .delete(tbEmployeeSpecialization)
+      .where(eq(tbEmployeeSpecialization.employeeId, employee.employeeId));
+    await db
+      .delete(tbScheduleInstructor)
+      .where(eq(tbScheduleInstructor.employeeId, employee.employeeId));
+    await db.delete(tbEmployee).where(eq(tbEmployee.id, employee.employeeId));
     await db.delete(tbPerson).where(eq(tbPerson.id, employee.personId));
 
     return { success: true };
@@ -189,29 +238,28 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
     );
   });
 
+// GET /api/exercise-types — used for staff filter chips and specializations multi-select
 export const exerciseTypeRoutes = new Elysia({ prefix: '/api/exercise-types' })
-  // GET /api/exercise-types — list all exercise types (used for staff filter chips and specializations)
+  .use(requirePermission('staff:read'))
   .get('/', async () => {
-    const rows = await db
+    return db
       .select({ id: tbExerciseType.id, name: tbExerciseType.name })
       .from(tbExerciseType)
       .orderBy(asc(tbExerciseType.name));
-
-    return rows;
   });
 
+// GET /api/employee-types — used for Add staff role dropdown
 export const employeeTypeRoutes = new Elysia({ prefix: '/api/employee-types' })
-  // GET /api/employee-types — list all employee roles (used for Add staff role dropdown)
+  .use(requirePermission('staff:read'))
   .get('/', async () => {
-    const rows = await db
+    return db
       .select({ id: tbEmployeeType.id, roleName: tbEmployeeType.roleName })
       .from(tbEmployeeType)
       .orderBy(asc(tbEmployeeType.roleName));
-
-    return rows;
   });
 
 export const lectureRoutes = new Elysia({ prefix: '/api/lectures' })
+  .use(requirePermission('staff:read'))
   // GET /api/lectures/:id/members — customers registered on a schedule instance
   .get('/:id/members', async ({ params }) => {
     const rows = await db
