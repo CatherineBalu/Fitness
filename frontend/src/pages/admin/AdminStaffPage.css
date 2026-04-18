@@ -110,9 +110,14 @@
 }
 
 .staff-filter-btn--active {
-  background: var(--c-surface2) !important;
-  color: var(--c-text) !important;
-  border-color: var(--c-border) !important;
+  background: var(--c-accent) !important;
+  color: #0d0d0d !important;
+  border-color: var(--c-accent) !important;
+}
+.staff-filter-btn--active:hover {
+  background: var(--c-accent-hover) !important;
+  color: #0d0d0d !important;
+  border-color: var(--c-accent-hover) !important;
 }
 
 /* ── Counter ── */
