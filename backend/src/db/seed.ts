@@ -7,12 +7,14 @@ import {
   tbExerciseType,
   tbPerson,
   tbEmployee,
+  tbEmployeeSpecialization, // <-- ADDED
   tbCustomer,
   tbLecture,
   tbSchedule,
   tbScheduleInstructor,
   tbCustomerReservation,
 } from './schema';
+
 console.log('TESTING DB URL:', process.env.DATABASE_URL);
 
 /** Returns the Monday of the current week at 00:00 UTC */
@@ -38,13 +40,14 @@ async function main() {
   console.log('Starting seeding the database');
 
   try {
-    // 1. Clearing database
+    // 1. Clearing database (Important: deletion order matters due to foreign keys)
     console.log('Deleting old data');
     await db.delete(tbCustomerReservation);
     await db.delete(tbScheduleInstructor);
     await db.delete(tbSchedule);
     await db.delete(tbLecture);
     await db.delete(tbCustomer);
+    await db.delete(tbEmployeeSpecialization); // <-- ADDED
     await db.delete(tbEmployee);
     await db.delete(tbPerson);
     await db.delete(tbEmployeeType);
@@ -85,9 +88,11 @@ async function main() {
         { name: 'Power' },
         { name: 'Cardio' },
         { name: 'Jumping fitness' },
+        { name: 'Pilates' }, // <-- ADDED
+        { name: 'Spinning' }, // <-- ADDED
       ])
       .returning();
-    const [yoga, power, cardio, jumping] = exerciseTypes;
+    const [yoga, power, cardio, jumping, pilates, spinning] = exerciseTypes;
 
     // 3. Persons — 5 trainers + 1 receptionist + 10 customers
     console.log('Creating persons');
@@ -145,6 +150,20 @@ async function main() {
       hireDate: new Date().toISOString(),
     });
 
+    const [sarah, mike, jana, lucia, tom] = trainers;
+
+    // 4.5 Assign specializations to instructors
+    console.log('Assigning specializations to trainers');
+    await db.insert(tbEmployeeSpecialization).values([
+      { employeeId: sarah.id, exerciseTypeId: yoga.id },
+      { employeeId: mike.id, exerciseTypeId: power.id },
+      { employeeId: jana.id, exerciseTypeId: cardio.id },
+      { employeeId: jana.id, exerciseTypeId: spinning.id },
+      { employeeId: lucia.id, exerciseTypeId: jumping.id },
+      { employeeId: tom.id, exerciseTypeId: power.id },
+      { employeeId: tom.id, exerciseTypeId: pilates.id },
+    ]);
+
     // 5. Lectures (customers are created via Clerk signup, not seeded)
     console.log('Creating lectures');
     const lectures = await db
@@ -154,60 +173,67 @@ async function main() {
           exerciseTypeId: yoga.id,
           lectureName: 'Vinyasa Yoga',
           description: 'Flowing yoga sequences',
+          forMembers: false, // <-- ADDED
         },
         {
           exerciseTypeId: yoga.id,
           lectureName: 'Morning Yoga',
           description: 'Gentle morning stretch',
+          forMembers: false,
         },
         {
           exerciseTypeId: yoga.id,
           lectureName: 'Power Yoga',
           description: 'Strength-focused yoga',
+          forMembers: false,
         },
         {
           exerciseTypeId: power.id,
           lectureName: 'Power Training',
           description: 'Full body strength',
+          forMembers: false,
         },
         {
           exerciseTypeId: power.id,
           lectureName: 'Power Lifting',
           description: 'Heavy compound lifts',
+          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
         },
         {
           exerciseTypeId: power.id,
           lectureName: 'Power Hour',
           description: 'Intense power session',
+          forMembers: false,
         },
         {
           exerciseTypeId: cardio.id,
           lectureName: 'HIIT Cardio',
           description: 'High intensity intervals',
+          forMembers: false,
         },
         {
-          exerciseTypeId: cardio.id,
+          exerciseTypeId: spinning.id, // <-- USING NEW SPINNING TYPE
           lectureName: 'Spin Class',
           description: 'Indoor cycling workout',
+          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
         },
         {
           exerciseTypeId: cardio.id,
           lectureName: 'Cardio Blast',
           description: 'Mixed cardio drills',
+          forMembers: false,
         },
         {
           exerciseTypeId: jumping.id,
           lectureName: 'Jumping Fitness',
           description: 'Trampoline-based workout',
+          forMembers: false,
         },
       ])
       .returning();
 
     // Map lectures by name for easy reference
     const lec = Object.fromEntries(lectures.map((l) => [l.lectureName, l.id]));
-
-    // Map trainers: Sarah=yoga, Mike=power, Jana=cardio, Lucia=jumping, Tom=mixed
-    const [sarah, mike, jana, lucia, tom] = trainers;
 
     // 7. Schedule — spread across current week (Mon-Sun)
     console.log('Creating schedule for current week');

@@ -217,14 +217,13 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: var(--c-accent);
+  color: #0d0d0d;
 }
 
-.dash-stat-icon--blue,
-.dash-stat-icon--red,
-.dash-stat-icon--yellow,
-.dash-stat-icon--green {
-  background: rgba(170, 204, 0, 0.15) !important;
-  color: var(--c-accent) !important;
+.dash-stat-icon svg {
+  stroke: currentColor;
+  stroke-width: 2.25;
 }
 
 .dash-stat-value {

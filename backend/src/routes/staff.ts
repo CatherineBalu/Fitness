@@ -1,8 +1,25 @@
 import { Elysia, t } from 'elysia';
-import { eq } from 'drizzle-orm';
+import { eq, sql, asc } from 'drizzle-orm';
 import { db } from '../db/db';
-import { tbPerson, tbEmployee, tbEmployeeType } from '../db/schema';
+import {
+  tbCustomer,
+  tbCustomerReservation,
+  tbEmployee,
+  tbEmployeeSpecialization,
+  tbEmployeeType,
+  tbExerciseType,
+  tbLecture,
+  tbPerson,
+  tbRoom,
+  tbSchedule,
+  tbScheduleInstructor,
+} from '../db/schema';
 import { clerk, requirePermission } from '../middleware/auth';
+
+function formatTimeRange(start: Date, end: Date): string {
+  const hhmm = (d: Date) => d.toISOString().slice(11, 16);
+  return `${hhmm(start)} - ${hhmm(end)}`;
+}
 
 function generateTempPassword(): string {
   const lower = Math.random().toString(36).slice(2, 7);
@@ -14,24 +31,45 @@ function generateTempPassword(): string {
 export const staffRoutes = new Elysia({ prefix: '/api/staff' })
   .use(requirePermission('staff:read'))
 
-  // GET /api/staff — list all employees
+  // GET /api/staff — list all employees with their specializations
   .get('/', async () => {
-    return db
+    const rows = await db
       .select({
         id: tbEmployee.id,
         firstName: tbPerson.name,
         lastName: tbPerson.surname,
         email: tbPerson.email,
         clerkId: tbPerson.clerkId,
-        roleType: tbEmployeeType.roleName,
-        hireDate: tbEmployee.hireDate,
+        role: tbEmployeeType.roleName,
+        since: tbEmployee.hireDate,
       })
       .from(tbEmployee)
       .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-      .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id));
+      .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id))
+      .orderBy(asc(tbPerson.surname));
+
+    const specRows = await db
+      .select({
+        employeeId: tbEmployeeSpecialization.employeeId,
+        name: tbExerciseType.name,
+      })
+      .from(tbEmployeeSpecialization)
+      .innerJoin(tbExerciseType, eq(tbEmployeeSpecialization.exerciseTypeId, tbExerciseType.id));
+
+    const byEmployee = new Map<string, string[]>();
+    for (const r of specRows) {
+      const list = byEmployee.get(r.employeeId) ?? [];
+      list.push(r.name);
+      byEmployee.set(r.employeeId, list);
+    }
+
+    return rows.map((r) => ({
+      ...r,
+      specializations: byEmployee.get(r.id) ?? [],
+    }));
   })
 
-  // POST /api/staff — create a new employee
+  // POST /api/staff — Clerk invite + DB insert; for Instructor role also writes specializations
   .post(
     '/',
     async ({ body, set, auth }) => {
@@ -40,11 +78,15 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
         return { error: 'Forbidden' };
       }
 
-      const [empType] = await db.select().from(tbEmployeeType).limit(1);
+      const [roleRow] = await db
+        .select()
+        .from(tbEmployeeType)
+        .where(eq(tbEmployeeType.roleName, body.role))
+        .limit(1);
 
-      if (!empType) {
-        set.status = 500;
-        return { error: 'No employee types configured in database' };
+      if (!roleRow) {
+        set.status = 400;
+        return { error: `Unknown role: ${body.role}` };
       }
 
       const tempPassword = generateTempPassword();
@@ -81,11 +123,27 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
           })
           .returning();
 
-        await db.insert(tbEmployee).values({
-          personId: person.id,
-          employeeTypeId: empType.id,
-          hireDate: today,
-        });
+        const [employee] = await db
+          .insert(tbEmployee)
+          .values({
+            personId: person.id,
+            employeeTypeId: roleRow.id,
+            hireDate: today,
+          })
+          .returning();
+
+        if (
+          roleRow.roleName === 'Instructor' &&
+          body.specializations &&
+          body.specializations.length > 0
+        ) {
+          await db.insert(tbEmployeeSpecialization).values(
+            body.specializations.map((exerciseTypeId) => ({
+              employeeId: employee.id,
+              exerciseTypeId,
+            })),
+          );
+        }
       } catch {
         // Clerk user was created — clean it up to avoid orphans
         await clerk.users.deleteUser(clerkUser.id).catch(() => {});
@@ -101,11 +159,78 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
         firstName: t.String({ minLength: 1 }),
         lastName: t.String({ minLength: 1 }),
         email: t.String({ minLength: 5 }),
+        role: t.String({ minLength: 1 }),
+        specializations: t.Optional(t.Array(t.String())),
       }),
     },
   )
 
-  // DELETE /api/staff/:id — remove an employee
+  // PATCH /api/staff/:id — update first/last name (DB + Clerk); for Instructor also replace specializations
+  .patch(
+    '/:id',
+    async ({ params, body, set, auth }) => {
+      if (!auth!.can('staff:write')) {
+        set.status = 403;
+        return { error: 'Forbidden' };
+      }
+
+      const [employee] = await db
+        .select({
+          employeeId: tbEmployee.id,
+          personId: tbPerson.id,
+          clerkId: tbPerson.clerkId,
+          role: tbEmployeeType.roleName,
+        })
+        .from(tbEmployee)
+        .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
+        .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id))
+        .where(eq(tbEmployee.id, params.id))
+        .limit(1);
+
+      if (!employee) {
+        set.status = 404;
+        return { error: 'Staff member not found' };
+      }
+
+      // Clerk is best-effort: seed users have fake clerkIds. DB remains source of truth.
+      await clerk.users
+        .updateUser(employee.clerkId, {
+          firstName: body.firstName,
+          lastName: body.lastName,
+        })
+        .catch(() => {});
+
+      await db
+        .update(tbPerson)
+        .set({ name: body.firstName, surname: body.lastName })
+        .where(eq(tbPerson.id, employee.personId));
+
+      if (employee.role === 'Instructor' && body.specializations) {
+        await db
+          .delete(tbEmployeeSpecialization)
+          .where(eq(tbEmployeeSpecialization.employeeId, employee.employeeId));
+        if (body.specializations.length > 0) {
+          await db.insert(tbEmployeeSpecialization).values(
+            body.specializations.map((exerciseTypeId) => ({
+              employeeId: employee.employeeId,
+              exerciseTypeId,
+            })),
+          );
+        }
+      }
+
+      return { success: true };
+    },
+    {
+      body: t.Object({
+        firstName: t.String({ minLength: 1 }),
+        lastName: t.String({ minLength: 1 }),
+        specializations: t.Optional(t.Array(t.String())),
+      }),
+    },
+  )
+
+  // DELETE /api/staff/:id — remove Clerk user, employee, specializations, schedule links, and person
   .delete('/:id', async ({ params, set, auth }) => {
     if (!auth!.can('staff:delete')) {
       set.status = 403;
@@ -128,21 +253,96 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
       return { error: 'Staff member not found' };
     }
 
-    await clerk.users.deleteUser(employee.clerkId);
+    await clerk.users.deleteUser(employee.clerkId).catch(() => {});
+    await db
+      .delete(tbEmployeeSpecialization)
+      .where(eq(tbEmployeeSpecialization.employeeId, employee.employeeId));
+    await db
+      .delete(tbScheduleInstructor)
+      .where(eq(tbScheduleInstructor.employeeId, employee.employeeId));
     await db.delete(tbEmployee).where(eq(tbEmployee.id, employee.employeeId));
     await db.delete(tbPerson).where(eq(tbPerson.id, employee.personId));
 
     return { success: true };
   })
 
-  .get('/:id/lectures', ({ set }) => {
-    set.status = 501;
-    return { error: 'Not implemented' };
+  // GET /api/staff/:id/lectures — all scheduled lectures this employee teaches
+  .get('/:id/lectures', async ({ params }) => {
+    const rows = await db
+      .select({
+        id: tbSchedule.id,
+        lectureName: tbLecture.lectureName,
+        startTime: tbSchedule.startTime,
+        endTime: tbSchedule.endTime,
+        roomName: tbRoom.name,
+        capacity: tbRoom.capacity,
+      })
+      .from(tbScheduleInstructor)
+      .innerJoin(tbSchedule, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
+      .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
+      .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
+      .where(eq(tbScheduleInstructor.employeeId, params.id))
+      .orderBy(asc(tbSchedule.startTime));
+
+    return await Promise.all(
+      rows.map(async (r) => {
+        const [{ count }] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(tbCustomerReservation)
+          .where(eq(tbCustomerReservation.scheduleId, r.id));
+
+        return {
+          id: r.id,
+          name: r.lectureName,
+          time: formatTimeRange(r.startTime, r.endTime),
+          room: r.roomName,
+          capacity: r.capacity,
+          registered: count,
+        };
+      }),
+    );
+  });
+
+// GET /api/exercise-types — used for staff filter chips and specializations multi-select
+export const exerciseTypeRoutes = new Elysia({ prefix: '/api/exercise-types' })
+  .use(requirePermission('staff:read'))
+  .get('/', async () => {
+    return db
+      .select({ id: tbExerciseType.id, name: tbExerciseType.name })
+      .from(tbExerciseType)
+      .orderBy(asc(tbExerciseType.name));
+  });
+
+// GET /api/employee-types — used for Add staff role dropdown
+export const employeeTypeRoutes = new Elysia({ prefix: '/api/employee-types' })
+  .use(requirePermission('staff:read'))
+  .get('/', async () => {
+    return db
+      .select({ id: tbEmployeeType.id, roleName: tbEmployeeType.roleName })
+      .from(tbEmployeeType)
+      .orderBy(asc(tbEmployeeType.roleName));
   });
 
 export const lectureRoutes = new Elysia({ prefix: '/api/lectures' })
   .use(requirePermission('staff:read'))
-  .get('/:id/members', ({ set }) => {
-    set.status = 501;
-    return { error: 'Not implemented' };
+  // GET /api/lectures/:id/members — customers registered on a schedule instance
+  .get('/:id/members', async ({ params }) => {
+    const rows = await db
+      .select({
+        id: tbCustomer.id,
+        name: tbPerson.name,
+        surname: tbPerson.surname,
+        email: tbPerson.email,
+      })
+      .from(tbCustomerReservation)
+      .innerJoin(tbCustomer, eq(tbCustomerReservation.customerId, tbCustomer.id))
+      .innerJoin(tbPerson, eq(tbCustomer.personId, tbPerson.id))
+      .where(eq(tbCustomerReservation.scheduleId, params.id))
+      .orderBy(asc(tbPerson.surname));
+
+    return rows.map((r) => ({
+      id: r.id,
+      name: `${r.name} ${r.surname}`,
+      email: r.email,
+    }));
   });

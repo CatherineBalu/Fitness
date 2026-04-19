@@ -19,7 +19,6 @@ interface Stat {
   icon: React.ReactNode;
   value: string;
   label: string;
-  colorClass: string;
 }
 
 // Mock data — replace with API call after DB merge
@@ -61,25 +60,21 @@ const STATS: Stat[] = [
     icon: <Calendar size={22} />,
     value: '5',
     label: 'Lectures this week',
-    colorClass: 'stat-icon--blue',
   },
   {
     icon: <Users size={22} />,
     value: '47',
     label: 'Logged in participations',
-    colorClass: 'stat-icon--red',
   },
   {
     icon: <Star size={22} />,
     value: '4.5',
     label: 'Average rating',
-    colorClass: 'stat-icon--yellow',
   },
   {
     icon: <TrendingUp size={22} />,
     value: '90 %',
     label: 'Attendance this month',
-    colorClass: 'stat-icon--green',
   },
 ];
 
@@ -108,7 +103,7 @@ function StatCard({ stat }: { stat: Stat }) {
   return (
     <Card className="dash-stat-card">
       <CardContent className="dash-stat-content">
-        <div className={`dash-stat-icon ${stat.colorClass}`}>{stat.icon}</div>
+        <div className="dash-stat-icon">{stat.icon}</div>
         <span className="dash-stat-value">{stat.value}</span>
         <span className="dash-stat-label">{stat.label}</span>
       </CardContent>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Clock, MapPin, Users, X } from 'lucide-react';
+import { Search, Plus, Clock, MapPin, Users, X, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useApi } from '@/lib/api';
 import './AdminStaffPage.css';
 
@@ -27,9 +34,22 @@ interface StaffMember {
   lastName: string;
   email: string;
   clerkId: string;
-  roleType: string;
-  hireDate: string;
+  role: string;
+  since: string;
+  specializations: string[];
 }
+
+interface ExerciseType {
+  id: string;
+  name: string;
+}
+
+interface EmployeeType {
+  id: string;
+  roleName: string;
+}
+
+const RECEPTION_FILTER = 'Reception';
 
 interface Member {
   id: string;
@@ -220,31 +240,33 @@ function ViewClassesDialog({
               {staff ? `${staff.firstName} ${staff.lastName}` : ''} — Classes
             </DialogTitle>
           </DialogHeader>
-          <div className="classes-dialog-legend">
-            <span className="legend-item">
-              <span className="status-dot status-dot--available" />
-              Available
-            </span>
-            <span className="legend-item">
-              <span className="status-dot status-dot--almost-full" />
-              Almost full
-            </span>
-            <span className="legend-item">
-              <span className="status-dot status-dot--full" />
-              Full
-            </span>
-          </div>
-          <div className="classes-dialog-grid">
-            {lectures.map((lecture) => (
-              <LectureCard
-                key={lecture.id}
-                lecture={lecture}
-                onViewMembers={handleViewMembers}
-              />
-            ))}
-            {lectures.length === 0 && (
-              <p className="members-empty">No classes assigned.</p>
-            )}
+          <div className="classes-dialog-body">
+            <div className="classes-dialog-legend">
+              <span className="legend-item">
+                <span className="status-dot status-dot--available" />
+                Available
+              </span>
+              <span className="legend-item">
+                <span className="status-dot status-dot--almost-full" />
+                Almost full
+              </span>
+              <span className="legend-item">
+                <span className="status-dot status-dot--full" />
+                Full
+              </span>
+            </div>
+            <div className="classes-dialog-grid">
+              {lectures.map((lecture) => (
+                <LectureCard
+                  key={lecture.id}
+                  lecture={lecture}
+                  onViewMembers={handleViewMembers}
+                />
+              ))}
+              {lectures.length === 0 && (
+                <p className="members-empty">No classes assigned.</p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -261,24 +283,58 @@ function AddMemberDialog({
   open,
   onClose,
   onAdded,
+  exerciseTypes,
 }: {
   open: boolean;
   onClose: () => void;
   onAdded: () => void;
+  exerciseTypes: ExerciseType[];
 }) {
   const { apiRequest } = useApi();
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '' });
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+  });
+  const [specializations, setSpecializations] = useState<string[]>([]);
+  const [employeeTypes, setEmployeeTypes] = useState<EmployeeType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    apiRequest<EmployeeType[]>('/api/employee-types')
+      .then((data) => setEmployeeTypes(data))
+      .catch(() => setEmployeeTypes([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
+  function toggleSpecialization(id: string) {
+    setSpecializations((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!form.role) {
+      setError('Please select a role');
+      return;
+    }
+
+    if (form.role === 'Instructor' && specializations.length === 0) {
+      setError('Please select at least one specialization');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -287,7 +343,10 @@ function AddMemberDialog({
         temporaryPassword: string;
       }>('/api/staff', {
         method: 'POST',
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          specializations: form.role === 'Instructor' ? specializations : [],
+        }),
       });
       setTempPassword(data.temporaryPassword);
       onAdded();
@@ -301,7 +360,8 @@ function AddMemberDialog({
   }
 
   function handleClose() {
-    setForm({ firstName: '', lastName: '', email: '' });
+    setForm({ firstName: '', lastName: '', email: '', role: '' });
+    setSpecializations([]);
     setError(null);
     setTempPassword(null);
     onClose();
@@ -364,6 +424,53 @@ function AddMemberDialog({
                 required
               />
             </div>
+            <div className="add-member-field">
+              <label className="add-member-label">Role</label>
+              <Select
+                value={form.role}
+                onValueChange={(value) => {
+                  setForm((prev) => ({ ...prev, role: value }));
+                  if (value !== 'Instructor') setSpecializations([]);
+                }}
+              >
+                <SelectTrigger className="add-member-input">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employeeTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.roleName}>
+                      {t.roleName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.role === 'Instructor' && (
+              <div className="add-member-field">
+                <label className="add-member-label">Specializations</label>
+                <div className="add-member-specializations">
+                  {exerciseTypes.map((et) => {
+                    const active = specializations.includes(et.id);
+                    return (
+                      <Button
+                        type="button"
+                        key={et.id}
+                        size="sm"
+                        variant={active ? 'default' : 'outline'}
+                        className={
+                          active
+                            ? 'staff-filter-btn staff-filter-btn--active'
+                            : 'staff-filter-btn'
+                        }
+                        onClick={() => toggleSpecialization(et.id)}
+                      >
+                        {et.name}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <Button
               type="submit"
@@ -379,15 +486,154 @@ function AddMemberDialog({
   );
 }
 
+function EditStaffDialog({
+  staff,
+  open,
+  onClose,
+  onSaved,
+  exerciseTypes,
+}: {
+  staff: StaffMember | null;
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  exerciseTypes: ExerciseType[];
+}) {
+  const { apiRequest } = useApi();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [specializations, setSpecializations] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !staff) return;
+    setFirstName(staff.firstName);
+    setLastName(staff.lastName);
+    const ids = exerciseTypes
+      .filter((et) => staff.specializations.includes(et.name))
+      .map((et) => et.id);
+    setSpecializations(ids);
+    setError(null);
+  }, [open, staff, exerciseTypes]);
+
+  function toggleSpecialization(id: string) {
+    setSpecializations((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!staff) return;
+    setError(null);
+
+    if (staff.role === 'Instructor' && specializations.length === 0) {
+      setError('Please select at least one specialization');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiRequest(`/api/staff/${staff.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          specializations:
+            staff.role === 'Instructor' ? specializations : undefined,
+        }),
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to update staff member',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="add-member-dialog">
+        <DialogHeader>
+          <DialogTitle className="add-member-dialog-title">
+            Edit staff member
+          </DialogTitle>
+        </DialogHeader>
+        <form className="add-member-form" onSubmit={handleSubmit}>
+          {error && <p className="add-member-error">{error}</p>}
+          <div className="add-member-field">
+            <label className="add-member-label">First name</label>
+            <Input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="add-member-input"
+              required
+            />
+          </div>
+          <div className="add-member-field">
+            <label className="add-member-label">Last name</label>
+            <Input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="add-member-input"
+              required
+            />
+          </div>
+          {staff?.role === 'Instructor' && (
+            <div className="add-member-field">
+              <label className="add-member-label">Specializations</label>
+              <div className="add-member-specializations">
+                {exerciseTypes.map((et) => {
+                  const active = specializations.includes(et.id);
+                  return (
+                    <Button
+                      type="button"
+                      key={et.id}
+                      size="sm"
+                      variant={active ? 'default' : 'outline'}
+                      className={
+                        active
+                          ? 'staff-filter-btn staff-filter-btn--active'
+                          : 'staff-filter-btn'
+                      }
+                      onClick={() => toggleSpecialization(et.id)}
+                    >
+                      {et.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <Button
+            type="submit"
+            className="add-member-submit"
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminStaffPage() {
   const { apiRequest } = useApi();
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [exerciseTypes, setExerciseTypes] = useState<ExerciseType[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeRole, setActiveRole] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [viewStaff, setViewStaff] = useState<StaffMember | null>(null);
   const [classesOpen, setClassesOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -408,7 +654,10 @@ export default function AdminStaffPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadStaff();
-  }, [loadStaff]);
+    apiRequest<ExerciseType[]>('/api/exercise-types')
+      .then((data) => setExerciseTypes(data))
+      .catch(() => setExerciseTypes([]));
+  }, [loadStaff, apiRequest]);
 
   function showSuccess(message: string) {
     setSuccessMessage(message);
@@ -435,7 +684,7 @@ export default function AdminStaffPage() {
     }
   }
 
-  const allRoles = Array.from(new Set(staffList.map((s) => s.roleType)));
+  const filterChips = [...exerciseTypes.map((t) => t.name), RECEPTION_FILTER];
 
   const filtered = staffList.filter((s) => {
     const matchesSearch =
@@ -443,8 +692,15 @@ export default function AdminStaffPage() {
       `${s.firstName} ${s.lastName}`
         .toLowerCase()
         .includes(search.toLowerCase());
-    const matchesRole = activeRole === null || s.roleType === activeRole;
-    return matchesSearch && matchesRole;
+
+    let matchesFilter = true;
+    if (activeFilter !== null) {
+      matchesFilter =
+        activeFilter === RECEPTION_FILTER
+          ? s.role === RECEPTION_FILTER
+          : s.specializations.includes(activeFilter);
+    }
+    return matchesSearch && matchesFilter;
   });
 
   function handleView(staff: StaffMember) {
@@ -486,21 +742,21 @@ export default function AdminStaffPage() {
         </div>
 
         <div className="admin-staff-filters">
-          {allRoles.map((role) => (
+          {filterChips.map((chip) => (
             <Button
-              key={role}
+              key={chip}
               size="sm"
-              variant={activeRole === role ? 'default' : 'outline'}
+              variant={activeFilter === chip ? 'default' : 'outline'}
               className={
-                activeRole === role
+                activeFilter === chip
                   ? 'staff-filter-btn staff-filter-btn--active'
                   : 'staff-filter-btn'
               }
               onClick={() =>
-                setActiveRole((prev) => (prev === role ? null : role))
+                setActiveFilter((prev) => (prev === chip ? null : chip))
               }
             >
-              {role}
+              {chip}
             </Button>
           ))}
         </div>
@@ -527,8 +783,20 @@ export default function AdminStaffPage() {
                 <span className="staff-row-name">
                   {staff.firstName} {staff.lastName}
                 </span>
-                <span className="staff-row-badge">{staff.roleType}</span>
-                <span className="staff-row-since">{staff.hireDate}</span>
+                <div className="staff-row-badges">
+                  {staff.role === RECEPTION_FILTER ? (
+                    <span className="staff-row-badge">{staff.role}</span>
+                  ) : staff.specializations.length > 0 ? (
+                    staff.specializations.map((spec) => (
+                      <span key={spec} className="staff-row-badge">
+                        {spec}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="staff-row-badge">{staff.role}</span>
+                  )}
+                </div>
+                <span className="staff-row-since">{staff.since}</span>
                 <div className="staff-row-actions">
                   <Button
                     size="sm"
@@ -537,6 +805,18 @@ export default function AdminStaffPage() {
                     onClick={() => handleView(staff)}
                   >
                     View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="staff-row-edit-btn"
+                    aria-label="Edit staff member"
+                    onClick={() => {
+                      setEditStaff(staff);
+                      setEditOpen(true);
+                    }}
+                  >
+                    <Pencil size={14} />
                   </Button>
                   <Button
                     size="sm"
@@ -567,6 +847,17 @@ export default function AdminStaffPage() {
           loadStaff();
           showSuccess('Staff member added successfully.');
         }}
+        exerciseTypes={exerciseTypes}
+      />
+      <EditStaffDialog
+        staff={editStaff}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          loadStaff();
+          showSuccess('Staff member updated successfully.');
+        }}
+        exerciseTypes={exerciseTypes}
       />
       <DeleteConfirmDialog
         name={
