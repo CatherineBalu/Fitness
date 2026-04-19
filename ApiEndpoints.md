@@ -15,6 +15,7 @@
 
 - GET `/api/staff` — list all employees with their `specializations: string[]` (Instructors + Reception)
 - POST `/api/staff` — create new employee (body: `fullName`, `role`, `email`, `password`)
+- PATCH `/api/staff/:id` — update first/last name (DB + Clerk); for Instructor also replaces specializations
 - DELETE `/api/staff/:id` — remove employee and underlying person
 - GET `/api/staff/:id/lectures` — all scheduled lectures this employee teaches
 

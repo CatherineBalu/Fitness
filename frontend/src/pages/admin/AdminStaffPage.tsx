@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Clock, MapPin, Users, X } from 'lucide-react';
+import { Search, Plus, Clock, MapPin, Users, X, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -330,6 +330,11 @@ function AddMemberDialog({
       return;
     }
 
+    if (form.role === 'Instructor' && specializations.length === 0) {
+      setError('Please select at least one specialization');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -481,6 +486,142 @@ function AddMemberDialog({
   );
 }
 
+function EditStaffDialog({
+  staff,
+  open,
+  onClose,
+  onSaved,
+  exerciseTypes,
+}: {
+  staff: StaffMember | null;
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  exerciseTypes: ExerciseType[];
+}) {
+  const { apiRequest } = useApi();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [specializations, setSpecializations] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !staff) return;
+    setFirstName(staff.firstName);
+    setLastName(staff.lastName);
+    const ids = exerciseTypes
+      .filter((et) => staff.specializations.includes(et.name))
+      .map((et) => et.id);
+    setSpecializations(ids);
+    setError(null);
+  }, [open, staff, exerciseTypes]);
+
+  function toggleSpecialization(id: string) {
+    setSpecializations((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!staff) return;
+    setError(null);
+
+    if (staff.role === 'Instructor' && specializations.length === 0) {
+      setError('Please select at least one specialization');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiRequest(`/api/staff/${staff.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          specializations:
+            staff.role === 'Instructor' ? specializations : undefined,
+        }),
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to update staff member',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="add-member-dialog">
+        <DialogHeader>
+          <DialogTitle className="add-member-dialog-title">
+            Edit staff member
+          </DialogTitle>
+        </DialogHeader>
+        <form className="add-member-form" onSubmit={handleSubmit}>
+          {error && <p className="add-member-error">{error}</p>}
+          <div className="add-member-field">
+            <label className="add-member-label">First name</label>
+            <Input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="add-member-input"
+              required
+            />
+          </div>
+          <div className="add-member-field">
+            <label className="add-member-label">Last name</label>
+            <Input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="add-member-input"
+              required
+            />
+          </div>
+          {staff?.role === 'Instructor' && (
+            <div className="add-member-field">
+              <label className="add-member-label">Specializations</label>
+              <div className="add-member-specializations">
+                {exerciseTypes.map((et) => {
+                  const active = specializations.includes(et.id);
+                  return (
+                    <Button
+                      type="button"
+                      key={et.id}
+                      size="sm"
+                      variant={active ? 'default' : 'outline'}
+                      className={
+                        active
+                          ? 'staff-filter-btn staff-filter-btn--active'
+                          : 'staff-filter-btn'
+                      }
+                      onClick={() => toggleSpecialization(et.id)}
+                    >
+                      {et.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <Button
+            type="submit"
+            className="add-member-submit"
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminStaffPage() {
   const { apiRequest } = useApi();
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
@@ -491,6 +632,8 @@ export default function AdminStaffPage() {
   const [viewStaff, setViewStaff] = useState<StaffMember | null>(null);
   const [classesOpen, setClassesOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -665,6 +808,18 @@ export default function AdminStaffPage() {
                   </Button>
                   <Button
                     size="sm"
+                    variant="outline"
+                    className="staff-row-edit-btn"
+                    aria-label="Edit staff member"
+                    onClick={() => {
+                      setEditStaff(staff);
+                      setEditOpen(true);
+                    }}
+                  >
+                    <Pencil size={14} />
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="destructive"
                     className="staff-row-delete-btn"
                     onClick={() => setDeleteTarget(staff)}
@@ -691,6 +846,16 @@ export default function AdminStaffPage() {
         onAdded={() => {
           loadStaff();
           showSuccess('Staff member added successfully.');
+        }}
+        exerciseTypes={exerciseTypes}
+      />
+      <EditStaffDialog
+        staff={editStaff}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          loadStaff();
+          showSuccess('Staff member updated successfully.');
         }}
         exerciseTypes={exerciseTypes}
       />

@@ -165,6 +165,71 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
     },
   )
 
+  // PATCH /api/staff/:id — update first/last name (DB + Clerk); for Instructor also replace specializations
+  .patch(
+    '/:id',
+    async ({ params, body, set, auth }) => {
+      if (!auth!.can('staff:write')) {
+        set.status = 403;
+        return { error: 'Forbidden' };
+      }
+
+      const [employee] = await db
+        .select({
+          employeeId: tbEmployee.id,
+          personId: tbPerson.id,
+          clerkId: tbPerson.clerkId,
+          role: tbEmployeeType.roleName,
+        })
+        .from(tbEmployee)
+        .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
+        .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id))
+        .where(eq(tbEmployee.id, params.id))
+        .limit(1);
+
+      if (!employee) {
+        set.status = 404;
+        return { error: 'Staff member not found' };
+      }
+
+      // Clerk is best-effort: seed users have fake clerkIds. DB remains source of truth.
+      await clerk.users
+        .updateUser(employee.clerkId, {
+          firstName: body.firstName,
+          lastName: body.lastName,
+        })
+        .catch(() => {});
+
+      await db
+        .update(tbPerson)
+        .set({ name: body.firstName, surname: body.lastName })
+        .where(eq(tbPerson.id, employee.personId));
+
+      if (employee.role === 'Instructor' && body.specializations) {
+        await db
+          .delete(tbEmployeeSpecialization)
+          .where(eq(tbEmployeeSpecialization.employeeId, employee.employeeId));
+        if (body.specializations.length > 0) {
+          await db.insert(tbEmployeeSpecialization).values(
+            body.specializations.map((exerciseTypeId) => ({
+              employeeId: employee.employeeId,
+              exerciseTypeId,
+            })),
+          );
+        }
+      }
+
+      return { success: true };
+    },
+    {
+      body: t.Object({
+        firstName: t.String({ minLength: 1 }),
+        lastName: t.String({ minLength: 1 }),
+        specializations: t.Optional(t.Array(t.String())),
+      }),
+    },
+  )
+
   // DELETE /api/staff/:id — remove Clerk user, employee, specializations, schedule links, and person
   .delete('/:id', async ({ params, set, auth }) => {
     if (!auth!.can('staff:delete')) {

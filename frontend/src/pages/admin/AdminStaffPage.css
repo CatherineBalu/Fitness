@@ -224,6 +224,19 @@
   border-color: var(--c-accent) !important;
 }
 
+.staff-row-edit-btn {
+  border-color: var(--c-border) !important;
+  color: var(--c-text) !important;
+  background: transparent !important;
+  padding: 0 10px !important;
+}
+
+.staff-row-edit-btn:hover {
+  background: var(--c-surface2) !important;
+  border-color: var(--c-accent) !important;
+  color: var(--c-accent) !important;
+}
+
 .staff-row-delete-btn {
   font-size: 13px !important;
 }
@@ -466,6 +479,12 @@
 
 .add-member-input::placeholder {
   color: var(--c-muted);
+}
+
+.add-member-specializations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .add-member-submit {
