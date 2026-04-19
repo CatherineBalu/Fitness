@@ -174,6 +174,7 @@ async function main() {
           exerciseTypeId: power.id,
           lectureName: 'Power Lifting',
           description: 'Heavy compound lifts',
+          forMembers: true,
         },
         {
           exerciseTypeId: power.id,
@@ -199,6 +200,7 @@ async function main() {
           exerciseTypeId: jumping.id,
           lectureName: 'Jumping Fitness',
           description: 'Trampoline-based workout',
+          forMembers: true,
         },
       ])
       .returning();

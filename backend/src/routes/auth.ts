@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/db';
-import { tbPerson } from '../db/schema';
+import { tbPerson, tbCustomer } from '../db/schema';
 import { authenticated } from '../middleware/auth';
 
 export const profileRoutes = new Elysia({ prefix: '/auth' })
@@ -15,6 +15,19 @@ export const profileRoutes = new Elysia({ prefix: '/auth' })
 
     if (!person) return { error: 'Profile not found' };
 
+    const [customer] = await db
+      .select({
+        subscriptionValidUntil: tbCustomer.subscriptionValidUntil,
+      })
+      .from(tbCustomer)
+      .where(eq(tbCustomer.personId, person.id))
+      .limit(1);
+
+    const today = new Date().toISOString().split('T')[0];
+    const hasActiveMembership = customer?.subscriptionValidUntil
+      ? new Date(customer.subscriptionValidUntil) >= new Date(today)
+      : false;
+
     return {
       id: person.id,
       name: person.name,
@@ -22,5 +35,7 @@ export const profileRoutes = new Elysia({ prefix: '/auth' })
       email: person.email,
       phoneNumber: person.phoneNumber,
       role: auth!.role,
+      hasActiveMembership,
+      subscriptionValidUntil: customer?.subscriptionValidUntil ?? null,
     };
   });
