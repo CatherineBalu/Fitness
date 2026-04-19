@@ -255,6 +255,44 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
       })
   )
 
+  // GET /schedule/:id/members — list all members registered for a specific schedule
+  .get('/:id/members', async ({ params, set }) => {
+    try {
+      const { id: scheduleId } = params;
+
+      // Query to find all persons who have a reservation for this schedule
+      const members = await db
+        .select({
+          id: tbPerson.id,
+          name: tbPerson.name,
+          surname: tbPerson.surname,
+          email: tbPerson.email,
+          attended: tbCustomerReservation.attended,
+        })
+        .from(tbCustomerReservation)
+        .innerJoin(tbCustomer, eq(tbCustomerReservation.customerId, tbCustomer.id))
+        .innerJoin(tbPerson, eq(tbCustomer.personId, tbPerson.id))
+        .where(eq(tbCustomerReservation.scheduleId, scheduleId))
+        .orderBy(tbPerson.surname);
+
+      // Format the output to match the frontend expectations
+      return members.map((member) => ({
+        id: member.id,
+        name: `${member.name} ${member.surname}`,
+        email: member.email,
+        attended: member.attended,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch schedule members:', error);
+      set.status = 500;
+      return { error: 'Failed to retrieve members.' };
+    }
+  }, {
+    params: t.Object({
+      id: t.String({ format: 'uuid', error: 'Invalid schedule ID format' }),
+    }),
+  })
+
   // GET /schedule/lectures — list all lecture templates
   .get('/lectures', async () => {
     const lectures = await db

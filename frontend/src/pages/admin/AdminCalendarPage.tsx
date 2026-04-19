@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { Clock, MapPin, Users, Plus, CalendarDays } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import AddScheduleDialog from './AddScheduleDialog';
 import './AdminCalendarPage.css';
 
@@ -28,6 +34,13 @@ interface ScheduleItem {
   roomName: string;
   roomCapacity: number;
   registered: number;
+}
+
+// --- MEMBER INTERFACE ---
+interface Member {
+  id: string;
+  name: string;
+  email: string;
 }
 
 function toUTCDateOnly(date: Date): Date {
@@ -85,7 +98,8 @@ function filterLectures(lectures: Lecture[], filter: Filter): Lecture[] {
   return lectures;
 }
 
-function LectureCard({ lecture }: { lecture: Lecture }) {
+// --- LECTURE CARD ---
+function LectureCard({ lecture, onViewMembers }: { lecture: Lecture; onViewMembers: (lecture: Lecture) => void }) {
   const status = getStatus(lecture.registered, lecture.capacity);
 
   return (
@@ -115,7 +129,12 @@ function LectureCard({ lecture }: { lecture: Lecture }) {
             </span>
           </div>
         </div>
-        <Button size="sm" variant="outline" className="lecture-view-btn">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="lecture-view-btn"
+          onClick={() => onViewMembers(lecture)}
+        >
           View members
         </Button>
       </CardContent>
@@ -135,6 +154,13 @@ export default function AdminCalendarPage() {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // --- STATE FOR MEMBERS DIALOG ---
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [membersError, setMembersError] = useState('');
 
   function fetchLectures() {
     const today = toUTCDateOnly(new Date());
@@ -158,6 +184,29 @@ export default function AdminCalendarPage() {
   useEffect(() => {
     fetchLectures();
   }, []);
+
+  // --- ASYNC HANDLER FOR FETCHING REAL MEMBERS ---
+  async function handleViewMembers(lecture: Lecture) {
+    setSelectedLecture(lecture);
+    setMembersDialogOpen(true);
+    setLoadingMembers(true);
+    setMembersError('');
+    setMembers([]); // Clear previous members
+
+    try {
+      const res = await fetch(`${API_URL}/schedule/${lecture.id}/members`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch members');
+      }
+      const data = await res.json();
+      setMembers(data);
+    } catch (error) {
+      console.error(error);
+      setMembersError('Failed to load registered members. Please try again.');
+    } finally {
+      setLoadingMembers(false);
+    }
+  }
 
   const filtered = filterLectures(lectures, filter);
 
@@ -210,16 +259,73 @@ export default function AdminCalendarPage() {
         )}
         <div className="admin-cal-grid">
           {filtered.map((lecture) => (
-            <LectureCard key={lecture.id} lecture={lecture} />
+            <LectureCard 
+              key={lecture.id} 
+              lecture={lecture} 
+              onViewMembers={handleViewMembers} 
+            />
           ))}
         </div>
       </div>
 
+      {/* Main add schedule dialog */}
       <AddScheduleDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onCreated={fetchLectures}
       />
+
+      {/* --- MEMBERS LIST DIALOG (Now Dynamic) --- */}
+      <Dialog open={membersDialogOpen} onOpenChange={setMembersDialogOpen}>
+        <DialogContent className="add-schedule-dialog max-w-md">
+          <DialogHeader>
+            <DialogTitle className="add-schedule-title flex flex-col gap-1">
+              <span>Registered Members</span>
+              {selectedLecture && (
+                <span className="text-sm font-normal text-slate-400">
+                  {selectedLecture.name} • {selectedLecture.date} {selectedLecture.time}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col gap-2 mt-4 max-h-[300px] overflow-y-auto pr-2">
+            
+            {/* Loading State */}
+            {loadingMembers && (
+              <p className="text-sm text-center text-slate-400 py-4 animate-pulse">
+                Loading members...
+              </p>
+            )}
+
+            {/* Error State */}
+            {membersError && (
+              <p className="text-sm text-center text-red-400 py-4">
+                {membersError}
+              </p>
+            )}
+
+            {/* Success State - Mapping real data */}
+            {!loadingMembers && !membersError && members.map((member) => (
+              <div 
+                key={member.id} 
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-900/50"
+              >
+                <span className="font-medium text-slate-200">{member.name}</span>
+                <span className="text-sm text-slate-400">{member.email}</span>
+              </div>
+            ))}
+            
+            {/* Empty State */}
+            {!loadingMembers && !membersError && members.length === 0 && (
+              <p className="text-sm text-center text-slate-500 py-4">
+                No members registered yet.
+              </p>
+            )}
+
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
