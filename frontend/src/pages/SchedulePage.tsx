@@ -522,8 +522,9 @@ export default function SchedulePage() {
               <DialogHeader>
                 <DialogTitle>Register for lecture</DialogTitle>
                 <DialogDescription>
-                  Do you want to register for <strong>{dialog.activity.name}</strong>{' '}
-                  on {dialog.activity.time}?
+                  Do you want to register for{' '}
+                  <strong>{dialog.activity.name}</strong> on{' '}
+                  {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="cal-dialog-footer">
@@ -540,7 +541,8 @@ export default function SchedulePage() {
                 <DialogTitle>Cancel reservation</DialogTitle>
                 <DialogDescription>
                   Do you want to cancel your reservation for{' '}
-                  <strong>{dialog.activity.name}</strong> on {dialog.activity.time}?
+                  <strong>{dialog.activity.name}</strong> on{' '}
+                  {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="cal-dialog-footer">
