@@ -10,7 +10,9 @@ export type Permission =
   | 'reservation:write'
   | 'reservation:manage'
   | 'profile:read'
-  | 'profile:write';
+  | 'profile:write'
+  | 'stats:staff'
+  | 'stats:admin';
 
 // Employee permissions — admin inherits all of these
 const EMPLOYEE_PERMISSIONS: Permission[] = [
@@ -26,6 +28,7 @@ const EMPLOYEE_PERMISSIONS: Permission[] = [
   'reservation:manage',
   'profile:read',
   'profile:write',
+  'stats:staff',
 ];
 
 const ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -37,7 +40,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'profile:write',
   ],
   employee: EMPLOYEE_PERMISSIONS,
-  admin: [...EMPLOYEE_PERMISSIONS], // same as employee for now; extend here when roles diverge
+  admin: [...EMPLOYEE_PERMISSIONS, 'stats:admin'],
 };
 
 export function can(

@@ -30,3 +30,15 @@
 ### Employee types
 
 - GET `/api/employee-types` — list all employee roles (used for Add staff role dropdown)
+
+### Stats (admin)
+
+- GET `/api/stats/admin/overview` — KPI cards: active memberships, revenue this month, reservations this month, avg occupancy %
+- GET `/api/stats/admin/revenue-monthly?months=12` — monthly revenue series for the last N months (1–36, default 12)
+- GET `/api/stats/admin/revenue-by-subscription` — total revenue and payment count per subscription type
+- GET `/api/stats/admin/top-lectures?limit=10` — lectures ranked by total reservations (1–50, default 10)
+- GET `/api/stats/admin/occupancy` — per-lecture avg reservations, capacity, and occupancy %
+
+### Stats (staff)
+
+- GET `/api/stats/staff/me` — for current instructor: monthly count, attendees, avg fill rate, 6-month trend, most popular lecture. Reception/other roles get `{ available: false }`.

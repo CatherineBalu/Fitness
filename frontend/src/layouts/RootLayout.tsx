@@ -33,6 +33,8 @@ export default function RootLayout() {
   const { user } = useUser();
   const role = (user?.publicMetadata as { role?: string })?.role ?? null;
   const isStaffOrAdmin = can(role, 'staff:read');
+  const canSeeAdminStats = can(role, 'stats:admin');
+  const canSeeStaffStats = can(role, 'stats:staff');
 
   return (
     <div className="app-root">
@@ -53,6 +55,15 @@ export default function RootLayout() {
               <Link to="/admin/calendar" onClick={() => setMenuOpen(false)}>
                 Calendar
               </Link>
+              {canSeeAdminStats ? (
+                <Link to="/admin/statistics" onClick={() => setMenuOpen(false)}>
+                  Statistics
+                </Link>
+              ) : canSeeStaffStats ? (
+                <Link to="/staff/statistics" onClick={() => setMenuOpen(false)}>
+                  Statistics
+                </Link>
+              ) : null}
               <Link
                 to="/"
                 className="btn-primary"
