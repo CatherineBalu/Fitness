@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Link, Outlet } from '@tanstack/react-router';
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
-import { can } from '@/lib/permissions';
 import { Toaster } from 'sonner';
 import '../App.css';
 
@@ -32,55 +31,88 @@ export default function RootLayout() {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const role = (user?.publicMetadata as { role?: string })?.role ?? null;
-  const isStaffOrAdmin = can(role, 'staff:read');
+
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAdminPath =
+    pathname.startsWith('/admin') || pathname.startsWith('/staff/');
+
+  const isAdmin = role === 'admin';
+  const isStaff = role === 'employee';
+
+  const mode: 'public' | 'staff' | 'admin' = isStaff
+    ? 'staff'
+    : isAdmin && isAdminPath
+      ? 'admin'
+      : 'public';
+
+  const closeMenu = () => setMenuOpen(false);
+
+  const logoTarget = mode === 'public' ? '/' : '/admin';
 
   return (
     <div className="app-root">
       {/* ── Navbar ── */}
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link to={isStaffOrAdmin ? '/admin' : '/'} className="navbar-logo">
+          <Link to={logoTarget} className="navbar-logo">
             <img src="/src/assets/logo.png" alt="Logo" className="logo-icon" />
             <span className="logo-text">FITNESS</span>
           </Link>
-          {isStaffOrAdmin ? (
+
+          {mode === 'public' && (
             <div
               className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
             >
-              <Link to="/admin/staff" onClick={() => setMenuOpen(false)}>
-                Manage Staff
-              </Link>
-              <Link to="/admin/calendar" onClick={() => setMenuOpen(false)}>
-                Calendar
-              </Link>
-              <Link
-                to="/"
-                className="btn-primary"
-                onClick={() => setMenuOpen(false)}
-              >
-                Switch to public view
-              </Link>
-              <UserButton />
-            </div>
-          ) : (
-            <div
-              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
-            >
-              <Link to="/" onClick={() => setMenuOpen(false)}>
+              <Link to="/" onClick={closeMenu}>
                 Home
               </Link>
-              <Link to="/schedule" onClick={() => setMenuOpen(false)}>
+              <Link to="/schedule" onClick={closeMenu}>
                 Schedule
               </Link>
-              <a href="#contact" onClick={() => setMenuOpen(false)}>
+              <a href="#contact" onClick={closeMenu}>
                 Contact
               </a>
+              {isAdmin && (
+                <Link to="/admin" className="btn-primary" onClick={closeMenu}>
+                  Switch to admin view
+                </Link>
+              )}
               {isLoaded && !isSignedIn && (
                 <SignInButton mode="modal">
                   <button className="btn-primary">Log in</button>
                 </SignInButton>
               )}
               {isLoaded && isSignedIn && <UserButton />}
+            </div>
+          )}
+
+          {mode === 'staff' && (
+            <div
+              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+            >
+              <Link to="/admin/calendar" onClick={closeMenu}>
+                Calendar
+              </Link>
+              {/* TODO(NUE-49): add Statistics link to /staff/statistics once stats routes are merged */}
+              <UserButton />
+            </div>
+          )}
+
+          {mode === 'admin' && (
+            <div
+              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+            >
+              <Link to="/admin/staff" onClick={closeMenu}>
+                Manage Staff
+              </Link>
+              <Link to="/admin/calendar" onClick={closeMenu}>
+                Calendar
+              </Link>
+              {/* TODO(NUE-49): add Statistics link to /admin/statistics once stats routes are merged */}
+              <Link to="/" className="btn-primary" onClick={closeMenu}>
+                Switch to public view
+              </Link>
+              <UserButton />
             </div>
           )}
 
