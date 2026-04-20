@@ -73,5 +73,9 @@ export const clerkAppearance: Appearance = {
       '&:hover': { color: '#aacc00' },
     },
     userButtonPopoverFooter: { display: 'none' },
+    badge: {
+      backgroundColor: '#2a2a2a',
+      color: '#e5e5e5',
+    },
   },
 };
