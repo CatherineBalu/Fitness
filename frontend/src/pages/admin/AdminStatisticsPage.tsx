@@ -9,7 +9,8 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { useApi } from '@/lib/api';
-import './AdminStatisticsPage.css';
+import { StatCard } from '@/components/stats/StatCard';
+import '@/components/stats/stats.css';
 
 interface Overview {
   activeMemberships: number;
@@ -47,26 +48,6 @@ function formatCurrency(n: number) {
     currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(n);
-}
-
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-}) {
-  return (
-    <Card className="dash-stat-card">
-      <CardContent className="dash-stat-content">
-        <div className="dash-stat-icon">{icon}</div>
-        <span className="dash-stat-value">{value}</span>
-        <span className="dash-stat-label">{label}</span>
-      </CardContent>
-    </Card>
-  );
 }
 
 const revenueChartConfig: ChartConfig = {

@@ -42,23 +42,28 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
       .select({
         pct: sql<number>`coalesce(avg(
           case when ${tbRoom.capacity} > 0
-            then (
-              select count(*)::float from ${tbCustomerReservation} cr
-              where cr.${sql.raw('"ID_schedule_fk"')} = ${tbSchedule.id}
-            ) / ${tbRoom.capacity} * 100
+            then res_counts.cnt::float / ${tbRoom.capacity} * 100
             else 0
           end
         ), 0)::float`,
       })
       .from(tbSchedule)
       .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
+      .innerJoin(
+        sql`(
+          select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
+          from ${tbCustomerReservation}
+          group by ${tbCustomerReservation.scheduleId}
+        ) res_counts`,
+        sql`res_counts.schedule_id = ${tbSchedule.id}`,
+      )
       .where(gte(tbSchedule.startTime, sql`date_trunc('month', current_date)`));
 
     return {
       activeMemberships: memberships.count,
       monthRevenue: revenue.total,
       monthReservations: reservations.count,
-      avgOccupancyPct: Math.round(occupancy.pct * 10) / 10,
+      avgOccupancyPct: Math.round((occupancy.pct ?? 0) * 10) / 10,
     };
   })
 
@@ -136,17 +141,11 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
     const rows = await db
       .select({
         lectureName: tbLecture.lectureName,
-        avgReservations: sql<number>`avg((
-          select count(*)::float from ${tbCustomerReservation} cr
-          where cr.${sql.raw('"ID_schedule_fk"')} = ${tbSchedule.id}
-        ))::float`,
+        avgReservations: sql<number>`avg(res_counts.cnt)::float`,
         capacity: sql<number>`avg(${tbRoom.capacity})::float`,
         occupancyPct: sql<number>`avg(
           case when ${tbRoom.capacity} > 0
-            then (
-              select count(*)::float from ${tbCustomerReservation} cr
-              where cr.${sql.raw('"ID_schedule_fk"')} = ${tbSchedule.id}
-            ) / ${tbRoom.capacity} * 100
+            then res_counts.cnt::float / ${tbRoom.capacity} * 100
             else 0
           end
         )::float`,
@@ -154,17 +153,22 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
       .from(tbSchedule)
       .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
       .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
+      .innerJoin(
+        sql`(
+          select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
+          from ${tbCustomerReservation}
+          group by ${tbCustomerReservation.scheduleId}
+        ) res_counts`,
+        sql`res_counts.schedule_id = ${tbSchedule.id}`,
+      )
       .groupBy(tbLecture.id, tbLecture.lectureName)
       .orderBy(
         desc(sql`avg(
-        case when ${tbRoom.capacity} > 0
-          then (
-            select count(*)::float from ${tbCustomerReservation} cr
-            where cr.${sql.raw('"ID_schedule_fk"')} = ${tbSchedule.id}
-          ) / ${tbRoom.capacity} * 100
-          else 0
-        end
-      )`),
+          case when ${tbRoom.capacity} > 0
+            then res_counts.cnt::float / ${tbRoom.capacity} * 100
+            else 0
+          end
+        )`),
       );
 
     return rows.map((r) => ({
@@ -234,10 +238,7 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
       .select({
         pct: sql<number>`coalesce(avg(
           case when ${tbRoom.capacity} > 0
-            then (
-              select count(*)::float from ${tbCustomerReservation} cr
-              where cr.${sql.raw('"ID_schedule_fk"')} = ${tbSchedule.id}
-            ) / ${tbRoom.capacity} * 100
+            then res_counts.cnt::float / ${tbRoom.capacity} * 100
             else 0
           end
         ), 0)::float`,
@@ -245,6 +246,14 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
       .from(tbSchedule)
       .innerJoin(tbScheduleInstructor, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
       .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
+      .innerJoin(
+        sql`(
+          select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
+          from ${tbCustomerReservation}
+          group by ${tbCustomerReservation.scheduleId}
+        ) res_counts`,
+        sql`res_counts.schedule_id = ${tbSchedule.id}`,
+      )
       .where(eq(tbScheduleInstructor.employeeId, employee.employeeId));
 
     const lecturesByMonth = await db

@@ -9,7 +9,8 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { useApi } from '@/lib/api';
-import '../admin/AdminStatisticsPage.css';
+import { StatCard } from '@/components/stats/StatCard';
+import '@/components/stats/stats.css';
 
 interface LecturesByMonth {
   month: string;
@@ -32,26 +33,6 @@ type StaffStats =
       mostPopularLecture: MostPopular | null;
     }
   | { employeeType: string; available: false };
-
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-}) {
-  return (
-    <Card className="dash-stat-card">
-      <CardContent className="dash-stat-content">
-        <div className="dash-stat-icon">{icon}</div>
-        <span className="dash-stat-value">{value}</span>
-        <span className="dash-stat-label">{label}</span>
-      </CardContent>
-    </Card>
-  );
-}
 
 const lecturesChartConfig: ChartConfig = {
   count: {
@@ -106,7 +87,7 @@ export default function StaffStatisticsPage() {
               <div className="stats-unavailable">
                 <Info size={32} />
                 <h2 className="admin-dash-section-title">
-                  Štatistika nedostupná
+                  Statistics unavailable
                 </h2>
                 <p className="stats-unavailable-text">
                   Statistics are available only for instructors. Your role —
