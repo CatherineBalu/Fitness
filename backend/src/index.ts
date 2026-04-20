@@ -4,6 +4,7 @@ import { clerkMiddleware } from './middleware/auth';
 import { profileRoutes } from './routes/auth';
 import { scheduleRoutes } from './routes/schedule';
 import { staffRoutes, lectureRoutes, exerciseTypeRoutes, employeeTypeRoutes } from './routes/staff';
+import { adminStatsRoutes, staffStatsRoutes } from './routes/stats';
 
 export const app = new Elysia()
   .use(
@@ -20,6 +21,8 @@ export const app = new Elysia()
   .use(lectureRoutes)
   .use(exerciseTypeRoutes)
   .use(employeeTypeRoutes)
+  .use(adminStatsRoutes)
+  .use(staffStatsRoutes)
   .listen({
     port: 3001,
     hostname: '0.0.0.0',
