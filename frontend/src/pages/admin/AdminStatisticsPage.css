@@ -100,6 +100,28 @@
   padding: 3px 12px;
 }
 
+/* ── Unavailable (reception) placeholder ── */
+.stats-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--c-muted);
+}
+
+.stats-unavailable-text {
+  font-size: 14px;
+  max-width: 480px;
+  color: var(--c-muted);
+  line-height: 1.5;
+}
+
+.stats-unavailable strong {
+  color: var(--c-text);
+}
+
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .stats-two-col {
