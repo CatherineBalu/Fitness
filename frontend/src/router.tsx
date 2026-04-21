@@ -11,6 +11,8 @@ import NotFoundPage from '@/pages/NotFoundPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminStaffPage from '@/pages/admin/AdminStaffPage';
 import AdminCalendarPage from '@/pages/admin/AdminCalendarPage';
+import AdminStatisticsPage from '@/pages/admin/AdminStatisticsPage';
+import StaffStatisticsPage from '@/pages/staff/StaffStatisticsPage';
 import { can, type Permission } from '@/lib/permissions';
 
 function getRole(): string | null {
@@ -64,12 +66,28 @@ const adminCalendarRoute = createRoute({
   component: AdminCalendarPage,
 });
 
+const adminStatsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin/statistics',
+  beforeLoad: requirePermissionGuard('stats:admin'),
+  component: AdminStatisticsPage,
+});
+
+const staffStatsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/staff/statistics',
+  beforeLoad: requirePermissionGuard('stats:staff'),
+  component: StaffStatisticsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   scheduleRoute,
   adminDashboardRoute,
   adminStaffRoute,
   adminCalendarRoute,
+  adminStatsRoute,
+  staffStatsRoute,
 ]);
 
 export const router = createRouter({ routeTree });

@@ -3,6 +3,7 @@ import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Toaster } from 'sonner';
+import { can } from '@/lib/permissions';
 import '../App.css';
 
 const SocialIcon = ({ d }: { d: string }) => (
@@ -44,6 +45,9 @@ export default function RootLayout() {
     : isAdmin && isAdminPath
       ? 'admin'
       : 'public';
+
+  const canSeeAdminStats = can(role, 'stats:admin');
+  const canSeeStaffStats = can(role, 'stats:staff');
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -93,7 +97,11 @@ export default function RootLayout() {
               <Link to="/admin/calendar" onClick={closeMenu}>
                 Calendar
               </Link>
-              {/* TODO(NUE-49): add Statistics link to /staff/statistics once stats routes are merged */}
+              {canSeeStaffStats && (
+                <Link to="/staff/statistics" onClick={closeMenu}>
+                  Statistics
+                </Link>
+              )}
               <UserButton />
             </div>
           )}
@@ -108,7 +116,11 @@ export default function RootLayout() {
               <Link to="/admin/calendar" onClick={closeMenu}>
                 Calendar
               </Link>
-              {/* TODO(NUE-49): add Statistics link to /admin/statistics once stats routes are merged */}
+              {canSeeAdminStats && (
+                <Link to="/admin/statistics" onClick={closeMenu}>
+                  Statistics
+                </Link>
+              )}
               <Link to="/" className="btn-primary" onClick={closeMenu}>
                 Switch to public view
               </Link>
