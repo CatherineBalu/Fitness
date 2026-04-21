@@ -72,6 +72,18 @@ export const clerkAppearance: Appearance = {
       color: '#e5e5e5',
       '&:hover': { color: '#aacc00' },
     },
+    userButtonPopoverCustomItemButton: {
+      color: '#e5e5e5',
+      '&:hover': { backgroundColor: '#2a2a2a', color: '#aacc00' },
+    },
+    userButtonPopoverCustomItemButtonText: {
+      color: '#e5e5e5',
+      '&:hover': { color: '#aacc00' },
+    },
+    userButtonPopoverCustomItemButtonIcon: {
+      color: '#e5e5e5',
+      '&:hover': { color: '#aacc00' },
+    },
     userButtonPopoverFooter: { display: 'none' },
     badge: {
       backgroundColor: '#2a2a2a',

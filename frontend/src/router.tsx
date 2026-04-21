@@ -13,12 +13,17 @@ import AdminStaffPage from '@/pages/admin/AdminStaffPage';
 import AdminCalendarPage from '@/pages/admin/AdminCalendarPage';
 import AdminStatisticsPage from '@/pages/admin/AdminStatisticsPage';
 import StaffStatisticsPage from '@/pages/staff/StaffStatisticsPage';
+import MyProfilePage from '@/pages/MyProfilePage';
 import { can, type Permission } from '@/lib/permissions';
 
 function getRole(): string | null {
   return (
     (window.Clerk?.user?.publicMetadata as { role?: string })?.role ?? null
   );
+}
+
+function requireAuthGuard() {
+  if (!window.Clerk?.user) throw redirect({ to: '/' });
 }
 
 function requirePermissionGuard(permission: Permission) {
@@ -80,6 +85,13 @@ const staffStatsRoute = createRoute({
   component: StaffStatisticsPage,
 });
 
+const myProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/my-profile',
+  beforeLoad: requireAuthGuard,
+  component: MyProfilePage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   scheduleRoute,
@@ -88,6 +100,7 @@ const routeTree = rootRoute.addChildren([
   adminCalendarRoute,
   adminStatsRoute,
   staffStatsRoute,
+  myProfileRoute,
 ]);
 
 export const router = createRouter({ routeTree });
