@@ -127,6 +127,24 @@ Before every commit, run ESLint and Prettier check on the affected package(s):
 
 If issues are found, ask the user for permission before auto-fixing with `format:write`. Do not commit if lint errors remain unfixed. Use the `/commit` skill to handle this automatically.
 
+## Definition of Done
+
+Minimum baseline every ticket must hit before merge. Larger polish work (comprehensive test coverage, perf, a11y, UX detail) belongs in dedicated polish tickets at end of milestone — not bundled into feature tickets.
+
+- **New/changed backend route:** at least 1 happy-path test + 1 error-path test (401 / 403 / validation), and add or update the entry in `/ApiEndpoints.md` in the same commit.
+- **New DB entity or schema change:** update `backend/src/db/seed.ts` and run `bunx drizzle-kit push` in dev before re-seeding. `seed.ts` swallows errors silently when the schema is out of sync, so skipping the push leaves you with a partially-seeded DB and no warning.
+- **Clickable frontend feature:** manually smoke-test the golden path in the browser, and document the steps in the PR description so reviewer can verify.
+- **All checks green locally before commit:** backend `bun run lint && bun run format:check && bun test`; frontend `npm run lint && npm run format:check && npm run build`.
+
+## Logging
+
+Keep it minimal until we have a hosted DB and a real observability platform.
+
+- **Backend errors:** `console.error('[domain] message', context)` — always tag with the bracketed domain (e.g. `[auth]`, `[stats]`, `[seed]`) so logs are greppable per subsystem.
+- **Backend startup logs:** `console.log` is fine for boot-time messages (like the existing Elysia startup line) but not inside request handlers.
+- **Frontend:** no `console.*` in committed code unless it's an unrecoverable error logged via `console.error`. For user-visible feedback use `sonner` toasts (already wired in `RootLayout`).
+- **No structured logger / log aggregator yet.** Revisit once DB is hosted and a single backend instance handles real traffic.
+
 ## TypeScript
 
 Both packages use `"strict": true`. Backend tsconfig targets Bun types (`@types/bun`).
