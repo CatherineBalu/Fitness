@@ -1,3 +1,10 @@
+/**
+ * TEMPORARY demo seed — populates customers, payment history and reservations
+ * so admin statistics have something to display. Safe to delete once real Clerk
+ * signups + reservation flow fill the DB naturally.
+ *
+ * Run:  cd backend && bun run src/db/seed.demo.ts
+ */
 import { faker } from '@faker-js/faker';
 import { db, closeConnection } from './db';
 import {
@@ -7,28 +14,24 @@ import {
   tbExerciseType,
   tbPerson,
   tbEmployee,
-  tbEmployeeSpecialization, // <-- ADDED
+  tbEmployeeSpecialization,
   tbCustomer,
   tbLecture,
   tbSchedule,
   tbScheduleInstructor,
   tbCustomerReservation,
+  tbPaymentHistory,
 } from './schema';
 
 console.log('TESTING DB URL:', process.env.DATABASE_URL);
 
-/** Returns the Monday of the current week at 00:00 UTC */
 function getCurrentWeekMonday(): Date {
   const now = new Date();
-  const day = now.getUTCDay(); // 0=Sun, 1=Mon, ...
+  const day = now.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + diff),
-  );
-  return monday;
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + diff));
 }
 
-/** Helper: Monday + dayOffset at given hour (UTC) */
 function weekDay(monday: Date, dayOffset: number, hour: number, minutes = 0): Date {
   const d = new Date(monday);
   d.setUTCDate(d.getUTCDate() + dayOffset);
@@ -36,18 +39,35 @@ function weekDay(monday: Date, dayOffset: number, hour: number, minutes = 0): Da
   return d;
 }
 
+/** Random integer in [min, max] inclusive */
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/** Pick N distinct elements from an array */
+function pickN<T>(arr: T[], n: number): T[] {
+  const copy = [...arr];
+  const out: T[] = [];
+  for (let i = 0; i < n && copy.length > 0; i++) {
+    const idx = Math.floor(Math.random() * copy.length);
+    out.push(copy.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
 async function main() {
-  console.log('Starting seeding the database');
+  console.log('Starting DEMO seeding the database');
 
   try {
-    // 1. Clearing database (Important: deletion order matters due to foreign keys)
+    // 1. Clear (order matters for FKs — payments + reservations first)
     console.log('Deleting old data');
+    await db.delete(tbPaymentHistory);
     await db.delete(tbCustomerReservation);
     await db.delete(tbScheduleInstructor);
     await db.delete(tbSchedule);
     await db.delete(tbLecture);
     await db.delete(tbCustomer);
-    await db.delete(tbEmployeeSpecialization); // <-- ADDED
+    await db.delete(tbEmployeeSpecialization);
     await db.delete(tbEmployee);
     await db.delete(tbPerson);
     await db.delete(tbEmployeeType);
@@ -62,13 +82,14 @@ async function main() {
       .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }])
       .returning();
 
-    await db
+    const subscriptions = await db
       .insert(tbSubscription)
       .values([
         { name: 'Monthly Basic', price: '29.99', durationDays: 30 },
         { name: 'Year PRO', price: '299.99', durationDays: 365 },
       ])
       .returning();
+    const [subMonthly, subYearly] = subscriptions;
 
     const rooms = await db
       .insert(tbRoom)
@@ -88,13 +109,13 @@ async function main() {
         { name: 'Power' },
         { name: 'Cardio' },
         { name: 'Jumping fitness' },
-        { name: 'Pilates' }, // <-- ADDED
-        { name: 'Spinning' }, // <-- ADDED
+        { name: 'Pilates' },
+        { name: 'Spinning' },
       ])
       .returning();
     const [yoga, power, cardio, jumping, pilates, spinning] = exerciseTypes;
 
-    // 3. Persons — 5 trainers + 1 receptionist + 10 customers
+    // 3. Trainers + reception
     console.log('Creating persons');
     const trainerNames = [
       { name: 'Sarah', surname: 'Miller' },
@@ -104,7 +125,6 @@ async function main() {
       { name: 'Tom', surname: 'Kral' },
     ];
 
-    // Seed persons use placeholder clerkIds — real users are created via Clerk signup
     const trainerPersons = await db
       .insert(tbPerson)
       .values(
@@ -131,7 +151,6 @@ async function main() {
         .returning()
     )[0];
 
-    // 4. Employees — trainers + reception
     console.log('Creating employees');
     const trainers = await db
       .insert(tbEmployee)
@@ -152,8 +171,7 @@ async function main() {
 
     const [sarah, mike, jana, lucia, tom] = trainers;
 
-    // 4.5 Assign specializations to instructors
-    console.log('Assigning specializations to trainers');
+    console.log('Assigning specializations');
     await db.insert(tbEmployeeSpecialization).values([
       { employeeId: sarah.id, exerciseTypeId: yoga.id },
       { employeeId: mike.id, exerciseTypeId: power.id },
@@ -164,7 +182,62 @@ async function main() {
       { employeeId: tom.id, exerciseTypeId: pilates.id },
     ]);
 
-    // 5. Lectures (customers are created via Clerk signup, not seeded)
+    // 4. Demo customers — 12 fake people. clerkIds never match real Clerk users.
+    console.log('Creating demo customers');
+    const CUSTOMER_COUNT = 12;
+    const customerPersons = await db
+      .insert(tbPerson)
+      .values(
+        Array.from({ length: CUSTOMER_COUNT }, (_, i) => {
+          const name = faker.person.firstName();
+          const surname = faker.person.lastName();
+          return {
+            clerkId: `seed_customer_${i + 1}`,
+            name,
+            surname,
+            email: `${name.toLowerCase()}.${surname.toLowerCase()}.${i + 1}@demo.test`,
+            phoneNumber: faker.phone.number(),
+          };
+        }),
+      )
+      .returning();
+
+    // 8 active subscribers (5 monthly, 3 yearly), 4 expired / no subscription
+    const today = new Date();
+    const customerRows = customerPersons.map((p, i) => {
+      if (i < 5) {
+        // Monthly active — valid for ~15-30 days from today
+        const validUntil = new Date(today);
+        validUntil.setUTCDate(validUntil.getUTCDate() + randInt(15, 30));
+        return {
+          personId: p.id,
+          subscriptionId: subMonthly.id,
+          subscriptionValidUntil: validUntil.toISOString().slice(0, 10),
+        };
+      }
+      if (i < 8) {
+        // Yearly active — valid 3-10 months from today
+        const validUntil = new Date(today);
+        validUntil.setUTCMonth(validUntil.getUTCMonth() + randInt(3, 10));
+        return {
+          personId: p.id,
+          subscriptionId: subYearly.id,
+          subscriptionValidUntil: validUntil.toISOString().slice(0, 10),
+        };
+      }
+      // Expired / none
+      const expired = new Date(today);
+      expired.setUTCMonth(expired.getUTCMonth() - randInt(1, 6));
+      return {
+        personId: p.id,
+        subscriptionId: i === 11 ? null : subMonthly.id,
+        subscriptionValidUntil: i === 11 ? null : expired.toISOString().slice(0, 10),
+      };
+    });
+
+    const customers = await db.insert(tbCustomer).values(customerRows).returning();
+
+    // 5. Lectures
     console.log('Creating lectures');
     const lectures = await db
       .insert(tbLecture)
@@ -173,7 +246,7 @@ async function main() {
           exerciseTypeId: yoga.id,
           lectureName: 'Vinyasa Yoga',
           description: 'Flowing yoga sequences',
-          forMembers: false, // <-- ADDED
+          forMembers: false,
         },
         {
           exerciseTypeId: yoga.id,
@@ -197,7 +270,7 @@ async function main() {
           exerciseTypeId: power.id,
           lectureName: 'Power Lifting',
           description: 'Heavy compound lifts',
-          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
+          forMembers: true,
         },
         {
           exerciseTypeId: power.id,
@@ -212,10 +285,10 @@ async function main() {
           forMembers: false,
         },
         {
-          exerciseTypeId: spinning.id, // <-- USING NEW SPINNING TYPE
+          exerciseTypeId: spinning.id,
           lectureName: 'Spin Class',
           description: 'Indoor cycling workout',
-          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
+          forMembers: true,
         },
         {
           exerciseTypeId: cardio.id,
@@ -227,19 +300,15 @@ async function main() {
           exerciseTypeId: jumping.id,
           lectureName: 'Jumping Fitness',
           description: 'Trampoline-based workout',
-          forMembers: true,
+          forMembers: false,
         },
       ])
       .returning();
-
-    // Map lectures by name for easy reference
     const lec = Object.fromEntries(lectures.map((l) => [l.lectureName, l.id]));
 
-    // 7. Schedule — spread across current week (Mon-Sun)
-    console.log('Creating schedule for current week');
+    // 6. Schedule — previous / current / next week
+    console.log('Creating schedule');
     const mon = getCurrentWeekMonday();
-
-    // Each entry: [lectureName, roomIndex, dayOffset, startHour, startMin, endHour, endMin, trainerId, extraTrainerId?]
     const scheduleEntries: {
       lectureName: string;
       room: (typeof rooms)[number];
@@ -251,7 +320,6 @@ async function main() {
       lead: (typeof trainers)[number];
       assist?: (typeof trainers)[number];
     }[] = [
-      // Monday
       {
         lectureName: 'Morning Yoga',
         room: roomA,
@@ -282,7 +350,6 @@ async function main() {
         endM: 0,
         lead: mike,
       },
-      // Tuesday
       {
         lectureName: 'Spin Class',
         room: roomC,
@@ -313,7 +380,6 @@ async function main() {
         endM: 0,
         lead: lucia,
       },
-      // Wednesday
       {
         lectureName: 'Morning Yoga',
         room: roomA,
@@ -355,7 +421,6 @@ async function main() {
         endM: 0,
         lead: sarah,
       },
-      // Thursday
       {
         lectureName: 'Spin Class',
         room: roomC,
@@ -387,7 +452,6 @@ async function main() {
         endM: 0,
         lead: sarah,
       },
-      // Friday
       {
         lectureName: 'HIIT Cardio',
         room: roomC,
@@ -428,7 +492,6 @@ async function main() {
         endM: 0,
         lead: tom,
       },
-      // Saturday
       {
         lectureName: 'Vinyasa Yoga',
         room: roomA,
@@ -460,7 +523,6 @@ async function main() {
         lead: lucia,
         assist: tom,
       },
-      // Sunday
       {
         lectureName: 'Morning Yoga',
         room: roomA,
@@ -493,7 +555,6 @@ async function main() {
       },
     ];
 
-    // Create schedules for previous, current, and next week
     const weekOffsets = [-1, 0, 1];
     const scheduleValues = weekOffsets.flatMap((weekOffset) => {
       const weekMon = new Date(mon);
@@ -508,23 +569,94 @@ async function main() {
 
     const createdSchedules = await db.insert(tbSchedule).values(scheduleValues).returning();
 
-    // 8. Assign instructors — one block of entries per week
     console.log('Assigning instructors');
     const instructorValues = createdSchedules.flatMap((schedule, i) => {
       const entry = scheduleEntries[i % scheduleEntries.length];
       const entries = [{ scheduleId: schedule.id, employeeId: entry.lead.id, isLead: true }];
       if (entry.assist) {
-        entries.push({
-          scheduleId: schedule.id,
-          employeeId: entry.assist.id,
-          isLead: false,
-        });
+        entries.push({ scheduleId: schedule.id, employeeId: entry.assist.id, isLead: false });
       }
       return entries;
     });
     await db.insert(tbScheduleInstructor).values(instructorValues);
 
-    console.log(`Seed complete: ${createdSchedules.length} scheduled lectures this week`);
+    // 7. Payment history — 12 months back
+    console.log('Creating payment history');
+    type PaymentRow = typeof tbPaymentHistory.$inferInsert;
+    const payments: PaymentRow[] = [];
+    const methods = ['card', 'cash', 'transfer'];
+
+    for (const c of customers) {
+      if (!c.subscriptionId) continue;
+
+      const sub = c.subscriptionId === subMonthly.id ? subMonthly : subYearly;
+      // 2–6 historical payments per subscriber, spread over last 12 months
+      const count = randInt(2, 6);
+      for (let i = 0; i < count; i++) {
+        const monthsAgo = randInt(0, 11);
+        const d = new Date(today);
+        d.setUTCMonth(d.getUTCMonth() - monthsAgo);
+        d.setUTCDate(randInt(1, 27));
+        payments.push({
+          customerId: c.id,
+          subscriptionId: sub.id,
+          amount: sub.price,
+          paymentDate: d,
+          paymentMethod: methods[randInt(0, methods.length - 1)],
+        });
+      }
+    }
+
+    // Guarantee at least some revenue in the current month for KPI cards
+    for (let i = 0; i < 5; i++) {
+      const c = customers[i];
+      if (!c.subscriptionId) continue;
+      const sub = c.subscriptionId === subMonthly.id ? subMonthly : subYearly;
+      const d = new Date(today);
+      d.setUTCDate(randInt(1, Math.max(1, today.getUTCDate())));
+      payments.push({
+        customerId: c.id,
+        subscriptionId: sub.id,
+        amount: sub.price,
+        paymentDate: d,
+        paymentMethod: methods[randInt(0, methods.length - 1)],
+      });
+    }
+
+    await db.insert(tbPaymentHistory).values(payments);
+
+    // 8. Reservations — 3-9 per schedule, random customers, capped by capacity
+    console.log('Creating reservations');
+    type ReservationRow = typeof tbCustomerReservation.$inferInsert;
+    const reservations: ReservationRow[] = [];
+
+    // Build capacity lookup via lecture → room (we only need room capacity per schedule)
+    const roomByScheduleId = new Map(createdSchedules.map((s) => [s.id, s.roomId]));
+    const capacityByRoomId = new Map(rooms.map((r) => [r.id, r.capacity]));
+
+    for (const s of createdSchedules) {
+      const cap = capacityByRoomId.get(roomByScheduleId.get(s.id)!) ?? 15;
+      const desired = randInt(3, Math.min(9, cap));
+      const attendees = pickN(customers, desired);
+      for (const a of attendees) {
+        // Reservation created 1-10 days before the schedule
+        const rd = new Date(s.startTime);
+        rd.setUTCDate(rd.getUTCDate() - randInt(1, 10));
+        // Clamp to the past so reservationDate <= now
+        if (rd > today) rd.setTime(today.getTime());
+        reservations.push({
+          customerId: a.id,
+          scheduleId: s.id,
+          reservationDate: rd,
+        });
+      }
+    }
+
+    await db.insert(tbCustomerReservation).values(reservations);
+
+    console.log(
+      `DEMO seed complete: ${customers.length} customers, ${payments.length} payments, ${reservations.length} reservations across ${createdSchedules.length} schedules`,
+    );
   } catch (error) {
     console.error('Error while seeding', error);
   } finally {

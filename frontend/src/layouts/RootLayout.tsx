@@ -33,21 +33,42 @@ export default function RootLayout() {
   const { user } = useUser();
   const role = (user?.publicMetadata as { role?: string })?.role ?? null;
   const isStaffOrAdmin = can(role, 'staff:read');
+  const canSeeAdminStats = can(role, 'stats:admin');
+  const canSeeStaffStats = can(role, 'stats:staff');
 
   return (
     <div className="app-root">
       {/* ── Navbar ── */}
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link to="/" className="navbar-logo">
+          <Link to={isStaffOrAdmin ? '/admin' : '/'} className="navbar-logo">
             <img src="/src/assets/logo.png" alt="Logo" className="logo-icon" />
             <span className="logo-text">FITNESS</span>
           </Link>
           {isStaffOrAdmin ? (
-            <div className="navbar-links">
-              <Link to="/admin/staff">Manage Staff</Link>
-              <Link to="/admin/calendar">Calendar</Link>
-              <Link to="/" className="btn-primary">
+            <div
+              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+            >
+              <Link to="/admin/staff" onClick={() => setMenuOpen(false)}>
+                Manage Staff
+              </Link>
+              <Link to="/admin/calendar" onClick={() => setMenuOpen(false)}>
+                Calendar
+              </Link>
+              {canSeeAdminStats ? (
+                <Link to="/admin/statistics" onClick={() => setMenuOpen(false)}>
+                  Statistics
+                </Link>
+              ) : canSeeStaffStats ? (
+                <Link to="/staff/statistics" onClick={() => setMenuOpen(false)}>
+                  Statistics
+                </Link>
+              ) : null}
+              <Link
+                to="/"
+                className="btn-primary"
+                onClick={() => setMenuOpen(false)}
+              >
                 Switch to public view
               </Link>
               <UserButton />
@@ -74,17 +95,15 @@ export default function RootLayout() {
             </div>
           )}
 
-          {!isStaffOrAdmin && (
-            <button
-              className="hamburger"
-              aria-label="Toggle menu"
-              onClick={() => setMenuOpen((o) => !o)}
-            >
-              <span
-                className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
-              />
-            </button>
-          )}
+          <button
+            className="hamburger"
+            aria-label="Toggle menu"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <span
+              className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
+            />
+          </button>
         </div>
       </nav>
 

@@ -39,11 +39,11 @@ export const tbRoom = pgTable('TB_room', {
 
 export const tbPerson = pgTable('TB_person', {
   id: uuid('ID_person').primaryKey().defaultRandom(),
-  clerkId: text('clerk_id').notNull().unique(),
+  clerkId: text('clerk_id').notNull().unique(), // Managed by Clerk
   name: text('name').notNull(),
   surname: text('surname').notNull(),
   email: text('email').notNull().unique(),
-  phoneNumber: text('phone_number'),
+  phoneNumber: text('phone_number'), // Optional now, often handled by Clerk depending on setup
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -58,12 +58,27 @@ export const tbEmployee = pgTable('TB_employee', {
   hireDate: date('hire_date').notNull(),
 });
 
+// New table for Instructor Specializations (Many-to-Many)
+export const tbEmployeeSpecialization = pgTable(
+  'TB_employee_specialization',
+  {
+    employeeId: uuid('ID_employee_fk')
+      .notNull()
+      .references(() => tbEmployee.id),
+    exerciseTypeId: uuid('ID_exercise_type_fk')
+      .notNull()
+      .references(() => tbExerciseType.id),
+  },
+  // Composite primary key
+  (t) => [primaryKey({ columns: [t.employeeId, t.exerciseTypeId] })],
+);
+
 export const tbCustomer = pgTable('TB_customer', {
   id: uuid('ID_customer').primaryKey().defaultRandom(),
   personId: uuid('ID_person_fk')
     .notNull()
     .references(() => tbPerson.id),
-  subscriptionId: uuid('ID_subscription_fk').references(() => tbSubscription.id), // This can be null, (person don't have payment)
+  subscriptionId: uuid('ID_subscription_fk').references(() => tbSubscription.id), // This can be null (person doesn't have active payment)
   subscriptionValidUntil: date('subscription_valid_until'),
 });
 
@@ -76,7 +91,7 @@ export const tbLecture = pgTable('TB_lecture', {
     .references(() => tbExerciseType.id),
   lectureName: text('lecture_name').notNull(),
   description: text('description').notNull(),
-  forMembers: boolean('for_members').default(false).notNull(),
+  forMembers: boolean('for_members').default(false).notNull(), // Added membership requirement
 });
 
 export const tbSchedule = pgTable('TB_schedule', {
@@ -92,7 +107,7 @@ export const tbSchedule = pgTable('TB_schedule', {
   forMembers: boolean('for_members').default(false).notNull(), // Added membership requirement
 });
 
-// Connecting table for instructors
+// Connecting table for instructors and schedules
 export const tbScheduleInstructor = pgTable(
   'TB_schedule_instructor',
   {
@@ -104,7 +119,7 @@ export const tbScheduleInstructor = pgTable(
       .references(() => tbEmployee.id),
     isLead: boolean('is_lead').default(false).notNull(),
   },
-  // primary key from 2 columns
+  // Composite primary key
   (t) => [primaryKey({ columns: [t.scheduleId, t.employeeId] })],
 );
 
