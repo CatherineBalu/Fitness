@@ -71,8 +71,23 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
         secretKey: process.env.CLERK_SECRET_KEY,
         authorizedParties: [process.env.FRONTEND_URL ?? 'http://localhost:5173'],
       });
-      const role = (verified.publicMetadata as { role?: string })?.role ?? 'customer';
+      const publicMetadata = (verified.publicMetadata ?? {}) as { role?: string };
+      const hasRole = typeof publicMetadata.role === 'string' && publicMetadata.role.length > 0;
+      const role = hasRole ? publicMetadata.role! : 'customer';
       const clerkId = verified.sub;
+
+      // JIT role assignment: persist 'customer' to Clerk on first authenticated
+      // request. `role` already holds 'customer' via the fallback above, so the
+      // current request proceeds even if this call fails — next request retries.
+      if (!hasRole) {
+        try {
+          await clerk.users.updateUserMetadata(clerkId, {
+            publicMetadata: { role: 'customer' },
+          });
+        } catch (err) {
+          console.error('[auth] Failed to set customer role on Clerk user', clerkId, err);
+        }
+      }
 
       // JIT provisioning: create tbPerson + tbCustomer on first authenticated request
       const [existing] = await db
