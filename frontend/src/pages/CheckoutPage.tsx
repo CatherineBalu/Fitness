@@ -151,6 +151,10 @@ export default function CheckoutPage() {
     };
   }, [planId, apiRequest]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
   const validUntil = useMemo(() => {
     if (!startDate || !plan) return null;
     const d = new Date(startDate);

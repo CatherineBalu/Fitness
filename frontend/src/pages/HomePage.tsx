@@ -34,16 +34,18 @@ function formatPrice(price: string) {
   return Number.isFinite(num) ? `€${num.toFixed(0)}` : `€${price}`;
 }
 
-function formatPeriod(days: number) {
-  if (days % 365 === 0) {
-    const years = days / 365;
-    return years === 1 ? '/year' : `/${years} years`;
-  }
-  if (days % 30 === 0) {
-    const months = days / 30;
-    return months === 1 ? '/month' : `/${months} months`;
-  }
-  return `/${days} days`;
+function formatMonthlyPrice(price: string, days: number) {
+  const num = Number(price);
+  if (!Number.isFinite(num) || days <= 0) return `€${price}`;
+  const perMonth = num / (days / 30);
+  return `€${perMonth.toFixed(0)}`;
+}
+
+function formatBillingNote(price: string, days: number) {
+  const total = formatPrice(price);
+  if (days === 30) return `Billed ${total} each month`;
+  if (days === 365) return `Billed ${total} once a year`;
+  return `Billed ${total} every ${days} days`;
 }
 
 const trainers = [
@@ -245,12 +247,13 @@ export default function HomePage() {
                   <h3 className="plan-name">{plan.name}</h3>
                   <div className="plan-price">
                     <span className="price-amount">
-                      {formatPrice(plan.price)}
+                      {formatMonthlyPrice(plan.price, plan.durationDays)}
                     </span>
-                    <span className="price-period">
-                      {formatPeriod(plan.durationDays)}
-                    </span>
+                    <span className="price-period">/month</span>
                   </div>
+                  <p className="plan-billing-note">
+                    {formatBillingNote(plan.price, plan.durationDays)}
+                  </p>
                   <ul className="plan-features">
                     <li>
                       <span className="check">✓</span>
