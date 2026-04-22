@@ -1,6 +1,4 @@
-import type { Appearance } from '@clerk/clerk-react';
-
-export const clerkAppearance: Appearance = {
+export const clerkAppearance = {
   variables: {
     colorBackground: '#161616',
     colorPrimary: '#aacc00',
