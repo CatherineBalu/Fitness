@@ -227,7 +227,7 @@ async function main() {
           exerciseTypeId: jumping.id,
           lectureName: 'Jumping Fitness',
           description: 'Trampoline-based workout',
-          forMembers: false,
+          forMembers: true,
         },
       ])
       .returning();
