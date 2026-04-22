@@ -5,6 +5,7 @@ import { profileRoutes } from './routes/auth';
 import { scheduleRoutes } from './routes/schedule';
 import { staffRoutes, lectureRoutes, exerciseTypeRoutes, employeeTypeRoutes } from './routes/staff';
 import { adminStatsRoutes, staffStatsRoutes } from './routes/stats';
+import { subscriptionRoutes } from './routes/subscriptions';
 
 export const app = new Elysia()
   .use(
@@ -23,6 +24,7 @@ export const app = new Elysia()
   .use(employeeTypeRoutes)
   .use(adminStatsRoutes)
   .use(staffStatsRoutes)
+  .use(subscriptionRoutes)
   .listen({
     port: 3001,
     hostname: '0.0.0.0',
