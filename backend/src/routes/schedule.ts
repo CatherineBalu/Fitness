@@ -55,6 +55,209 @@ const createScheduleSchema = z
 
 export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
 
+  // ==========================================
+  // MANAGE MEMBERS (ADD & REMOVE)
+  // ==========================================
+
+  // POST /schedule/:id/members — Add a member by email
+  .post(
+    '/:id/members',
+    async ({ params, body, set }) => {
+      const { id: scheduleId } = params;
+      const { email } = body;
+
+      // 1. Find the person by email
+      const [person] = await db.select().from(tbPerson).where(eq(tbPerson.email, email));
+
+      if (!person) {
+        set.status = 404;
+        return { error: 'Person with this email does not exist.' };
+      }
+
+      // 2. Verify if this person is a registered customer
+      const [customer] = await db
+        .select()
+        .from(tbCustomer)
+        .where(eq(tbCustomer.personId, person.id));
+
+      if (!customer) {
+        set.status = 400;
+        return { error: 'This person is not a registered customer.' };
+      }
+
+      try {
+        // 3. Create the reservation
+        await db.insert(tbCustomerReservation).values({
+          scheduleId,
+          customerId: customer.id,
+        });
+
+        set.status = 201;
+        return {
+          id: person.id,
+          name: `${person.name} ${person.surname}`,
+          email: person.email,
+        };
+      } catch {
+        set.status = 409;
+        return { error: 'Customer is already registered for this lecture.' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String({ format: 'uuid' }) }),
+      body: t.Object({ email: t.String({ format: 'email' }) }),
+    },
+  )
+
+  // DELETE /schedule/:id/members/:personId — Remove a member from schedule
+  .delete(
+    '/:id/members/:personId',
+    async ({ params, set }) => {
+      const { id: scheduleId, personId } = params;
+
+      // Find customer ID based on person ID
+      const [customer] = await db
+        .select()
+        .from(tbCustomer)
+        .where(eq(tbCustomer.personId, personId));
+
+      if (!customer) {
+        set.status = 404;
+        return { error: 'Customer not found.' };
+      }
+
+      await db
+        .delete(tbCustomerReservation)
+        .where(
+          and(
+            eq(tbCustomerReservation.scheduleId, scheduleId),
+            eq(tbCustomerReservation.customerId, customer.id),
+          ),
+        );
+
+      return { success: true };
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: 'uuid' }),
+        personId: t.String({ format: 'uuid' }),
+      }),
+    },
+  )
+
+  // ==========================================
+  // EDIT SCHEDULE (Room & Time)
+  // ==========================================
+
+  // PATCH /schedule/:id — Update room or time for a specific schedule instance
+  .patch(
+    '/:id',
+    async ({ params, body, set }) => {
+      const { id } = params;
+
+      // Note: We intentionally do NOT update the 'name' here, because the name
+      // belongs to the global Lecture Template (tbLecture). Changing it here
+      // would rename all historical and future classes of this type.
+
+      try {
+        // Fetch current schedule to construct accurate Date objects for time updates
+        const [currentSchedule] = await db.select().from(tbSchedule).where(eq(tbSchedule.id, id));
+
+        if (!currentSchedule) {
+          set.status = 404;
+          return { error: 'Schedule not found.' };
+        }
+
+        // Base dates keep the same YYYY-MM-DD, just modifying the time
+        const newStartDate = new Date(currentSchedule.startTime);
+        const newEndDate = new Date(currentSchedule.endTime);
+
+        if (body.startTime) {
+          const [hours, minutes] = body.startTime.split(':');
+          newStartDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
+        }
+
+        if (body.endTime) {
+          const [hours, minutes] = body.endTime.split(':');
+          newEndDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
+        }
+
+        await db
+          .update(tbSchedule)
+          .set({
+            roomId: body.roomId ?? currentSchedule.roomId,
+            startTime: newStartDate,
+            endTime: newEndDate,
+          })
+          .where(eq(tbSchedule.id, id));
+
+        return { success: true };
+      } catch (error) {
+        console.error(error);
+        set.status = 500;
+        return { error: 'Failed to update schedule.' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String({ format: 'uuid' }) }),
+      body: t.Object({
+        roomId: t.Optional(t.String({ format: 'uuid' })),
+        startTime: t.Optional(t.String()), // Expected format "HH:MM"
+        endTime: t.Optional(t.String()), // Expected format "HH:MM"
+      }),
+    },
+  )
+
+  // ==========================================
+  // ATTENDANCE
+  // ==========================================
+
+  // PATCH /schedule/:id/attendance — Bulk update attendance
+  .patch(
+    '/:id/attendance',
+    async ({ params, body }) => {
+      const { id: scheduleId } = params;
+      const { attendanceRecords } = body; // Array of { personId, attended }
+
+      // Drizzle doesn't have a clean bulk-update for different values yet,
+      // so we map through and update individually using a transaction
+      await db.transaction(async (tx) => {
+        for (const record of attendanceRecords) {
+          // Look up customerId for the person
+          const [customer] = await tx
+            .select()
+            .from(tbCustomer)
+            .where(eq(tbCustomer.personId, record.personId));
+
+          if (customer) {
+            await tx
+              .update(tbCustomerReservation)
+              .set({ attended: record.attended })
+              .where(
+                and(
+                  eq(tbCustomerReservation.scheduleId, scheduleId),
+                  eq(tbCustomerReservation.customerId, customer.id),
+                ),
+              );
+          }
+        }
+      });
+
+      return { success: true };
+    },
+    {
+      params: t.Object({ id: t.String({ format: 'uuid' }) }),
+      body: t.Object({
+        attendanceRecords: t.Array(
+          t.Object({
+            personId: t.String({ format: 'uuid' }),
+            attended: t.Boolean(),
+          }),
+        ),
+      }),
+    },
+  )
+
   // GET /schedule?from=2026-04-13&to=2026-04-19
   .get(
     '/',
@@ -256,42 +459,44 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
   )
 
   // GET /schedule/:id/members — list all members registered for a specific schedule
-  .get('/:id/members', async ({ params, set }) => {
-    try {
-      const { id: scheduleId } = params;
+  .get(
+    '/:id/members',
+    async ({ params, set }) => {
+      try {
+        const { id: scheduleId } = params;
 
-      // Query to find all persons who have a reservation for this schedule
-      const members = await db
-        .select({
-          id: tbPerson.id,
-          name: tbPerson.name,
-          surname: tbPerson.surname,
-          email: tbPerson.email,
-          attended: tbCustomerReservation.attended,
-        })
-        .from(tbCustomerReservation)
-        .innerJoin(tbCustomer, eq(tbCustomerReservation.customerId, tbCustomer.id))
-        .innerJoin(tbPerson, eq(tbCustomer.personId, tbPerson.id))
-        .where(eq(tbCustomerReservation.scheduleId, scheduleId))
-        .orderBy(tbPerson.surname);
+        const members = await db
+          .select({
+            id: tbPerson.id,
+            name: tbPerson.name,
+            surname: tbPerson.surname,
+            email: tbPerson.email,
+            attended: tbCustomerReservation.attended, 
+          })
+          .from(tbCustomerReservation)
+          .innerJoin(tbCustomer, eq(tbCustomerReservation.customerId, tbCustomer.id))
+          .innerJoin(tbPerson, eq(tbCustomer.personId, tbPerson.id))
+          .where(eq(tbCustomerReservation.scheduleId, scheduleId))
+          .orderBy(tbPerson.surname);
 
-      // Format the output to match the frontend expectations
-      return members.map((member) => ({
-        id: member.id,
-        name: `${member.name} ${member.surname}`,
-        email: member.email,
-        attended: member.attended,
-      }));
-    } catch (error) {
-      console.error('Failed to fetch schedule members:', error);
-      set.status = 500;
-      return { error: 'Failed to retrieve members.' };
-    }
-  }, {
-    params: t.Object({
-      id: t.String({ format: 'uuid', error: 'Invalid schedule ID format' }),
-    }),
-  })
+        return members.map((member) => ({
+          id: member.id,
+          name: `${member.name} ${member.surname}`,
+          email: member.email,
+          attended: member.attended, 
+        }));
+      } catch (error) {
+        console.error('Failed to fetch schedule members:', error);
+        set.status = 500;
+        return { error: 'Failed to retrieve members.' };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: 'uuid', error: 'Invalid schedule ID format' }),
+      }),
+    },
+  )
 
   // GET /schedule/lectures — list all lecture templates
   .get('/lectures', async () => {

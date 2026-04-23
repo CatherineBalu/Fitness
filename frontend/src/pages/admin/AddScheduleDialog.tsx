@@ -69,7 +69,11 @@ interface Props {
   onCreated: () => void;
 }
 
-export default function AddScheduleDialog({ open, onOpenChange, onCreated }: Props) {
+export default function AddScheduleDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: Props) {
   const [lectures, setLectures] = useState<LectureOption[]>([]);
   const [rooms, setRooms] = useState<RoomOption[]>([]);
   const [instructors, setInstructors] = useState<InstructorOption[]>([]);
@@ -103,8 +107,12 @@ export default function AddScheduleDialog({ open, onOpenChange, onCreated }: Pro
   async function onSubmit(values: FormValues) {
     setSubmitError('');
 
-    const startISO = new Date(`${values.date}T${values.startTime}:00Z`).toISOString();
-    const endISO = new Date(`${values.date}T${values.endTime}:00Z`).toISOString();
+    const startISO = new Date(
+      `${values.date}T${values.startTime}:00Z`,
+    ).toISOString();
+    const endISO = new Date(
+      `${values.date}T${values.endTime}:00Z`,
+    ).toISOString();
 
     const res = await fetch(`${API_URL}/schedule`, {
       method: 'POST',
@@ -114,7 +122,9 @@ export default function AddScheduleDialog({ open, onOpenChange, onCreated }: Pro
         roomId: values.roomId,
         startTime: startISO,
         endTime: endISO,
-        instructors: values.leadId ? [{ employeeId: values.leadId, isLead: true }] : [],
+        instructors: values.leadId
+          ? [{ employeeId: values.leadId, isLead: true }]
+          : [],
       }),
     });
 

@@ -58,7 +58,6 @@ export const tbEmployee = pgTable('TB_employee', {
   hireDate: date('hire_date').notNull(),
 });
 
-// New table for Instructor Specializations (Many-to-Many)
 export const tbEmployeeSpecialization = pgTable(
   'TB_employee_specialization',
   {
@@ -69,7 +68,6 @@ export const tbEmployeeSpecialization = pgTable(
       .notNull()
       .references(() => tbExerciseType.id),
   },
-  // Composite primary key
   (t) => [primaryKey({ columns: [t.employeeId, t.exerciseTypeId] })],
 );
 
@@ -78,7 +76,7 @@ export const tbCustomer = pgTable('TB_customer', {
   personId: uuid('ID_person_fk')
     .notNull()
     .references(() => tbPerson.id),
-  subscriptionId: uuid('ID_subscription_fk').references(() => tbSubscription.id), // This can be null (person doesn't have active payment)
+  subscriptionId: uuid('ID_subscription_fk').references(() => tbSubscription.id),
   subscriptionValidUntil: date('subscription_valid_until'),
 });
 
@@ -107,7 +105,6 @@ export const tbSchedule = pgTable('TB_schedule', {
   forMembers: boolean('for_members').default(false).notNull(), // Added membership requirement
 });
 
-// Connecting table for instructors and schedules
 export const tbScheduleInstructor = pgTable(
   'TB_schedule_instructor',
   {
@@ -119,22 +116,28 @@ export const tbScheduleInstructor = pgTable(
       .references(() => tbEmployee.id),
     isLead: boolean('is_lead').default(false).notNull(),
   },
-  // Composite primary key
   (t) => [primaryKey({ columns: [t.scheduleId, t.employeeId] })],
 );
 
 // --- RESERVATION AND PAYMENT HISTORY ---
 
-export const tbCustomerReservation = pgTable('TB_customer_reservation', {
-  id: uuid('ID_reservation').primaryKey().defaultRandom(),
-  customerId: uuid('ID_customer_fk')
-    .notNull()
-    .references(() => tbCustomer.id),
-  scheduleId: uuid('ID_schedule_fk')
-    .notNull()
-    .references(() => tbSchedule.id),
-  reservationDate: timestamp('reservation_date', { withTimezone: true }).defaultNow().notNull(),
-});
+export const tbCustomerReservation = pgTable(
+  'customer_reservation',
+  {
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => tbCustomer.id),
+    scheduleId: uuid('schedule_id')
+      .notNull()
+      .references(() => tbSchedule.id),
+    attended: boolean('attended').default(false).notNull(), // Attendance column
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.customerId, table.scheduleId] }),
+    };
+  },
+);
 
 export const tbPaymentHistory = pgTable('TB_payment_history', {
   id: uuid('ID_payment').primaryKey().defaultRandom(),
