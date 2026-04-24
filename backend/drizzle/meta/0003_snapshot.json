@@ -40,12 +40,8 @@
           "name": "TB_customer_ID_person_fk_TB_person_ID_person_fk",
           "tableFrom": "TB_customer",
           "tableTo": "TB_person",
-          "columnsFrom": [
-            "ID_person_fk"
-          ],
-          "columnsTo": [
-            "ID_person"
-          ],
+          "columnsFrom": ["ID_person_fk"],
+          "columnsTo": ["ID_person"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -53,12 +49,8 @@
           "name": "TB_customer_ID_subscription_fk_TB_subscription_ID_subscription_fk",
           "tableFrom": "TB_customer",
           "tableTo": "TB_subscription",
-          "columnsFrom": [
-            "ID_subscription_fk"
-          ],
-          "columnsTo": [
-            "ID_subscription"
-          ],
+          "columnsFrom": ["ID_subscription_fk"],
+          "columnsTo": ["ID_subscription"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -106,12 +98,8 @@
           "name": "TB_customer_reservation_ID_customer_fk_TB_customer_ID_customer_fk",
           "tableFrom": "TB_customer_reservation",
           "tableTo": "TB_customer",
-          "columnsFrom": [
-            "ID_customer_fk"
-          ],
-          "columnsTo": [
-            "ID_customer"
-          ],
+          "columnsFrom": ["ID_customer_fk"],
+          "columnsTo": ["ID_customer"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -119,12 +107,8 @@
           "name": "TB_customer_reservation_ID_schedule_fk_TB_schedule_ID_schedule_fk",
           "tableFrom": "TB_customer_reservation",
           "tableTo": "TB_schedule",
-          "columnsFrom": [
-            "ID_schedule_fk"
-          ],
-          "columnsTo": [
-            "ID_schedule"
-          ],
+          "columnsFrom": ["ID_schedule_fk"],
+          "columnsTo": ["ID_schedule"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -132,10 +116,7 @@
       "compositePrimaryKeys": {
         "TB_customer_reservation_ID_customer_fk_ID_schedule_fk_pk": {
           "name": "TB_customer_reservation_ID_customer_fk_ID_schedule_fk_pk",
-          "columns": [
-            "ID_customer_fk",
-            "ID_schedule_fk"
-          ]
+          "columns": ["ID_customer_fk", "ID_schedule_fk"]
         }
       },
       "uniqueConstraints": {},
@@ -179,12 +160,8 @@
           "name": "TB_employee_ID_person_fk_TB_person_ID_person_fk",
           "tableFrom": "TB_employee",
           "tableTo": "TB_person",
-          "columnsFrom": [
-            "ID_person_fk"
-          ],
-          "columnsTo": [
-            "ID_person"
-          ],
+          "columnsFrom": ["ID_person_fk"],
+          "columnsTo": ["ID_person"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -192,12 +169,8 @@
           "name": "TB_employee_ID_employee_type_fk_TB_employee_type_ID_employee_type_fk",
           "tableFrom": "TB_employee",
           "tableTo": "TB_employee_type",
-          "columnsFrom": [
-            "ID_employee_type_fk"
-          ],
-          "columnsTo": [
-            "ID_employee_type"
-          ],
+          "columnsFrom": ["ID_employee_type_fk"],
+          "columnsTo": ["ID_employee_type"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -231,12 +204,8 @@
           "name": "TB_employee_specialization_ID_employee_fk_TB_employee_ID_employee_fk",
           "tableFrom": "TB_employee_specialization",
           "tableTo": "TB_employee",
-          "columnsFrom": [
-            "ID_employee_fk"
-          ],
-          "columnsTo": [
-            "ID_employee"
-          ],
+          "columnsFrom": ["ID_employee_fk"],
+          "columnsTo": ["ID_employee"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -244,12 +213,8 @@
           "name": "TB_employee_specialization_ID_exercise_type_fk_TB_exercise_type_ID_exercise_type_fk",
           "tableFrom": "TB_employee_specialization",
           "tableTo": "TB_exercise_type",
-          "columnsFrom": [
-            "ID_exercise_type_fk"
-          ],
-          "columnsTo": [
-            "ID_exercise_type"
-          ],
+          "columnsFrom": ["ID_exercise_type_fk"],
+          "columnsTo": ["ID_exercise_type"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -257,10 +222,7 @@
       "compositePrimaryKeys": {
         "TB_employee_specialization_ID_employee_fk_ID_exercise_type_fk_pk": {
           "name": "TB_employee_specialization_ID_employee_fk_ID_exercise_type_fk_pk",
-          "columns": [
-            "ID_employee_fk",
-            "ID_exercise_type_fk"
-          ]
+          "columns": ["ID_employee_fk", "ID_exercise_type_fk"]
         }
       },
       "uniqueConstraints": {},
@@ -293,9 +255,7 @@
         "TB_employee_type_role_name_unique": {
           "name": "TB_employee_type_role_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "role_name"
-          ]
+          "columns": ["role_name"]
         }
       },
       "policies": {},
@@ -327,9 +287,7 @@
         "TB_exercise_type_name_unique": {
           "name": "TB_exercise_type_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -379,12 +337,8 @@
           "name": "TB_lecture_ID_exercise_type_fk_TB_exercise_type_ID_exercise_type_fk",
           "tableFrom": "TB_lecture",
           "tableTo": "TB_exercise_type",
-          "columnsFrom": [
-            "ID_exercise_type_fk"
-          ],
-          "columnsTo": [
-            "ID_exercise_type"
-          ],
+          "columnsFrom": ["ID_exercise_type_fk"],
+          "columnsTo": ["ID_exercise_type"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -444,12 +398,8 @@
           "name": "TB_payment_history_ID_customer_fk_TB_customer_ID_customer_fk",
           "tableFrom": "TB_payment_history",
           "tableTo": "TB_customer",
-          "columnsFrom": [
-            "ID_customer_fk"
-          ],
-          "columnsTo": [
-            "ID_customer"
-          ],
+          "columnsFrom": ["ID_customer_fk"],
+          "columnsTo": ["ID_customer"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -457,12 +407,8 @@
           "name": "TB_payment_history_ID_subscription_fk_TB_subscription_ID_subscription_fk",
           "tableFrom": "TB_payment_history",
           "tableTo": "TB_subscription",
-          "columnsFrom": [
-            "ID_subscription_fk"
-          ],
-          "columnsTo": [
-            "ID_subscription"
-          ],
+          "columnsFrom": ["ID_subscription_fk"],
+          "columnsTo": ["ID_subscription"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -529,16 +475,12 @@
         "TB_person_clerk_id_unique": {
           "name": "TB_person_clerk_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerk_id"
-          ]
+          "columns": ["clerk_id"]
         },
         "TB_person_email_unique": {
           "name": "TB_person_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -576,9 +518,7 @@
         "TB_room_name_unique": {
           "name": "TB_room_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -634,12 +574,8 @@
           "name": "TB_schedule_ID_lecture_fk_TB_lecture_ID_lecture_fk",
           "tableFrom": "TB_schedule",
           "tableTo": "TB_lecture",
-          "columnsFrom": [
-            "ID_lecture_fk"
-          ],
-          "columnsTo": [
-            "ID_lecture"
-          ],
+          "columnsFrom": ["ID_lecture_fk"],
+          "columnsTo": ["ID_lecture"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -647,12 +583,8 @@
           "name": "TB_schedule_ID_room_fk_TB_room_ID_room_fk",
           "tableFrom": "TB_schedule",
           "tableTo": "TB_room",
-          "columnsFrom": [
-            "ID_room_fk"
-          ],
-          "columnsTo": [
-            "ID_room"
-          ],
+          "columnsFrom": ["ID_room_fk"],
+          "columnsTo": ["ID_room"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -693,12 +625,8 @@
           "name": "TB_schedule_instructor_ID_schedule_fk_TB_schedule_ID_schedule_fk",
           "tableFrom": "TB_schedule_instructor",
           "tableTo": "TB_schedule",
-          "columnsFrom": [
-            "ID_schedule_fk"
-          ],
-          "columnsTo": [
-            "ID_schedule"
-          ],
+          "columnsFrom": ["ID_schedule_fk"],
+          "columnsTo": ["ID_schedule"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -706,12 +634,8 @@
           "name": "TB_schedule_instructor_ID_employee_fk_TB_employee_ID_employee_fk",
           "tableFrom": "TB_schedule_instructor",
           "tableTo": "TB_employee",
-          "columnsFrom": [
-            "ID_employee_fk"
-          ],
-          "columnsTo": [
-            "ID_employee"
-          ],
+          "columnsFrom": ["ID_employee_fk"],
+          "columnsTo": ["ID_employee"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -719,10 +643,7 @@
       "compositePrimaryKeys": {
         "TB_schedule_instructor_ID_schedule_fk_ID_employee_fk_pk": {
           "name": "TB_schedule_instructor_ID_schedule_fk_ID_employee_fk_pk",
-          "columns": [
-            "ID_schedule_fk",
-            "ID_employee_fk"
-          ]
+          "columns": ["ID_schedule_fk", "ID_employee_fk"]
         }
       },
       "uniqueConstraints": {},
@@ -767,9 +688,7 @@
         "TB_subscription_name_unique": {
           "name": "TB_subscription_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
