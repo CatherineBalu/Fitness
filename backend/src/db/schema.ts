@@ -122,15 +122,16 @@ export const tbScheduleInstructor = pgTable(
 // --- RESERVATION AND PAYMENT HISTORY ---
 
 export const tbCustomerReservation = pgTable(
-  'customer_reservation',
+  'TB_customer_reservation',
   {
-    customerId: uuid('customer_id')
+    customerId: uuid('ID_customer_fk')
       .notNull()
       .references(() => tbCustomer.id),
-    scheduleId: uuid('schedule_id')
+    scheduleId: uuid('ID_schedule_fk')
       .notNull()
       .references(() => tbSchedule.id),
-    attended: boolean('attended').default(false).notNull(), // Attendance column
+    attended: boolean('attended').default(false).notNull(),
+    reservationDate: timestamp('reservationDate').defaultNow().notNull(),
   },
   (table) => {
     return {

@@ -1,0 +1,791 @@
+{
+  "id": "035e0efd-8930-4f06-b93a-84607c9bbc45",
+  "prevId": "af197987-d512-42ae-929d-ea4ac028a07f",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.TB_customer": {
+      "name": "TB_customer",
+      "schema": "",
+      "columns": {
+        "ID_customer": {
+          "name": "ID_customer",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "ID_person_fk": {
+          "name": "ID_person_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ID_subscription_fk": {
+          "name": "ID_subscription_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_valid_until": {
+          "name": "subscription_valid_until",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_customer_ID_person_fk_TB_person_ID_person_fk": {
+          "name": "TB_customer_ID_person_fk_TB_person_ID_person_fk",
+          "tableFrom": "TB_customer",
+          "tableTo": "TB_person",
+          "columnsFrom": [
+            "ID_person_fk"
+          ],
+          "columnsTo": [
+            "ID_person"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TB_customer_ID_subscription_fk_TB_subscription_ID_subscription_fk": {
+          "name": "TB_customer_ID_subscription_fk_TB_subscription_ID_subscription_fk",
+          "tableFrom": "TB_customer",
+          "tableTo": "TB_subscription",
+          "columnsFrom": [
+            "ID_subscription_fk"
+          ],
+          "columnsTo": [
+            "ID_subscription"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_customer_reservation": {
+      "name": "TB_customer_reservation",
+      "schema": "",
+      "columns": {
+        "ID_customer_fk": {
+          "name": "ID_customer_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ID_schedule_fk": {
+          "name": "ID_schedule_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attended": {
+          "name": "attended",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "reservationDate": {
+          "name": "reservationDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_customer_reservation_ID_customer_fk_TB_customer_ID_customer_fk": {
+          "name": "TB_customer_reservation_ID_customer_fk_TB_customer_ID_customer_fk",
+          "tableFrom": "TB_customer_reservation",
+          "tableTo": "TB_customer",
+          "columnsFrom": [
+            "ID_customer_fk"
+          ],
+          "columnsTo": [
+            "ID_customer"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TB_customer_reservation_ID_schedule_fk_TB_schedule_ID_schedule_fk": {
+          "name": "TB_customer_reservation_ID_schedule_fk_TB_schedule_ID_schedule_fk",
+          "tableFrom": "TB_customer_reservation",
+          "tableTo": "TB_schedule",
+          "columnsFrom": [
+            "ID_schedule_fk"
+          ],
+          "columnsTo": [
+            "ID_schedule"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "TB_customer_reservation_ID_customer_fk_ID_schedule_fk_pk": {
+          "name": "TB_customer_reservation_ID_customer_fk_ID_schedule_fk_pk",
+          "columns": [
+            "ID_customer_fk",
+            "ID_schedule_fk"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_employee": {
+      "name": "TB_employee",
+      "schema": "",
+      "columns": {
+        "ID_employee": {
+          "name": "ID_employee",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "ID_person_fk": {
+          "name": "ID_person_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ID_employee_type_fk": {
+          "name": "ID_employee_type_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hire_date": {
+          "name": "hire_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_employee_ID_person_fk_TB_person_ID_person_fk": {
+          "name": "TB_employee_ID_person_fk_TB_person_ID_person_fk",
+          "tableFrom": "TB_employee",
+          "tableTo": "TB_person",
+          "columnsFrom": [
+            "ID_person_fk"
+          ],
+          "columnsTo": [
+            "ID_person"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TB_employee_ID_employee_type_fk_TB_employee_type_ID_employee_type_fk": {
+          "name": "TB_employee_ID_employee_type_fk_TB_employee_type_ID_employee_type_fk",
+          "tableFrom": "TB_employee",
+          "tableTo": "TB_employee_type",
+          "columnsFrom": [
+            "ID_employee_type_fk"
+          ],
+          "columnsTo": [
+            "ID_employee_type"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_employee_specialization": {
+      "name": "TB_employee_specialization",
+      "schema": "",
+      "columns": {
+        "ID_employee_fk": {
+          "name": "ID_employee_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ID_exercise_type_fk": {
+          "name": "ID_exercise_type_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_employee_specialization_ID_employee_fk_TB_employee_ID_employee_fk": {
+          "name": "TB_employee_specialization_ID_employee_fk_TB_employee_ID_employee_fk",
+          "tableFrom": "TB_employee_specialization",
+          "tableTo": "TB_employee",
+          "columnsFrom": [
+            "ID_employee_fk"
+          ],
+          "columnsTo": [
+            "ID_employee"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TB_employee_specialization_ID_exercise_type_fk_TB_exercise_type_ID_exercise_type_fk": {
+          "name": "TB_employee_specialization_ID_exercise_type_fk_TB_exercise_type_ID_exercise_type_fk",
+          "tableFrom": "TB_employee_specialization",
+          "tableTo": "TB_exercise_type",
+          "columnsFrom": [
+            "ID_exercise_type_fk"
+          ],
+          "columnsTo": [
+            "ID_exercise_type"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "TB_employee_specialization_ID_employee_fk_ID_exercise_type_fk_pk": {
+          "name": "TB_employee_specialization_ID_employee_fk_ID_exercise_type_fk_pk",
+          "columns": [
+            "ID_employee_fk",
+            "ID_exercise_type_fk"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_employee_type": {
+      "name": "TB_employee_type",
+      "schema": "",
+      "columns": {
+        "ID_employee_type": {
+          "name": "ID_employee_type",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "role_name": {
+          "name": "role_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "TB_employee_type_role_name_unique": {
+          "name": "TB_employee_type_role_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "role_name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_exercise_type": {
+      "name": "TB_exercise_type",
+      "schema": "",
+      "columns": {
+        "ID_exercise_type": {
+          "name": "ID_exercise_type",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "TB_exercise_type_name_unique": {
+          "name": "TB_exercise_type_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_lecture": {
+      "name": "TB_lecture",
+      "schema": "",
+      "columns": {
+        "ID_lecture": {
+          "name": "ID_lecture",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "ID_exercise_type_fk": {
+          "name": "ID_exercise_type_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lecture_name": {
+          "name": "lecture_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "for_members": {
+          "name": "for_members",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_lecture_ID_exercise_type_fk_TB_exercise_type_ID_exercise_type_fk": {
+          "name": "TB_lecture_ID_exercise_type_fk_TB_exercise_type_ID_exercise_type_fk",
+          "tableFrom": "TB_lecture",
+          "tableTo": "TB_exercise_type",
+          "columnsFrom": [
+            "ID_exercise_type_fk"
+          ],
+          "columnsTo": [
+            "ID_exercise_type"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_payment_history": {
+      "name": "TB_payment_history",
+      "schema": "",
+      "columns": {
+        "ID_payment": {
+          "name": "ID_payment",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "ID_customer_fk": {
+          "name": "ID_customer_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ID_subscription_fk": {
+          "name": "ID_subscription_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payment_date": {
+          "name": "payment_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "payment_method": {
+          "name": "payment_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_payment_history_ID_customer_fk_TB_customer_ID_customer_fk": {
+          "name": "TB_payment_history_ID_customer_fk_TB_customer_ID_customer_fk",
+          "tableFrom": "TB_payment_history",
+          "tableTo": "TB_customer",
+          "columnsFrom": [
+            "ID_customer_fk"
+          ],
+          "columnsTo": [
+            "ID_customer"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TB_payment_history_ID_subscription_fk_TB_subscription_ID_subscription_fk": {
+          "name": "TB_payment_history_ID_subscription_fk_TB_subscription_ID_subscription_fk",
+          "tableFrom": "TB_payment_history",
+          "tableTo": "TB_subscription",
+          "columnsFrom": [
+            "ID_subscription_fk"
+          ],
+          "columnsTo": [
+            "ID_subscription"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_person": {
+      "name": "TB_person",
+      "schema": "",
+      "columns": {
+        "ID_person": {
+          "name": "ID_person",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "clerk_id": {
+          "name": "clerk_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "surname": {
+          "name": "surname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "TB_person_clerk_id_unique": {
+          "name": "TB_person_clerk_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "clerk_id"
+          ]
+        },
+        "TB_person_email_unique": {
+          "name": "TB_person_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_room": {
+      "name": "TB_room",
+      "schema": "",
+      "columns": {
+        "ID_room": {
+          "name": "ID_room",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "TB_room_name_unique": {
+          "name": "TB_room_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_schedule": {
+      "name": "TB_schedule",
+      "schema": "",
+      "columns": {
+        "ID_schedule": {
+          "name": "ID_schedule",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "ID_lecture_fk": {
+          "name": "ID_lecture_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ID_room_fk": {
+          "name": "ID_room_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "for_members": {
+          "name": "for_members",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_schedule_ID_lecture_fk_TB_lecture_ID_lecture_fk": {
+          "name": "TB_schedule_ID_lecture_fk_TB_lecture_ID_lecture_fk",
+          "tableFrom": "TB_schedule",
+          "tableTo": "TB_lecture",
+          "columnsFrom": [
+            "ID_lecture_fk"
+          ],
+          "columnsTo": [
+            "ID_lecture"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TB_schedule_ID_room_fk_TB_room_ID_room_fk": {
+          "name": "TB_schedule_ID_room_fk_TB_room_ID_room_fk",
+          "tableFrom": "TB_schedule",
+          "tableTo": "TB_room",
+          "columnsFrom": [
+            "ID_room_fk"
+          ],
+          "columnsTo": [
+            "ID_room"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_schedule_instructor": {
+      "name": "TB_schedule_instructor",
+      "schema": "",
+      "columns": {
+        "ID_schedule_fk": {
+          "name": "ID_schedule_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ID_employee_fk": {
+          "name": "ID_employee_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_lead": {
+          "name": "is_lead",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TB_schedule_instructor_ID_schedule_fk_TB_schedule_ID_schedule_fk": {
+          "name": "TB_schedule_instructor_ID_schedule_fk_TB_schedule_ID_schedule_fk",
+          "tableFrom": "TB_schedule_instructor",
+          "tableTo": "TB_schedule",
+          "columnsFrom": [
+            "ID_schedule_fk"
+          ],
+          "columnsTo": [
+            "ID_schedule"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TB_schedule_instructor_ID_employee_fk_TB_employee_ID_employee_fk": {
+          "name": "TB_schedule_instructor_ID_employee_fk_TB_employee_ID_employee_fk",
+          "tableFrom": "TB_schedule_instructor",
+          "tableTo": "TB_employee",
+          "columnsFrom": [
+            "ID_employee_fk"
+          ],
+          "columnsTo": [
+            "ID_employee"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "TB_schedule_instructor_ID_schedule_fk_ID_employee_fk_pk": {
+          "name": "TB_schedule_instructor_ID_schedule_fk_ID_employee_fk_pk",
+          "columns": [
+            "ID_schedule_fk",
+            "ID_employee_fk"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TB_subscription": {
+      "name": "TB_subscription",
+      "schema": "",
+      "columns": {
+        "ID_subscription": {
+          "name": "ID_subscription",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_days": {
+          "name": "duration_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "TB_subscription_name_unique": {
+          "name": "TB_subscription_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
