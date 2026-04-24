@@ -157,6 +157,16 @@
   border-color: var(--c-accent) !important;
 }
 
+.lecture-attendance-btn {
+  background: var(--c-accent) !important;
+  color: #0d0d0d !important;
+  border: none !important;
+}
+
+.lecture-attendance-btn:hover {
+  background: var(--c-accent-hover) !important;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .admin-cal-grid {

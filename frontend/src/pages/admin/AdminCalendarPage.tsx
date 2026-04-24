@@ -222,7 +222,7 @@ function LectureCard({
           )}
           <Button
             size="sm"
-            className={`text-xs bg-indigo-600 hover:bg-indigo-700 text-white border-0 ${isPast ? 'w-full' : 'flex-1'}`}
+            className={`lecture-attendance-btn text-xs ${isPast ? 'w-full' : 'flex-1'}`}
             onClick={() => onMarkAttendance(lecture)}
           >
             <UserCheck size={14} className="mr-1" /> Attendance
@@ -649,14 +649,14 @@ export default function AdminCalendarPage() {
             </div>
             <Button
               onClick={() => loadSchedule(historyFrom, historyTo)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto"
+              className="bg-[#aacc00] hover:bg-[#bbdd11] text-black w-full sm:w-auto"
             >
               Load Range
             </Button>
             <Button
               onClick={() => loadSchedule('2000-01-01', maxHistoryDateStr)}
               variant="outline"
-              className="text-slate-300 border-slate-700 hover:bg-slate-800 w-full sm:w-auto"
+              className="bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-slate-200 w-full sm:w-auto"
             >
               Load All History
             </Button>
@@ -733,7 +733,7 @@ export default function AdminCalendarPage() {
               />
               <Button
                 onClick={handleAddMember}
-                className="bg-[#c0ff00] text-black hover:bg-[#a0d900]"
+                className="bg-[#aacc00] text-black hover:bg-[#bbdd11]"
               >
                 Add
               </Button>
@@ -883,7 +883,7 @@ export default function AdminCalendarPage() {
             </Button>
             <Button
               onClick={onInitialSaveEdit}
-              className="bg-[#c0ff00] text-black hover:bg-[#a0d900]"
+              className="bg-[#aacc00] text-black hover:bg-[#bbdd11]"
             >
               Save Changes
             </Button>
@@ -978,7 +978,7 @@ export default function AdminCalendarPage() {
 
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-xs ${attendanceStatus[member.id] ? 'text-[#c0ff00]' : 'text-slate-500'}`}
+                      className={`text-xs ${attendanceStatus[member.id] ? 'text-[#aacc00]' : 'text-slate-500'}`}
                     >
                       {attendanceStatus[member.id] ? 'Present' : 'Absent'}
                     </span>
@@ -1005,7 +1005,7 @@ export default function AdminCalendarPage() {
               <Button
                 onClick={handleSaveAttendance}
                 disabled={isSavingAttendance}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0"
+                className="bg-[#aacc00] hover:bg-[#bbdd11] text-black border-0"
               >
                 {isSavingAttendance ? 'Saving...' : 'Save Attendance'}
               </Button>
