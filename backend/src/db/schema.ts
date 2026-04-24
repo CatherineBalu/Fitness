@@ -131,7 +131,7 @@ export const tbCustomerReservation = pgTable(
       .notNull()
       .references(() => tbSchedule.id),
     attended: boolean('attended').default(false).notNull(),
-    reservationDate: timestamp('reservationDate').defaultNow().notNull(),
+    reservationDate: timestamp('reservation_date').defaultNow().notNull(),
   },
   (table) => {
     return {

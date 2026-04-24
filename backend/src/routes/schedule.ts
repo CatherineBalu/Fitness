@@ -550,28 +550,30 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
 
       const { lectureId, roomId, startTime, endTime, instructors } = result.data;
 
-      const [schedule] = await db
-        .insert(tbSchedule)
-        .values({
-          lectureId,
-          roomId,
-          startTime: new Date(startTime),
-          endTime: new Date(endTime),
-        })
-        .returning();
+      return await db.transaction(async (tx) => {
+        const [schedule] = await tx
+          .insert(tbSchedule)
+          .values({
+            lectureId,
+            roomId,
+            startTime: new Date(startTime),
+            endTime: new Date(endTime),
+          })
+          .returning();
 
-      if (instructors && instructors.length > 0) {
-        await db.insert(tbScheduleInstructor).values(
-          instructors.map((inst) => ({
-            scheduleId: schedule.id,
-            employeeId: inst.employeeId,
-            isLead: inst.isLead,
-          })),
-        );
-      }
+        if (instructors && instructors.length > 0) {
+          await tx.insert(tbScheduleInstructor).values(
+            instructors.map((inst) => ({
+              scheduleId: schedule.id,
+              employeeId: inst.employeeId,
+              isLead: inst.isLead,
+            })),
+          );
+        }
 
-      set.status = 201;
-      return { id: schedule.id };
+        set.status = 201;
+        return { id: schedule.id };
+      });
     },
     {
       body: t.Object({
