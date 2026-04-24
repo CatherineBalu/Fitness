@@ -13,6 +13,7 @@ import {
   tbSchedule,
   tbScheduleInstructor,
   tbCustomerReservation,
+  tbPaymentHistory,
 } from './schema';
 
 console.log('TESTING DB URL:', process.env.DATABASE_URL);
@@ -42,6 +43,7 @@ async function main() {
   try {
     // 1. Clearing database (Important: deletion order matters due to foreign keys)
     console.log('Deleting old data');
+    await db.delete(tbPaymentHistory);
     await db.delete(tbCustomerReservation);
     await db.delete(tbScheduleInstructor);
     await db.delete(tbSchedule);
