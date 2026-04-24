@@ -41,7 +41,7 @@ import {
 import AddScheduleDialog from './AddScheduleDialog';
 import './AdminCalendarPage.css';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL as string;
 
 type Filter = 'all' | 'today' | 'this-week' | 'upcoming' | 'history';
 
@@ -307,7 +307,7 @@ export default function AdminCalendarPage() {
       try {
         const [scheduleRes, roomsRes] = await Promise.all([
           fetch(`${API_URL}/schedule?from=${fromDateStr}&to=${toDateStr}`),
-          fetch(`${API_URL}/schedule/rooms`),
+          fetch(`${API_URL}/calendar/rooms`),
         ]);
         const scheduleData = await scheduleRes.json();
         const roomsData = await roomsRes.json();
@@ -361,7 +361,7 @@ export default function AdminCalendarPage() {
   }, []);
 
   async function fetchMembersForLecture(lectureId: string) {
-    const res = await fetch(`${API_URL}/schedule/${lectureId}/members`);
+    const res = await fetch(`${API_URL}/calendar/${lectureId}/members`);
     if (!res.ok) throw new Error('Failed to fetch members');
     return await res.json();
   }
@@ -399,7 +399,7 @@ export default function AdminCalendarPage() {
 
     try {
       const res = await fetch(
-        `${API_URL}/schedule/${selectedLecture.id}/members`,
+        `${API_URL}/calendar/${selectedLecture.id}/members`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -439,7 +439,7 @@ export default function AdminCalendarPage() {
 
     try {
       const res = await fetch(
-        `${API_URL}/schedule/${selectedLecture.id}/members/${memberId}`,
+        `${API_URL}/calendar/${selectedLecture.id}/members/${memberId}`,
         {
           method: 'DELETE',
         },
@@ -501,7 +501,7 @@ export default function AdminCalendarPage() {
     if (!selectedLecture) return;
 
     try {
-      const res = await fetch(`${API_URL}/schedule/${selectedLecture.id}`, {
+      const res = await fetch(`${API_URL}/calendar/${selectedLecture.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -567,7 +567,7 @@ export default function AdminCalendarPage() {
 
     try {
       const res = await fetch(
-        `${API_URL}/schedule/${selectedLecture.id}/attendance`,
+        `${API_URL}/calendar/${selectedLecture.id}/attendance`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

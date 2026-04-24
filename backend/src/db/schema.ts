@@ -121,24 +121,17 @@ export const tbScheduleInstructor = pgTable(
 
 // --- RESERVATION AND PAYMENT HISTORY ---
 
-export const tbCustomerReservation = pgTable(
-  'TB_customer_reservation',
-  {
-    customerId: uuid('ID_customer_fk')
-      .notNull()
-      .references(() => tbCustomer.id),
-    scheduleId: uuid('ID_schedule_fk')
-      .notNull()
-      .references(() => tbSchedule.id),
-    attended: boolean('attended').default(false).notNull(),
-    reservationDate: timestamp('reservation_date').defaultNow().notNull(),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.customerId, table.scheduleId] }),
-    };
-  },
-);
+export const tbCustomerReservation = pgTable('TB_customer_reservation', {
+  id: uuid('ID_reservation').primaryKey().defaultRandom(),
+  customerId: uuid('ID_customer_fk')
+    .notNull()
+    .references(() => tbCustomer.id),
+  scheduleId: uuid('ID_schedule_fk')
+    .notNull()
+    .references(() => tbSchedule.id),
+  attended: boolean('attended').default(false).notNull(),
+  reservationDate: timestamp('reservation_date', { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const tbPaymentHistory = pgTable('TB_payment_history', {
   id: uuid('ID_payment').primaryKey().defaultRandom(),

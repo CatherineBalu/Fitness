@@ -28,7 +28,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL as string;
 
 const formSchema = z
   .object({
@@ -94,9 +94,9 @@ export default function AddScheduleDialog({
   useEffect(() => {
     if (!open) return;
     Promise.all([
-      fetch(`${API_URL}/schedule/lectures`).then((r) => r.json()),
-      fetch(`${API_URL}/schedule/rooms`).then((r) => r.json()),
-      fetch(`${API_URL}/schedule/instructors`).then((r) => r.json()),
+      fetch(`${API_URL}/calendar/lectures`).then((r) => r.json()),
+      fetch(`${API_URL}/calendar/rooms`).then((r) => r.json()),
+      fetch(`${API_URL}/calendar/instructors`).then((r) => r.json()),
     ]).then(([l, r, i]) => {
       setLectures(l);
       setRooms(r);
@@ -114,7 +114,7 @@ export default function AddScheduleDialog({
       `${values.date}T${values.endTime}:00Z`,
     ).toISOString();
 
-    const res = await fetch(`${API_URL}/schedule`, {
+    const res = await fetch(`${API_URL}/calendar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
