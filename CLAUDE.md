@@ -15,7 +15,12 @@ Fitness gym management web application (course project pb138). Supports multiple
 - `frontend/` — React 19 SPA (TypeScript + Vite), package manager: **npm**
 - `backend/` — REST API (TypeScript + Elysia framework on Bun runtime), package manager: **bun**
 
-The frontend communicates with the backend via HTTP. The backend runs on port 3000.
+The frontend communicates with the backend via HTTP. The backend runs on port 3001.
+
+### Environment variables
+
+- **Backend** (`backend/.env`): `DATABASE_URL`, `CLERK_SECRET_KEY`, `FRONTEND_URL`
+- **Frontend** (`frontend/.env`): `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`
 
 ### Key Tech
 
@@ -28,6 +33,13 @@ The frontend communicates with the backend via HTTP. The backend runs on port 30
 | CI | GitLab CI (`.gitlab-ci.yml`), stages: `lint_and_format` → `test` |
 
 ## Commands
+
+### Local database (from repo root)
+
+```bash
+docker compose up -d   # Start Postgres on :5432 (see docker-compose.yml)
+docker compose down    # Stop it
+```
 
 ### Backend (`cd backend`)
 
