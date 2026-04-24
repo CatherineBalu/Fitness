@@ -262,8 +262,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
   .get(
     '/',
     async ({ query, ...rest }) => {
-      const auth = (rest as any).auth;
-      
+      const auth = (rest as unknown as { auth: { userId: string } }).auth;
       const from = new Date(query.from);
       const to = new Date(query.to);
       to.setHours(23, 59, 59, 999);
@@ -360,8 +359,8 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
     app
       .use(requirePermission('reservation:write'))
       .post('/', async ({ params, set, ...rest }) => {
-        const auth = (rest as any).auth;
-        
+        const auth = (rest as unknown as { auth: { userId: string } }).auth;
+
         const customer = await getCustomerByClerkId(auth!.userId);
         if (!customer) {
           set.status = 404;
@@ -397,7 +396,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
         }
 
         const [existing] = await db
-          .select({ id: tbCustomerReservation.id })
+          .select({ customerId: tbCustomerReservation.customerId })
           .from(tbCustomerReservation)
           .where(
             and(
@@ -431,8 +430,8 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
 
       // DELETE /schedule/:id/reservations — cancel current user's reservation
       .delete('/', async ({ params, set, ...rest }) => {
-        const auth = (rest as any).auth;
-        
+        const auth = (rest as unknown as { auth: { userId: string } }).auth;
+
         const customer = await getCustomerByClerkId(auth!.userId);
         if (!customer) {
           set.status = 404;
@@ -447,7 +446,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
               eq(tbCustomerReservation.scheduleId, params.id),
             ),
           )
-          .returning({ id: tbCustomerReservation.id });
+          .returning({ customerId: tbCustomerReservation.customerId });
 
         if (deleted.length === 0) {
           set.status = 404;
@@ -455,7 +454,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
         }
 
         return { success: true };
-      })
+      }),
   )
 
   // GET /schedule/:id/members — list all members registered for a specific schedule
@@ -471,7 +470,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
             name: tbPerson.name,
             surname: tbPerson.surname,
             email: tbPerson.email,
-            attended: tbCustomerReservation.attended, 
+            attended: tbCustomerReservation.attended,
           })
           .from(tbCustomerReservation)
           .innerJoin(tbCustomer, eq(tbCustomerReservation.customerId, tbCustomer.id))
@@ -483,7 +482,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
           id: member.id,
           name: `${member.name} ${member.surname}`,
           email: member.email,
-          attended: member.attended, 
+          attended: member.attended,
         }));
       } catch (error) {
         console.error('Failed to fetch schedule members:', error);

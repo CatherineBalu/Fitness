@@ -36,7 +36,13 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
     const [reservations] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(tbCustomerReservation)
-      .where(gte(tbCustomerReservation.reservationDate, sql`date_trunc('month', current_date)`));
+      .innerJoin(tbSchedule, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
+      .where(
+        gte(
+          tbSchedule.startTime, 
+          sql`date_trunc('month', current_date)`
+        )
+      );
 
     const [occupancy] = await db
       .select({
@@ -120,13 +126,13 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
       const rows = await db
         .select({
           lectureName: tbLecture.lectureName,
-          reservationCount: sql<number>`count(${tbCustomerReservation.id})::int`,
+          reservationCount: sql<number>`count(${tbCustomerReservation.customerId})::int`,
         })
         .from(tbCustomerReservation)
         .innerJoin(tbSchedule, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
         .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
         .groupBy(tbLecture.id, tbLecture.lectureName)
-        .orderBy(desc(sql`count(${tbCustomerReservation.id})`))
+        .orderBy(desc(sql`count(${tbCustomerReservation.customerId})`))
         .limit(limit);
 
       return rows;
@@ -185,7 +191,14 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
   .use(requirePermission('stats:staff'))
 
   // GET /api/stats/staff/me — instructor: own stats; reception: { available: false }
-  .get('/me', async ({ auth, set }) => {
+  .get('/me', async ({ set, ...rest }) => {
+    const auth = (rest as unknown as { auth: { userId: string } }).auth;
+
+    if (!auth) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    
     const [employee] = await db
       .select({
         employeeId: tbEmployee.id,
@@ -275,7 +288,7 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
     const [mostPopular] = await db
       .select({
         lectureName: tbLecture.lectureName,
-        reservationCount: sql<number>`count(${tbCustomerReservation.id})::int`,
+        reservationCount: sql<number>`count(${tbCustomerReservation.customerId})::int`,
       })
       .from(tbScheduleInstructor)
       .innerJoin(tbSchedule, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
@@ -283,7 +296,7 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
       .leftJoin(tbCustomerReservation, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
       .where(eq(tbScheduleInstructor.employeeId, employee.employeeId))
       .groupBy(tbLecture.id, tbLecture.lectureName)
-      .orderBy(desc(sql`count(${tbCustomerReservation.id})`))
+      .orderBy(desc(sql`count(${tbCustomerReservation.customerId})`))
       .limit(1);
 
     return {
