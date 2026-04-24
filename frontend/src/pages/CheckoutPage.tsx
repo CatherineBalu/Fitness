@@ -379,21 +379,6 @@ export default function CheckoutPage() {
                   <div className="checkout-fields">
                     <FormField
                       control={contactForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Email <span className="checkout-required">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input {...field} readOnly />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={contactForm.control}
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
@@ -419,6 +404,21 @@ export default function CheckoutPage() {
                           </FormLabel>
                           <FormControl>
                             <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem className="checkout-fields-full">
+                          <FormLabel>
+                            Email <span className="checkout-required">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
