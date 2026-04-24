@@ -121,10 +121,14 @@ export const authenticated = new Elysia({ name: 'authenticated' }).onBeforeHandl
 );
 
 export const requirePermission = (permission: Permission) =>
-  new Elysia({ name: `perm:${permission}` }).onBeforeHandle({ as: 'scoped' }, ({ set, ...rest }) => {
-    const auth = (rest as unknown as { auth: { userId: string; can: (perm: string) => boolean } }).auth;
-    if (!auth?.can(permission)) {
-      set.status = 403;
-      return 'Forbidden';
-    }
-  });
+  new Elysia({ name: `perm:${permission}` }).onBeforeHandle(
+    { as: 'scoped' },
+    ({ set, ...rest }) => {
+      const auth = (rest as unknown as { auth: { userId: string; can: (perm: string) => boolean } })
+        .auth;
+      if (!auth?.can(permission)) {
+        set.status = 403;
+        return 'Forbidden';
+      }
+    },
+  );

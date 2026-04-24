@@ -37,12 +37,7 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
       .select({ count: sql<number>`count(*)::int` })
       .from(tbCustomerReservation)
       .innerJoin(tbSchedule, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
-      .where(
-        gte(
-          tbSchedule.startTime, 
-          sql`date_trunc('month', current_date)`
-        )
-      );
+      .where(gte(tbSchedule.startTime, sql`date_trunc('month', current_date)`));
 
     const [occupancy] = await db
       .select({
@@ -198,7 +193,7 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
       set.status = 401;
       return { error: 'Unauthorized' };
     }
-    
+
     const [employee] = await db
       .select({
         employeeId: tbEmployee.id,
