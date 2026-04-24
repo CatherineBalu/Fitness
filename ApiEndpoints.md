@@ -5,11 +5,26 @@
 - POST `/auth/check-email` — check if email is already registered
 - POST `/auth/register` — create a new customer account
 - POST `/auth/login` — verify credentials and log in
-- GET `/auth/me` — return current user (requires auth cookie)
+- GET `/auth/me` — return current Clerk user (requires auth cookie)
+- GET `/auth/profile` — return detailed profile of the current user (Person + Customer data)
 
 ### Schedule
 
-- GET `/schedule?from=YYYY-MM-DD&to=YYYY-MM-DD` — list scheduled lectures in a date range
+#### Public / Customers (Requires Auth)
+- GET `/schedule?from=YYYY-MM-DD&to=YYYY-MM-DD` — list scheduled lectures in a date range (returns `isRegistered` status for current user)
+- POST `/schedule/:id/reservations` — register current user for a lecture (requires `reservation:write`)
+- DELETE `/schedule/:id/reservations` — cancel current user's reservation
+
+#### Admin / Reception
+- GET `/schedule/lectures` — list all lecture templates
+- GET `/schedule/rooms` — list all rooms with capacity
+- GET `/schedule/instructors` — list all employees available as instructors
+- POST `/schedule` — create a new scheduled lecture (body: `{ lectureId, roomId, startTime, endTime, instructors: [{ employeeId, isLead }] }`)
+- PATCH `/schedule/:id` — update room or time for a specific instance (body: `{ roomId?, startTime?, endTime? }` time format "HH:MM")
+- GET `/schedule/:id/members` — list all members registered for a schedule (includes `attended` status)
+- POST `/schedule/:id/members` — manually add a member by email (body: `{ email }`)
+- DELETE `/schedule/:id/members/:personId` — remove a member from a lecture
+- PATCH `/schedule/:id/attendance` — bulk update attendance status for members (body: `{ attendanceRecords: [{ personId, attended }] }`)
 
 ### Staff (admin)
 
@@ -18,10 +33,6 @@
 - PATCH `/api/staff/:id` — update first/last name (DB + Clerk); for Instructor also replaces specializations
 - DELETE `/api/staff/:id` — remove employee and underlying person
 - GET `/api/staff/:id/lectures` — all scheduled lectures this employee teaches
-
-### Lectures (admin)
-
-- GET `/api/lectures/:id/members` — customers registered on a given schedule instance
 
 ### Exercise types
 
@@ -41,4 +52,4 @@
 
 ### Stats (staff)
 
-- GET `/api/stats/staff/me` — for current instructor: monthly count, attendees, avg fill rate, 6-month trend, most popular lecture. Reception/other roles get `{ available: false }`.
+- GET `/api/stats/staff/me` — for current instructor: monthly count, attendees, avg fill rate, popular lecture. Reception/other roles get `{ available: false }`.
