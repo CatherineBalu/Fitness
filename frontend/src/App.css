@@ -274,6 +274,14 @@
 .pricing-card--highlight .price-period {
   color: rgba(13, 13, 13, 0.55);
 }
+.plan-billing-note {
+  font-size: 13px;
+  color: var(--c-muted);
+  margin: -16px 0 28px;
+}
+.pricing-card--highlight .plan-billing-note {
+  color: rgba(13, 13, 13, 0.6);
+}
 .plan-features {
   list-style: none;
   padding: 0;

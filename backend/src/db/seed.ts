@@ -13,6 +13,7 @@ import {
   tbSchedule,
   tbScheduleInstructor,
   tbCustomerReservation,
+  tbPaymentHistory,
 } from './schema';
 
 console.log('TESTING DB URL:', process.env.DATABASE_URL);
@@ -43,6 +44,7 @@ async function main() {
     // 1. Clearing database (Important: deletion order matters due to foreign keys)
     console.log('Deleting old data');
     await db.delete(tbCustomerReservation);
+    await db.delete(tbPaymentHistory);
     await db.delete(tbScheduleInstructor);
     await db.delete(tbSchedule);
     await db.delete(tbLecture);
@@ -65,8 +67,9 @@ async function main() {
     await db
       .insert(tbSubscription)
       .values([
-        { name: 'Monthly Basic', price: '29.99', durationDays: 30 },
-        { name: 'Year PRO', price: '299.99', durationDays: 365 },
+        { name: 'Basic', price: '19', durationDays: 30 },
+        { name: 'Standard', price: '45', durationDays: 90 },
+        { name: 'Premium', price: '149', durationDays: 365 },
       ])
       .returning();
 

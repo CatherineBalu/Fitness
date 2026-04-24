@@ -1,3 +1,7 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { SignInButton, useAuth, useClerk } from '@clerk/clerk-react';
+import { toast } from 'sonner';
 import heroImg from '../assets/hero.png';
 import {
   Carousel,
@@ -14,47 +18,35 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useApi } from '@/lib/api';
 
-const pricingPlans = [
-  {
-    name: 'Basic',
-    price: '€19',
-    period: '/month',
-    features: [
-      'Access to gym equipment',
-      '2 group classes / week',
-      'Locker room access',
-      'Basic app access',
-    ],
-    highlighted: false,
-  },
-  {
-    name: 'Standard',
-    price: '€39',
-    period: '/month',
-    features: [
-      'Unlimited gym access',
-      'Unlimited group classes',
-      'Personal trainer (1× / month)',
-      'Full app access',
-      'Nutrition guide',
-    ],
-    highlighted: true,
-  },
-  {
-    name: 'Premium',
-    price: '€69',
-    period: '/month',
-    features: [
-      'Everything in Standard',
-      'Personal trainer (4× / month)',
-      'Sauna & spa access',
-      'Priority class booking',
-      'Diet consultation',
-    ],
-    highlighted: false,
-  },
-];
+const API_URL = import.meta.env.VITE_API_URL as string;
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: string;
+  durationDays: number;
+}
+
+function formatPrice(price: string) {
+  const num = Number(price);
+  return Number.isFinite(num) ? `€${num.toFixed(0)}` : `€${price}`;
+}
+
+function formatMonthlyPrice(price: string, days: number) {
+  const num = Number(price);
+  if (!Number.isFinite(num) || days <= 0) return `€${price}`;
+  const perMonth = num / (days / 30);
+  return `€${perMonth.toFixed(0)}`;
+}
+
+function formatBillingNote(price: string, days: number) {
+  const total = formatPrice(price);
+  if (days === 30) return `Billed ${total} each month`;
+  if (days === 365) return `Billed ${total} once a year`;
+  return `Billed ${total} every ${days} days`;
+}
 
 const trainers = [
   {
@@ -99,7 +91,104 @@ const trainers = [
   },
 ];
 
+function BuyButton({
+  plan,
+  highlighted,
+  hasActiveMembership,
+  authReady,
+  isSignedIn,
+}: {
+  plan: SubscriptionPlan;
+  highlighted: boolean;
+  hasActiveMembership: boolean;
+  authReady: boolean;
+  isSignedIn: boolean;
+}) {
+  const className = highlighted
+    ? 'btn-dark btn-block'
+    : 'btn-primary btn-block';
+  const navigate = useNavigate();
+  const { openUserProfile } = useClerk();
+
+  if (!authReady) {
+    return (
+      <button className={className} disabled>
+        Get Started
+      </button>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <SignInButton mode="modal" forceRedirectUrl={`/checkout?plan=${plan.id}`}>
+        <button className={className}>Get Started</button>
+      </SignInButton>
+    );
+  }
+
+  const handleClick = () => {
+    if (hasActiveMembership) {
+      toast.info('You already have an active subscription', {
+        description: 'View its details from your profile.',
+        action: {
+          label: 'See my subscriptions',
+          onClick: () => openUserProfile(),
+        },
+      });
+      return;
+    }
+    navigate({ to: '/checkout', search: { plan: plan.id } });
+  };
+
+  return (
+    <button type="button" className={className} onClick={handleClick}>
+      Get Started
+    </button>
+  );
+}
+
 export default function HomePage() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { apiRequest } = useApi();
+
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [profileActive, setProfileActive] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/subscriptions`)
+      .then((res) => res.json())
+      .then((data: SubscriptionPlan[]) => {
+        if (!cancelled) setPlans(data);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setPlansError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    let cancelled = false;
+    apiRequest<{ hasActiveMembership: boolean }>('/auth/profile')
+      .then((p) => {
+        if (!cancelled) setProfileActive(!!p.hasActiveMembership);
+      })
+      .catch(() => {
+        if (!cancelled) setProfileActive(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, isSignedIn, apiRequest]);
+
+  const hasActiveMembership = isSignedIn ? (profileActive ?? false) : false;
+
+  const highlightIndex = plans.length > 2 ? 1 : -1;
+
   return (
     <>
       {/* ── Hero ── */}
@@ -142,36 +231,57 @@ export default function HomePage() {
         <div className="section-inner">
           <h2 className="section-title">Choose the Plan That Fits You Best</h2>
           <p className="section-sub">No contracts. Cancel anytime.</p>
+          {plansError && (
+            <p style={{ color: 'var(--c-muted)', textAlign: 'center' }}>
+              Couldn't load plans. Please try again later.
+            </p>
+          )}
           <div className="pricing-grid">
-            {pricingPlans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`pricing-card ${plan.highlighted ? 'pricing-card--highlight' : ''}`}
-              >
-                <h3 className="plan-name">{plan.name}</h3>
-                <div className="plan-price">
-                  <span className="price-amount">{plan.price}</span>
-                  <span className="price-period">{plan.period}</span>
-                </div>
-                <ul className="plan-features">
-                  {plan.features.map((f) => (
-                    <li key={f}>
-                      <span className="check">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  className={
-                    plan.highlighted
-                      ? 'btn-dark btn-block'
-                      : 'btn-primary btn-block'
-                  }
+            {plans.map((plan, idx) => {
+              const highlighted = idx === highlightIndex;
+              return (
+                <div
+                  key={plan.id}
+                  className={`pricing-card ${highlighted ? 'pricing-card--highlight' : ''}`}
                 >
-                  Get Started
-                </button>
-              </div>
-            ))}
+                  <h3 className="plan-name">{plan.name}</h3>
+                  <div className="plan-price">
+                    <span className="price-amount">
+                      {formatMonthlyPrice(plan.price, plan.durationDays)}
+                    </span>
+                    <span className="price-period">/month</span>
+                  </div>
+                  <p className="plan-billing-note">
+                    {formatBillingNote(plan.price, plan.durationDays)}
+                  </p>
+                  <ul className="plan-features">
+                    <li>
+                      <span className="check">✓</span>
+                      Full gym access
+                    </li>
+                    <li>
+                      <span className="check">✓</span>
+                      Valid for {plan.durationDays} days
+                    </li>
+                    <li>
+                      <span className="check">✓</span>
+                      Access to group classes
+                    </li>
+                    <li>
+                      <span className="check">✓</span>
+                      Cancel anytime
+                    </li>
+                  </ul>
+                  <BuyButton
+                    plan={plan}
+                    highlighted={highlighted}
+                    hasActiveMembership={hasActiveMembership}
+                    authReady={isLoaded}
+                    isSignedIn={!!isSignedIn}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
