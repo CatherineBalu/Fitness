@@ -210,19 +210,48 @@
   border: 1px solid #2a2a2a;
   border-radius: 10px;
   padding: 12px 16px;
-  transition: border-color 0.2s;
-}
-
-.cp-row:hover {
-  border-color: #aacc00;
 }
 
 .cp-row--past {
   opacity: 0.5;
 }
 
-.cp-row--past:hover {
-  border-color: #2a2a2a;
+.cp-unregister-btn {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 7px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.cp-unregister-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.cp-unregister-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cp-unregister-confirm-text {
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.cp-btn-small {
+  font-size: 0.75rem;
+  padding: 4px 10px;
 }
 
 .cp-row-info {

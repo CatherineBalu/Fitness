@@ -99,6 +99,7 @@ export const customerRoutes = new Elysia({ prefix: '/api/customer' })
     const rows = await db
       .select({
         reservationId: tbCustomerReservation.id,
+        scheduleId: tbSchedule.id,
         reservationDate: tbCustomerReservation.reservationDate,
         lectureName: tbLecture.lectureName,
         startTime: tbSchedule.startTime,

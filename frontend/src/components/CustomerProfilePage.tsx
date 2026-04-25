@@ -20,6 +20,7 @@ interface ProfileData {
 
 interface Registration {
   reservationId: string;
+  scheduleId: string;
   lectureName: string;
   startTime: string;
   endTime: string;
@@ -63,6 +64,8 @@ export default function CustomerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [confirmUnregister, setConfirmUnregister] = useState<string | null>(null);
+  const [unregistering, setUnregistering] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -77,6 +80,18 @@ export default function CustomerProfilePage() {
       })
       .finally(() => setLoading(false));
   }, [apiRequest]);
+
+  async function handleUnregister(scheduleId: string) {
+    setUnregistering(true);
+    try {
+      await apiRequest(`/schedule/${scheduleId}/reservations`, { method: 'DELETE' });
+      setRegistrations((prev) => prev.filter((r) => r.scheduleId !== scheduleId));
+      setConfirmUnregister(null);
+      window.dispatchEvent(new CustomEvent('schedule:invalidated'));
+    } finally {
+      setUnregistering(false);
+    }
+  }
 
   async function handleCancelMembership() {
     setCancelling(true);
@@ -191,7 +206,7 @@ export default function CustomerProfilePage() {
               <>
                 <p className="cp-sub-label">Upcoming</p>
                 {upcoming.map((r) => (
-                  <div key={r.reservationId} className="cp-row">
+                  <div key={r.reservationId} className="cp-row cp-row--interactive">
                     <div className="cp-row-info">
                       <span className="cp-row-name">{r.lectureName}</span>
                       <span className="cp-row-meta">
@@ -199,6 +214,31 @@ export default function CustomerProfilePage() {
                         {formatTime(r.endTime)} · {r.roomName}
                       </span>
                     </div>
+                    {confirmUnregister === r.scheduleId ? (
+                      <div className="cp-unregister-confirm">
+                        <span className="cp-unregister-confirm-text">Cancel this?</span>
+                        <button
+                          className="cp-btn-ghost cp-btn-small"
+                          onClick={() => setConfirmUnregister(null)}
+                        >
+                          Keep
+                        </button>
+                        <button
+                          className="cp-btn-danger cp-btn-small"
+                          onClick={() => handleUnregister(r.scheduleId)}
+                          disabled={unregistering}
+                        >
+                          {unregistering ? '…' : 'Yes'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="cp-unregister-btn"
+                        onClick={() => setConfirmUnregister(r.scheduleId)}
+                      >
+                        Unregister
+                      </button>
+                    )}
                   </div>
                 ))}
               </>
