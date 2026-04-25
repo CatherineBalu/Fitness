@@ -64,7 +64,9 @@ export default function CustomerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [confirmUnregister, setConfirmUnregister] = useState<string | null>(null);
+  const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
+    null,
+  );
   const [unregistering, setUnregistering] = useState(false);
 
   useEffect(() => {
@@ -84,8 +86,12 @@ export default function CustomerProfilePage() {
   async function handleUnregister(scheduleId: string) {
     setUnregistering(true);
     try {
-      await apiRequest(`/schedule/${scheduleId}/reservations`, { method: 'DELETE' });
-      setRegistrations((prev) => prev.filter((r) => r.scheduleId !== scheduleId));
+      await apiRequest(`/schedule/${scheduleId}/reservations`, {
+        method: 'DELETE',
+      });
+      setRegistrations((prev) =>
+        prev.filter((r) => r.scheduleId !== scheduleId),
+      );
       setConfirmUnregister(null);
       window.dispatchEvent(new CustomEvent('schedule:invalidated'));
     } finally {
@@ -206,7 +212,10 @@ export default function CustomerProfilePage() {
               <>
                 <p className="cp-sub-label">Upcoming</p>
                 {upcoming.map((r) => (
-                  <div key={r.reservationId} className="cp-row cp-row--interactive">
+                  <div
+                    key={r.reservationId}
+                    className="cp-row cp-row--interactive"
+                  >
                     <div className="cp-row-info">
                       <span className="cp-row-name">{r.lectureName}</span>
                       <span className="cp-row-meta">
@@ -216,7 +225,9 @@ export default function CustomerProfilePage() {
                     </div>
                     {confirmUnregister === r.scheduleId ? (
                       <div className="cp-unregister-confirm">
-                        <span className="cp-unregister-confirm-text">Cancel this?</span>
+                        <span className="cp-unregister-confirm-text">
+                          Cancel this?
+                        </span>
                         <button
                           className="cp-btn-ghost cp-btn-small"
                           onClick={() => setConfirmUnregister(null)}
