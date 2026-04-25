@@ -7,6 +7,7 @@ import {
 import RootLayout from '@/layouts/RootLayout';
 import HomePage from '@/pages/HomePage';
 import SchedulePage from '@/pages/SchedulePage';
+import CheckoutPage from '@/pages/CheckoutPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminStaffPage from '@/pages/admin/AdminStaffPage';
@@ -48,6 +49,18 @@ const scheduleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/schedule',
   component: SchedulePage,
+});
+
+const checkoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/checkout',
+  validateSearch: (search: Record<string, unknown>): { plan?: string } => ({
+    plan: typeof search.plan === 'string' ? search.plan : undefined,
+  }),
+  beforeLoad: () => {
+    if (!window.Clerk?.user) throw redirect({ to: '/' });
+  },
+  component: CheckoutPage,
 });
 
 const adminDashboardRoute = createRoute({
@@ -95,6 +108,7 @@ const myProfileRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   scheduleRoute,
+  checkoutRoute,
   adminDashboardRoute,
   adminStaffRoute,
   adminCalendarRoute,
