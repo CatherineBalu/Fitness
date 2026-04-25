@@ -157,8 +157,15 @@ export default function CustomerProfilePage() {
               <p className="cp-membership-meta-row">
                 Price:{' '}
                 <span>
-                  €{(profile.membership.price / (profile.membership.durationDays / 30)).toFixed(0)}{' '}
-                  / month{profile.membership.durationDays > 30 ? ` · billed €${profile.membership.price.toFixed(0)} / year` : ''}
+                  €
+                  {(
+                    profile.membership.price /
+                    (profile.membership.durationDays / 30)
+                  ).toFixed(0)}{' '}
+                  / month
+                  {profile.membership.durationDays > 30
+                    ? ` · billed €${profile.membership.price.toFixed(0)} / year`
+                    : ''}
                 </span>
               </p>
             </div>
@@ -298,9 +305,7 @@ export default function CustomerProfilePage() {
                       {formatDate(p.paymentDate)} · {p.paymentMethod}
                     </span>
                   </div>
-                  <span className="cp-row-value">
-                    €{p.amount.toFixed(0)}
-                  </span>
+                  <span className="cp-row-value">€{p.amount.toFixed(0)}</span>
                 </div>
               ))}
             </div>
