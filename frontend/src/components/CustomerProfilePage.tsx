@@ -157,8 +157,8 @@ export default function CustomerProfilePage() {
               <p className="cp-membership-meta-row">
                 Price:{' '}
                 <span>
-                  {profile.membership.price} CZK /{' '}
-                  {profile.membership.durationDays} days
+                  €{(profile.membership.price / (profile.membership.durationDays / 30)).toFixed(0)}{' '}
+                  / month{profile.membership.durationDays > 30 ? ` · billed €${profile.membership.price.toFixed(0)} / year` : ''}
                 </span>
               </p>
             </div>
@@ -286,7 +286,7 @@ export default function CustomerProfilePage() {
             <div className="cp-spending-total">
               <span className="cp-spending-total-label">Total spent</span>
               <span className="cp-spending-total-amount">
-                {spending.total.toFixed(0)} CZK
+                €{spending.total.toFixed(0)}
               </span>
             </div>
             <div className="cp-list">
@@ -299,7 +299,7 @@ export default function CustomerProfilePage() {
                     </span>
                   </div>
                   <span className="cp-row-value">
-                    {p.amount.toFixed(0)} CZK
+                    €{p.amount.toFixed(0)}
                   </span>
                 </div>
               ))}
