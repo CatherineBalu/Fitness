@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, UserCircle } from 'lucide-react';
 import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Toaster } from 'sonner';
 import { can } from '@/lib/permissions';
 import { useApi } from '@/lib/api';
+import CustomerProfilePage from '@/components/CustomerProfilePage';
 import '../App.css';
 
 const SocialIcon = ({ d }: { d: string }) => (
@@ -100,7 +101,28 @@ export default function RootLayout() {
                   <button className="btn-primary">Log in</button>
                 </SignInButton>
               )}
-              {isLoaded && isSignedIn && <UserButton />}
+              {isLoaded && isSignedIn && (
+                <UserButton>
+                  <UserButton.MenuItems>
+                    <UserButton.Action
+                      label="My Profile"
+                      labelIcon={<UserCircle size={16} />}
+                      open="my-profile"
+                    />
+                    <UserButton.Action label="manageAccount" />
+                    <UserButton.Action label="signOut" />
+                  </UserButton.MenuItems>
+                  <UserButton.UserProfilePage label="account" />
+                  <UserButton.UserProfilePage label="security" />
+                  <UserButton.UserProfilePage
+                    label="My Profile"
+                    url="my-profile"
+                    labelIcon={<UserCircle size={16} />}
+                  >
+                    <CustomerProfilePage />
+                  </UserButton.UserProfilePage>
+                </UserButton>
+              )}
             </div>
           )}
 

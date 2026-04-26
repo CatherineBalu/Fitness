@@ -303,6 +303,12 @@ export default function SchedulePage() {
     loadSchedule();
   }, [loadSchedule]);
 
+  useEffect(() => {
+    const handler = () => loadSchedule();
+    window.addEventListener('schedule:invalidated', handler);
+    return () => window.removeEventListener('schedule:invalidated', handler);
+  }, [loadSchedule]);
+
   const closeDialog = () => setDialog({ type: 'none' });
 
   const confirmRegister = async () => {
