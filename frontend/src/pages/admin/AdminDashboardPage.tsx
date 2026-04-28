@@ -1,90 +1,65 @@
-import { Calendar, Users, Star, TrendingUp, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  Calendar,
+  Users,
+  TrendingUp,
+  CalendarCheck,
+  ArrowRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Link } from '@tanstack/react-router';
+import { useUser } from '@clerk/clerk-react';
+import { useApi } from '@/lib/api';
+import { StatCard } from '@/components/stats/StatCard';
 import './AdminDashboardPage.css';
 
-interface UpcomingClass {
-  id: number;
+interface Lecture {
+  id: string;
   name: string;
-  day: string;
-  time: string;
+  startTime: string;
+  endTime: string;
   room: string;
-  category: string;
-  registered: number;
   capacity: number;
+  registered: number;
 }
 
-interface Stat {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
+interface AdminOverview {
+  activeMemberships: number;
+  monthRevenue: number;
+  monthReservations: number;
+  avgOccupancyPct: number;
 }
 
-// Mock data — replace with API call after DB merge
-const UPCOMING: UpcomingClass[] = [
-  {
-    id: 1,
-    name: 'Vinyasa Yoga',
-    day: 'Monday',
-    time: '09:00',
-    room: 'Room A',
-    category: 'Beginners',
-    registered: 10,
-    capacity: 15,
-  },
-  {
-    id: 2,
-    name: 'Power Training',
-    day: 'Tuesday',
-    time: '18:00',
-    room: 'Room B',
-    category: 'Advanced',
-    registered: 14,
-    capacity: 20,
-  },
-  {
-    id: 3,
-    name: 'HIIT Cardio',
-    day: 'Wednesday',
-    time: '17:30',
-    room: 'Room C',
-    category: 'Intermediate',
-    registered: 10,
-    capacity: 15,
-  },
-];
+interface StaffStats {
+  available: boolean;
+  employeeType: string;
+  monthLectureCount?: number;
+  monthAttendees?: number;
+  avgFillRatePct?: number;
+}
 
-const STATS: Stat[] = [
-  {
-    icon: <Calendar size={22} />,
-    value: '5',
-    label: 'Lectures this week',
-  },
-  {
-    icon: <Users size={22} />,
-    value: '47',
-    label: 'Logged in participations',
-  },
-  {
-    icon: <Star size={22} />,
-    value: '4.5',
-    label: 'Average rating',
-  },
-  {
-    icon: <TrendingUp size={22} />,
-    value: '90 %',
-    label: 'Attendance this month',
-  },
-];
+function formatLectureTime(startIso: string, endIso: string): string {
+  const fmt = (d: Date) =>
+    `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${fmt(new Date(startIso))} - ${fmt(new Date(endIso))}`;
+}
 
-function UpcomingClassRow({ item }: { item: UpcomingClass }) {
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function UpcomingClassRow({ item }: { item: Lecture }) {
   return (
     <div className="dash-class-row">
       <div className="dash-class-info">
         <span className="dash-class-name">{item.name}</span>
         <span className="dash-class-meta">
-          {item.day} · {item.time} · {item.room} · {item.category}
+          {formatDate(item.startTime)} ·{' '}
+          {formatLectureTime(item.startTime, item.endTime)} · {item.room}
         </span>
       </div>
       <span className="dash-class-capacity">
@@ -99,33 +74,111 @@ function UpcomingClassRow({ item }: { item: UpcomingClass }) {
   );
 }
 
-function StatCard({ stat }: { stat: Stat }) {
-  return (
-    <Card className="dash-stat-card">
-      <CardContent className="dash-stat-content">
-        <div className="dash-stat-icon">{stat.icon}</div>
-        <span className="dash-stat-value">{stat.value}</span>
-        <span className="dash-stat-label">{stat.label}</span>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function AdminDashboardPage() {
+  const { apiRequest } = useApi();
+  const { user } = useUser();
+  const role = (user?.publicMetadata as { role?: string })?.role ?? null;
+  const isAdmin = role === 'admin';
+
+  const [upcoming, setUpcoming] = useState<Lecture[]>([]);
+  const [adminStats, setAdminStats] = useState<AdminOverview | null>(null);
+  const [staffStats, setStaffStats] = useState<StaffStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const now = new Date();
+
+    const requests: Promise<unknown>[] = [
+      apiRequest<Lecture[]>('/api/staff/me/lectures'),
+      isAdmin
+        ? apiRequest<AdminOverview>('/api/stats/admin/overview')
+        : apiRequest<StaffStats>('/api/stats/staff/me'),
+    ];
+
+    Promise.all(requests)
+      .then(([lectures, stats]) => {
+        if (cancelled) return;
+        const upcomingLectures = (lectures as Lecture[])
+          .filter((l) => new Date(l.startTime) > now)
+          .slice(0, 3);
+        setUpcoming(upcomingLectures);
+        if (isAdmin) {
+          setAdminStats(stats as AdminOverview);
+        } else {
+          setStaffStats(stats as StaffStats);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiRequest, isAdmin]);
+
+  const statCards = isAdmin
+    ? [
+        {
+          icon: <Users size={22} />,
+          value: loading ? '—' : String(adminStats?.activeMemberships ?? 0),
+          label: 'Active memberships',
+        },
+        {
+          icon: <TrendingUp size={22} />,
+          value: loading
+            ? '—'
+            : `€${Math.round(adminStats?.monthRevenue ?? 0)}`,
+          label: 'Revenue this month',
+        },
+        {
+          icon: <CalendarCheck size={22} />,
+          value: loading ? '—' : String(adminStats?.monthReservations ?? 0),
+          label: 'Reservations this month',
+        },
+        {
+          icon: <TrendingUp size={22} />,
+          value: loading ? '—' : `${adminStats?.avgOccupancyPct ?? 0} %`,
+          label: 'Avg occupancy',
+        },
+      ]
+    : staffStats?.available
+      ? [
+          {
+            icon: <Calendar size={22} />,
+            value: loading ? '—' : String(staffStats.monthLectureCount ?? 0),
+            label: 'Lectures this month',
+          },
+          {
+            icon: <Users size={22} />,
+            value: loading ? '—' : String(staffStats.monthAttendees ?? 0),
+            label: 'Attendees this month',
+          },
+          {
+            icon: <TrendingUp size={22} />,
+            value: loading ? '—' : `${staffStats.avgFillRatePct ?? 0} %`,
+            label: 'Avg fill rate',
+          },
+        ]
+      : [];
+
   return (
     <div className="admin-dash-page">
-      {/* Hero */}
       <div className="admin-dash-hero">
         <div className="admin-dash-hero-inner">
           <p className="admin-dash-welcome-label">WELCOME BACK</p>
-          <h1 className="admin-dash-name">ADMIN</h1>
+          <h1 className="admin-dash-name">{isAdmin ? 'ADMIN' : 'STAFF'}</h1>
           <p className="admin-dash-subtitle">
-            This week you have {UPCOMING.length} lectures.
+            {loading
+              ? '…'
+              : `You have ${upcoming.length} upcoming lecture${upcoming.length !== 1 ? 's' : ''}.`}
           </p>
           <div className="admin-dash-hero-actions">
             <Link to="/admin/calendar">
               <Button className="dash-hero-btn dash-hero-btn--primary">
-                Manage classes
+                My lectures
               </Button>
             </Link>
             <Link to="/schedule">
@@ -142,30 +195,40 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="admin-dash-inner">
-        {/* Upcoming classes */}
         <section className="admin-dash-section">
           <div className="admin-dash-section-header">
             <p className="admin-dash-section-label">Upcoming classes</p>
-            <h2 className="admin-dash-section-title">This week</h2>
+            <h2 className="admin-dash-section-title">Next up</h2>
           </div>
           <div className="dash-classes-list">
-            {UPCOMING.map((item) => (
+            {loading && <p style={{ color: 'var(--c-muted)' }}>Loading…</p>}
+            {!loading && upcoming.length === 0 && (
+              <p style={{ color: 'var(--c-muted)' }}>No upcoming lectures.</p>
+            )}
+            {upcoming.map((item) => (
               <UpcomingClassRow key={item.id} item={item} />
             ))}
           </div>
         </section>
 
-        <div className="admin-dash-divider" />
-
-        {/* Quick overview */}
-        <section className="admin-dash-section">
-          <h2 className="admin-dash-section-title">Quick overview</h2>
-          <div className="dash-stats-grid">
-            {STATS.map((stat) => (
-              <StatCard key={stat.label} stat={stat} />
-            ))}
-          </div>
-        </section>
+        {statCards.length > 0 && (
+          <>
+            <div className="admin-dash-divider" />
+            <section className="admin-dash-section">
+              <h2 className="admin-dash-section-title">This month</h2>
+              <div className="dash-stats-grid">
+                {statCards.map((stat) => (
+                  <StatCard
+                    key={stat.label}
+                    icon={stat.icon}
+                    value={stat.value}
+                    label={stat.label}
+                  />
+                ))}
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </div>
   );

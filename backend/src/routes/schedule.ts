@@ -60,9 +60,13 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
         .innerJoin(tbExerciseType, eq(tbLecture.exerciseTypeId, tbExerciseType.id))
         .where(and(gte(tbSchedule.startTime, from), lte(tbSchedule.startTime, to)));
 
+      if (schedules.length === 0) return [];
+
+      const scheduleIds = schedules.map((s) => s.id);
+
       // Look up current customer's registered schedule ids in a single query
       let registeredSet = new Set<string>();
-      if (auth && schedules.length > 0) {
+      if (auth) {
         const customer = await getCustomerByClerkId(auth.userId);
         if (customer) {
           const registered = await db
@@ -71,55 +75,68 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
             .where(
               and(
                 eq(tbCustomerReservation.customerId, customer.customerId),
-                inArray(
-                  tbCustomerReservation.scheduleId,
-                  schedules.map((s) => s.id),
-                ),
+                inArray(tbCustomerReservation.scheduleId, scheduleIds),
               ),
             );
           registeredSet = new Set(registered.map((r) => r.scheduleId));
         }
       }
 
-      const result = await Promise.all(
-        schedules.map(async (s) => {
-          const instructors = await db
-            .select({
-              name: tbPerson.name,
-              surname: tbPerson.surname,
-              isLead: tbScheduleInstructor.isLead,
-            })
-            .from(tbScheduleInstructor)
-            .innerJoin(tbEmployee, eq(tbScheduleInstructor.employeeId, tbEmployee.id))
-            .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-            .where(eq(tbScheduleInstructor.scheduleId, s.id));
+      // Batch-fetch all instructors for all schedule IDs (replaces N+1 loop)
+      const allInstructors = await db
+        .select({
+          scheduleId: tbScheduleInstructor.scheduleId,
+          name: tbPerson.name,
+          surname: tbPerson.surname,
+          isLead: tbScheduleInstructor.isLead,
+        })
+        .from(tbScheduleInstructor)
+        .innerJoin(tbEmployee, eq(tbScheduleInstructor.employeeId, tbEmployee.id))
+        .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
+        .where(inArray(tbScheduleInstructor.scheduleId, scheduleIds));
 
-          const [{ count }] = await db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(tbCustomerReservation)
-            .where(eq(tbCustomerReservation.scheduleId, s.id));
+      // Batch-fetch reservation counts for all schedule IDs (replaces N+1 loop)
+      const allCounts = await db
+        .select({
+          scheduleId: tbCustomerReservation.scheduleId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(tbCustomerReservation)
+        .where(inArray(tbCustomerReservation.scheduleId, scheduleIds))
+        .groupBy(tbCustomerReservation.scheduleId);
 
-          return {
-            id: s.id,
-            startTime: s.startTime.toISOString(),
-            endTime: s.endTime.toISOString(),
-            lectureName: s.lectureName,
-            description: s.description,
-            roomName: s.roomName,
-            roomCapacity: s.roomCapacity,
-            exerciseType: s.exerciseType,
-            forMembers: s.forMembers,
-            instructors: instructors.map((i) => ({
-              name: `${i.name} ${i.surname}`,
-              isLead: i.isLead,
-            })),
-            registered: count,
-            isRegistered: registeredSet.has(s.id),
-          };
-        }),
-      );
+      const instructorsBySchedule = new Map<string, typeof allInstructors>();
+      for (const row of allInstructors) {
+        const list = instructorsBySchedule.get(row.scheduleId) ?? [];
+        list.push(row);
+        instructorsBySchedule.set(row.scheduleId, list);
+      }
 
-      return result;
+      const countBySchedule = new Map<string, number>();
+      for (const row of allCounts) {
+        countBySchedule.set(row.scheduleId, row.count);
+      }
+
+      return schedules.map((s) => {
+        const instructors = instructorsBySchedule.get(s.id) ?? [];
+        return {
+          id: s.id,
+          startTime: s.startTime.toISOString(),
+          endTime: s.endTime.toISOString(),
+          lectureName: s.lectureName,
+          description: s.description,
+          roomName: s.roomName,
+          roomCapacity: s.roomCapacity,
+          exerciseType: s.exerciseType,
+          forMembers: s.forMembers,
+          instructors: instructors.map((i) => ({
+            name: `${i.name} ${i.surname}`,
+            isLead: i.isLead,
+          })),
+          registered: countBySchedule.get(s.id) ?? 0,
+          isRegistered: registeredSet.has(s.id),
+        };
+      });
     },
     {
       query: t.Object({

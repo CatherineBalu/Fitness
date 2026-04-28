@@ -17,15 +17,8 @@ import {
 import { useApi } from '@/lib/api';
 import './SchedulePage.css';
 
-const CATEGORIES = [
-  'All lectures',
-  'Yoga',
-  'Power',
-  'Cardio',
-  'Jumping fitness',
-] as const;
-
-type Category = (typeof CATEGORIES)[number];
+const ALL_LECTURES = 'All lectures';
+type Category = string;
 
 interface ScheduleItem {
   id: string;
@@ -131,9 +124,9 @@ function formatDateRange(weekStart: Date): string {
 function isToday(date: Date): boolean {
   const now = new Date();
   return (
-    date.getUTCDate() === now.getDate() &&
-    date.getUTCMonth() === now.getMonth() &&
-    date.getUTCFullYear() === now.getFullYear()
+    date.getUTCDate() === now.getUTCDate() &&
+    date.getUTCMonth() === now.getUTCMonth() &&
+    date.getUTCFullYear() === now.getUTCFullYear()
   );
 }
 
@@ -260,7 +253,7 @@ export default function SchedulePage() {
     return day === 0 ? 6 : day - 1;
   });
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(
-    new Set(['All lectures']),
+    new Set([ALL_LECTURES]),
   );
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -348,27 +341,30 @@ export default function SchedulePage() {
     navigate({ to: '/', hash: 'pricing' });
   };
 
+  const categories = useMemo(() => {
+    const types = new Set(activities.map((a) => a.category));
+    return [ALL_LECTURES, ...Array.from(types).sort()];
+  }, [activities]);
+
   const toggleCategory = (cat: Category) => {
     setActiveCategories((prev) => {
       const next = new Set(prev);
-      if (cat === 'All lectures') {
-        return new Set(['All lectures']);
+      if (cat === ALL_LECTURES) {
+        return new Set([ALL_LECTURES]);
       }
-      next.delete('All lectures');
+      next.delete(ALL_LECTURES);
       if (next.has(cat)) {
         next.delete(cat);
       } else {
         next.add(cat);
       }
-      return next.size === 0 ? new Set(['All lectures']) : next;
+      return next.size === 0 ? new Set([ALL_LECTURES]) : next;
     });
   };
 
   const filteredActivities = useMemo(() => {
-    if (activeCategories.has('All lectures')) return activities;
-    return activities.filter((a) =>
-      (activeCategories as Set<string>).has(a.category),
-    );
+    if (activeCategories.has(ALL_LECTURES)) return activities;
+    return activities.filter((a) => activeCategories.has(a.category));
   }, [activeCategories, activities]);
 
   const weekDays = useMemo(() => {
@@ -427,7 +423,7 @@ export default function SchedulePage() {
     <div className="schedule-page-content">
       <div className="cal-root">
         <div className="cal-categories">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <Button
               key={cat}
               variant={activeCategories.has(cat) ? 'default' : 'outline'}

@@ -73,6 +73,8 @@ describe('hasPermission', () => {
     'reservation:manage',
     'profile:read',
     'profile:write',
+    'stats:staff',
+    'stats:admin',
   ];
 
   describe('customer role', () => {
@@ -95,15 +97,20 @@ describe('hasPermission', () => {
   });
 
   describe('employee role', () => {
-    it('allows all permissions', () => {
-      for (const p of allPermissions) {
-        expect(hasPermission('employee', p)).toBe(true);
-      }
+    const employeeDenied: Permission[] = ['stats:admin'];
+    const employeeAllowed = allPermissions.filter((p) => !employeeDenied.includes(p));
+
+    it.each(employeeAllowed)('allows %s', (p) => {
+      expect(hasPermission('employee', p)).toBe(true);
+    });
+
+    it.each(employeeDenied)('denies %s', (p) => {
+      expect(hasPermission('employee', p)).toBe(false);
     });
   });
 
   describe('admin role', () => {
-    it('allows all permissions', () => {
+    it('allows all permissions including stats:admin', () => {
       for (const p of allPermissions) {
         expect(hasPermission('admin', p)).toBe(true);
       }
