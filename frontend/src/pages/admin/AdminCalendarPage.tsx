@@ -244,7 +244,7 @@ const FILTERS: { label: string; value: Filter }[] = [
 ];
 
 export default function AdminCalendarPage() {
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>('upcoming');
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [rooms, setRooms] = useState<RoomOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -313,9 +313,9 @@ export default function AdminCalendarPage() {
         const roomsData = await roomsRes.json();
 
         setLectures(
-          scheduleData.map((item: ScheduleItem) =>
-            scheduleItemToLecture(item, baseDate),
-          ),
+          scheduleData
+            .map((item: ScheduleItem) => scheduleItemToLecture(item, baseDate))
+            .sort((a: Lecture, b: Lecture) => a.name.localeCompare(b.name)) // <--- Pridané zoradenie podľa abecedy
         );
         setRooms(roomsData);
       } catch (err) {
@@ -356,7 +356,7 @@ export default function AdminCalendarPage() {
   };
 
   useEffect(() => {
-    handleFilterChange('all');
+    handleFilterChange('upcoming');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
