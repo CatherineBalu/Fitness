@@ -223,7 +223,7 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
           name: `${person.name} ${person.surname}`,
           email: person.email,
         };
-      } catch (error) {
+      } catch {
         set.status = 500;
         return { error: 'Internal server error while adding member.' };
       }
