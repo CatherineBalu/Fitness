@@ -315,7 +315,7 @@ export default function AdminCalendarPage() {
         setLectures(
           scheduleData
             .map((item: ScheduleItem) => scheduleItemToLecture(item, baseDate))
-            .sort((a: Lecture, b: Lecture) => a.name.localeCompare(b.name)) // <--- Pridané zoradenie podľa abecedy
+            .sort((a: Lecture, b: Lecture) => a.name.localeCompare(b.name)), // <--- Pridané zoradenie podľa abecedy
         );
         setRooms(roomsData);
       } catch (err) {

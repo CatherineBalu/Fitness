@@ -197,19 +197,19 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
       }
 
       const [existingReservation] = await db
-              .select()
-              .from(tbCustomerReservation)
-              .where(
-                and(
-                  eq(tbCustomerReservation.scheduleId, scheduleId),
-                  eq(tbCustomerReservation.customerId, customer.id)
-                )
-              );
+        .select()
+        .from(tbCustomerReservation)
+        .where(
+          and(
+            eq(tbCustomerReservation.scheduleId, scheduleId),
+            eq(tbCustomerReservation.customerId, customer.id),
+          ),
+        );
 
-            if (existingReservation) {
-              set.status = 409;
-              return { error: 'Customer is already registered for this lecture.' };
-            }
+      if (existingReservation) {
+        set.status = 409;
+        return { error: 'Customer is already registered for this lecture.' };
+      }
 
       try {
         await db.insert(tbCustomerReservation).values({
