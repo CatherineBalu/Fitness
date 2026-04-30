@@ -1,0 +1,331 @@
+.cp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 4px 0 16px;
+  font-family: 'Inter Variable', system-ui, sans-serif;
+  color: #e5e5e5;
+}
+
+/* ── Section ── */
+.cp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cp-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aacc00;
+  margin: 0 0 2px;
+}
+
+.cp-section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+/* ── Membership card ── */
+.cp-membership-card {
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.2s;
+}
+
+.cp-membership-card--active {
+  border-color: #aacc00;
+}
+
+.cp-membership-card--expired {
+  opacity: 0.7;
+}
+
+.cp-membership-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cp-membership-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cp-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.cp-badge--active {
+  background: rgba(170, 204, 0, 0.15);
+  color: #aacc00;
+  border: 1px solid rgba(170, 204, 0, 0.3);
+}
+
+.cp-badge--expired {
+  background: #2a2a2a;
+  color: #888;
+  border: 1px solid #2a2a2a;
+}
+
+.cp-membership-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cp-membership-meta-row {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.cp-membership-meta-row span {
+  color: #e5e5e5;
+  font-weight: 500;
+}
+
+.cp-membership-empty {
+  font-size: 0.85rem;
+  color: #888;
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+/* ── Cancel flow ── */
+.cp-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  align-self: flex-start;
+}
+
+.cp-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.cp-confirm-box {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cp-confirm-text {
+  font-size: 0.82rem;
+  color: #888;
+  line-height: 1.5;
+}
+
+.cp-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cp-btn-ghost {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #888;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.cp-btn-ghost:hover {
+  border-color: #888;
+  color: #e5e5e5;
+}
+
+.cp-btn-danger {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0d0d0d;
+  background: #ef4444;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cp-btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.cp-btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── List rows (lectures + payments) ── */
+.cp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.cp-row--past {
+  opacity: 0.5;
+}
+
+.cp-unregister-btn {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 7px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.cp-unregister-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.cp-unregister-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cp-unregister-confirm-text {
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.cp-btn-small {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
+.cp-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cp-row-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-row-meta {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.cp-row-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #aacc00;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Sub-section label ── */
+.cp-sub-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #888;
+  margin: 8px 0 4px;
+}
+
+/* ── Spending total ── */
+.cp-spending-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(170, 204, 0, 0.06);
+  border: 1px solid rgba(170, 204, 0, 0.2);
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.cp-spending-total-label {
+  font-weight: 600;
+  color: #e5e5e5;
+}
+
+.cp-spending-total-amount {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #aacc00;
+}
+
+/* ── Empty / loading states ── */
+.cp-empty {
+  font-size: 0.82rem;
+  color: #888;
+  padding: 12px 0;
+}
+
+.cp-loading {
+  font-size: 0.85rem;
+  color: #888;
+  padding: 16px 0;
+}

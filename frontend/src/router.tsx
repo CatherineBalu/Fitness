@@ -7,18 +7,24 @@ import {
 import RootLayout from '@/layouts/RootLayout';
 import HomePage from '@/pages/HomePage';
 import SchedulePage from '@/pages/SchedulePage';
+import CheckoutPage from '@/pages/CheckoutPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminStaffPage from '@/pages/admin/AdminStaffPage';
 import AdminCalendarPage from '@/pages/admin/AdminCalendarPage';
 import AdminStatisticsPage from '@/pages/admin/AdminStatisticsPage';
 import StaffStatisticsPage from '@/pages/staff/StaffStatisticsPage';
+import MyProfilePage from '@/pages/MyProfilePage';
 import { can, type Permission } from '@/lib/permissions';
 
 function getRole(): string | null {
   return (
     (window.Clerk?.user?.publicMetadata as { role?: string })?.role ?? null
   );
+}
+
+function requireAuthGuard() {
+  if (!window.Clerk?.user) throw redirect({ to: '/' });
 }
 
 function requirePermissionGuard(permission: Permission) {
@@ -43,6 +49,18 @@ const scheduleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/schedule',
   component: SchedulePage,
+});
+
+const checkoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/checkout',
+  validateSearch: (search: Record<string, unknown>): { plan?: string } => ({
+    plan: typeof search.plan === 'string' ? search.plan : undefined,
+  }),
+  beforeLoad: () => {
+    if (!window.Clerk?.user) throw redirect({ to: '/' });
+  },
+  component: CheckoutPage,
 });
 
 const adminDashboardRoute = createRoute({
@@ -80,14 +98,23 @@ const staffStatsRoute = createRoute({
   component: StaffStatisticsPage,
 });
 
+const myProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/my-profile',
+  beforeLoad: requireAuthGuard,
+  component: MyProfilePage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   scheduleRoute,
+  checkoutRoute,
   adminDashboardRoute,
   adminStaffRoute,
   adminCalendarRoute,
   adminStatsRoute,
   staffStatsRoute,
+  myProfileRoute,
 ]);
 
 export const router = createRouter({ routeTree });
