@@ -196,6 +196,21 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
         return { error: 'This person is not a registered customer.' };
       }
 
+      const [existingReservation] = await db
+              .select()
+              .from(tbCustomerReservation)
+              .where(
+                and(
+                  eq(tbCustomerReservation.scheduleId, scheduleId),
+                  eq(tbCustomerReservation.customerId, customer.id)
+                )
+              );
+
+            if (existingReservation) {
+              set.status = 409;
+              return { error: 'Customer is already registered for this lecture.' };
+            }
+
       try {
         await db.insert(tbCustomerReservation).values({
           scheduleId,
@@ -208,9 +223,9 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
           name: `${person.name} ${person.surname}`,
           email: person.email,
         };
-      } catch {
-        set.status = 409;
-        return { error: 'Customer is already registered for this lecture.' };
+      } catch (error) {
+        set.status = 500;
+        return { error: 'Internal server error while adding member.' };
       }
     },
     {
