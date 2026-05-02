@@ -42,3 +42,6 @@ pnpm-lock.yaml
 *.sw?
 
 *:Zone.Identifier
+
+# Aider AI tool artifacts
+.aider*

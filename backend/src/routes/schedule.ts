@@ -37,7 +37,8 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
   // GET /schedule?from=2026-04-13&to=2026-04-19
   .get(
     '/',
-    async ({ query, auth }) => {
+    async ({ query, ...rest }) => {
+      const auth = (rest as unknown as { auth: { userId: string } }).auth;
       const from = new Date(query.from);
       const to = new Date(query.to);
       to.setHours(23, 59, 59, 999);
@@ -147,10 +148,13 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
   )
 
   // POST /schedule/:id/reservations — register current user
+  // DELETE /schedule/:id/reservations — cancel current user's reservation
   .group('/:id/reservations', (app) =>
     app
       .use(requirePermission('reservation:write'))
-      .post('/', async ({ params, auth, set }) => {
+      .post('/', async ({ params, set, ...rest }) => {
+        const auth = (rest as unknown as { auth: { userId: string } }).auth;
+
         const customer = await getCustomerByClerkId(auth!.userId);
         if (!customer) {
           set.status = 404;
@@ -186,7 +190,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
         }
 
         const [existing] = await db
-          .select({ id: tbCustomerReservation.id })
+          .select({ customerId: tbCustomerReservation.customerId })
           .from(tbCustomerReservation)
           .where(
             and(
@@ -218,8 +222,9 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
         return { success: true };
       })
 
-      // DELETE /schedule/:id/reservations — cancel current user's reservation
-      .delete('/', async ({ params, auth, set }) => {
+      .delete('/', async ({ params, set, ...rest }) => {
+        const auth = (rest as unknown as { auth: { userId: string } }).auth;
+
         const customer = await getCustomerByClerkId(auth!.userId);
         if (!customer) {
           set.status = 404;
@@ -234,7 +239,7 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
               eq(tbCustomerReservation.scheduleId, params.id),
             ),
           )
-          .returning({ id: tbCustomerReservation.id });
+          .returning({ customerId: tbCustomerReservation.customerId });
 
         if (deleted.length === 0) {
           set.status = 404;
