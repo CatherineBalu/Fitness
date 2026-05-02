@@ -144,7 +144,6 @@
 
 .lecture-view-btn {
   width: 100%;
-  margin-top: 4px;
   border-color: var(--c-border);
   color: var(--c-text);
   font-size: 12px;

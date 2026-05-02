@@ -540,6 +540,7 @@ export default function AdminCalendarPage() {
     setMembers([]);
     setAttendanceStatus({});
     setAttendanceDialogOpen(true);
+    setLoadingMembers(true);
 
     try {
       const data = await fetchMembersForLecture(lecture.id);
@@ -553,6 +554,8 @@ export default function AdminCalendarPage() {
     } catch (error) {
       console.error(error);
       alert('Failed to load members for attendance.');
+    } finally {
+      setLoadingMembers(false);
     }
   }
 
@@ -968,9 +971,13 @@ export default function AdminCalendarPage() {
           </DialogHeader>
 
           <div className="flex flex-col gap-3 mt-4 max-h-[350px] overflow-y-auto pr-2">
-            {members.length === 0 ? (
+            {loadingMembers ? (
+              <p className="text-sm text-center text-slate-400 py-4 animate-pulse">
+                Loading members...
+              </p>
+            ) : members.length === 0 ? (
               <p className="text-sm text-center text-slate-500 py-4">
-                Loading members or empty class...
+                No members registered for this class.
               </p>
             ) : (
               members.map((member) => (
