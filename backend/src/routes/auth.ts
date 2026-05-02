@@ -6,7 +6,8 @@ import { authenticated } from '../middleware/auth';
 
 export const profileRoutes = new Elysia({ prefix: '/auth' })
   .use(authenticated)
-  .get('/profile', async ({ auth }) => {
+  .get('/profile', async ({ ...rest }) => {
+    const auth = (rest as unknown as { auth: { userId: string; role: string } }).auth;
     const [person] = await db
       .select()
       .from(tbPerson)

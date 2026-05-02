@@ -1,7 +1,14 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
 
 // ── Mock @clerk/backend before importing anything that pulls it in ────
-const mockVerifyToken = mock(async () => {
+type MockToken = {
+  sub: string;
+  publicMetadata: {
+    role?: string;
+  };
+};
+
+const mockVerifyToken = mock(async (): Promise<MockToken> => {
   throw new Error('verifyToken not configured for this test');
 });
 

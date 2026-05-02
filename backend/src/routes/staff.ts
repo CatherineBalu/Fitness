@@ -72,7 +72,9 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
   // POST /api/staff — Clerk invite + DB insert; for Instructor role also writes specializations
   .post(
     '/',
-    async ({ body, set, auth }) => {
+    async ({ body, set, ...rest }) => {
+      const auth = (rest as unknown as { auth: { userId: string; can: (perm: string) => boolean } })
+        .auth;
       if (!auth!.can('staff:write')) {
         set.status = 403;
         return { error: 'Forbidden' };
@@ -168,7 +170,9 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
   // PATCH /api/staff/:id — update first/last name (DB + Clerk); for Instructor also replace specializations
   .patch(
     '/:id',
-    async ({ params, body, set, auth }) => {
+    async ({ params, body, set, ...rest }) => {
+      const auth = (rest as unknown as { auth: { userId: string; can: (perm: string) => boolean } })
+        .auth;
       if (!auth!.can('staff:write')) {
         set.status = 403;
         return { error: 'Forbidden' };
@@ -231,7 +235,9 @@ export const staffRoutes = new Elysia({ prefix: '/api/staff' })
   )
 
   // DELETE /api/staff/:id — remove Clerk user, employee, specializations, schedule links, and person
-  .delete('/:id', async ({ params, set, auth }) => {
+  .delete('/:id', async ({ params, set, ...rest }) => {
+    const auth = (rest as unknown as { auth: { userId: string; can: (perm: string) => boolean } })
+      .auth;
     if (!auth!.can('staff:delete')) {
       set.status = 403;
       return { error: 'Forbidden' };

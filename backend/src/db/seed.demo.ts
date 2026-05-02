@@ -639,15 +639,9 @@ async function main() {
       const desired = randInt(3, Math.min(9, cap));
       const attendees = pickN(customers, desired);
       for (const a of attendees) {
-        // Reservation created 1-10 days before the schedule
-        const rd = new Date(s.startTime);
-        rd.setUTCDate(rd.getUTCDate() - randInt(1, 10));
-        // Clamp to the past so reservationDate <= now
-        if (rd > today) rd.setTime(today.getTime());
         reservations.push({
           customerId: a.id,
           scheduleId: s.id,
-          reservationDate: rd,
         });
       }
     }

@@ -144,7 +144,6 @@
 
 .lecture-view-btn {
   width: 100%;
-  margin-top: 4px;
   border-color: var(--c-border);
   color: var(--c-text);
   font-size: 12px;
@@ -155,6 +154,16 @@
   background: var(--c-accent) !important;
   color: #0d0d0d !important;
   border-color: var(--c-accent) !important;
+}
+
+.lecture-attendance-btn {
+  background: var(--c-accent) !important;
+  color: #0d0d0d !important;
+  border: none !important;
+}
+
+.lecture-attendance-btn:hover {
+  background: var(--c-accent-hover) !important;
 }
 
 /* Responsive */

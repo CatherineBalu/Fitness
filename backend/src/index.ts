@@ -3,6 +3,7 @@ import { cors } from '@elysiajs/cors';
 import { clerkMiddleware } from './middleware/auth';
 import { profileRoutes } from './routes/auth';
 import { scheduleRoutes } from './routes/schedule';
+import { calendarRoutes } from './routes/calendar';
 import { staffRoutes, lectureRoutes, exerciseTypeRoutes, employeeTypeRoutes } from './routes/staff';
 import { adminStatsRoutes, staffStatsRoutes } from './routes/stats';
 import { customerRoutes } from './routes/customer';
@@ -19,6 +20,7 @@ export const app = new Elysia()
   .get('/', () => 'OK')
   .use(profileRoutes)
   .use(scheduleRoutes)
+  .use(calendarRoutes)
   .use(staffRoutes)
   .use(lectureRoutes)
   .use(exerciseTypeRoutes)
