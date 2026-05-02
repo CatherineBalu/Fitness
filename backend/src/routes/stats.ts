@@ -43,14 +43,14 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
       .select({
         pct: sql<number>`coalesce(avg(
           case when ${tbRoom.capacity} > 0
-            then res_counts.cnt::float / ${tbRoom.capacity} * 100
+            then coalesce(res_counts.cnt, 0)::float / ${tbRoom.capacity} * 100
             else 0
           end
         ), 0)::float`,
       })
       .from(tbSchedule)
       .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
-      .innerJoin(
+      .leftJoin(
         sql`(
           select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
           from ${tbCustomerReservation}
@@ -142,11 +142,11 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
     const rows = await db
       .select({
         lectureName: tbLecture.lectureName,
-        avgReservations: sql<number>`avg(res_counts.cnt)::float`,
+        avgReservations: sql<number>`avg(coalesce(res_counts.cnt, 0))::float`,
         capacity: sql<number>`avg(${tbRoom.capacity})::float`,
         occupancyPct: sql<number>`avg(
           case when ${tbRoom.capacity} > 0
-            then res_counts.cnt::float / ${tbRoom.capacity} * 100
+            then coalesce(res_counts.cnt, 0)::float / ${tbRoom.capacity} * 100
             else 0
           end
         )::float`,
@@ -154,7 +154,7 @@ export const adminStatsRoutes = new Elysia({ prefix: '/api/stats/admin' })
       .from(tbSchedule)
       .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
       .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
-      .innerJoin(
+      .leftJoin(
         sql`(
           select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
           from ${tbCustomerReservation}
@@ -246,7 +246,7 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
       .select({
         pct: sql<number>`coalesce(avg(
           case when ${tbRoom.capacity} > 0
-            then res_counts.cnt::float / ${tbRoom.capacity} * 100
+            then coalesce(res_counts.cnt, 0)::float / ${tbRoom.capacity} * 100
             else 0
           end
         ), 0)::float`,
@@ -254,7 +254,7 @@ export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })
       .from(tbSchedule)
       .innerJoin(tbScheduleInstructor, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
       .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
-      .innerJoin(
+      .leftJoin(
         sql`(
           select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
           from ${tbCustomerReservation}

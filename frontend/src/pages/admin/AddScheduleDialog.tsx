@@ -42,7 +42,17 @@ const formSchema = z
   .refine((d) => d.endTime > d.startTime, {
     message: 'End time must be after start time',
     path: ['endTime'],
-  });
+  })
+  .refine(
+    (d) => {
+      if (!d.date || !d.startTime) return true;
+      return new Date(`${d.date}T${d.startTime}:00Z`) > new Date();
+    },
+    {
+      message: 'Cannot schedule a lecture in the past',
+      path: ['startTime'],
+    },
+  );
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -216,7 +226,11 @@ export default function AddScheduleDialog({
                 <FormItem>
                   <FormLabel>Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

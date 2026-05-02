@@ -197,7 +197,7 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
       }
 
       const [existingReservation] = await db
-        .select()
+        .select({ id: tbCustomerReservation.id })
         .from(tbCustomerReservation)
         .where(
           and(
@@ -276,7 +276,15 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
       const { id } = params;
 
       try {
-        const [currentSchedule] = await db.select().from(tbSchedule).where(eq(tbSchedule.id, id));
+        const [currentSchedule] = await db
+          .select({
+            id: tbSchedule.id,
+            roomId: tbSchedule.roomId,
+            startTime: tbSchedule.startTime,
+            endTime: tbSchedule.endTime,
+          })
+          .from(tbSchedule)
+          .where(eq(tbSchedule.id, id));
 
         if (!currentSchedule) {
           set.status = 404;

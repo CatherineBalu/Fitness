@@ -314,8 +314,12 @@ export default function AdminCalendarPage() {
 
         setLectures(
           scheduleData
-            .map((item: ScheduleItem) => scheduleItemToLecture(item, baseDate))
-            .sort((a: Lecture, b: Lecture) => a.name.localeCompare(b.name)), // <--- Pridané zoradenie podľa abecedy
+            .sort(
+              (a: ScheduleItem, b: ScheduleItem) =>
+                new Date(a.startTime).getTime() -
+                new Date(b.startTime).getTime(),
+            )
+            .map((item: ScheduleItem) => scheduleItemToLecture(item, baseDate)),
         );
         setRooms(roomsData);
       } catch (err) {
@@ -516,7 +520,9 @@ export default function AdminCalendarPage() {
       setCapacityWarningOpen(false);
       setEditDialogOpen(false);
 
-      if (filter !== 'history') {
+      if (filter === 'history') {
+        loadSchedule(historyFrom, historyTo);
+      } else {
         handleFilterChange(filter);
       }
     } catch (error) {
@@ -580,6 +586,11 @@ export default function AdminCalendarPage() {
       setAttendanceDialogOpen(false);
       setMembers([]);
       setAttendanceStatus({});
+      if (filter === 'history') {
+        loadSchedule(historyFrom, historyTo);
+      } else {
+        handleFilterChange(filter);
+      }
     } catch (error) {
       console.error(error);
       alert('Failed to save attendance records. Please try again.');
