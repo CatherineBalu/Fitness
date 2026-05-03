@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { db } from '../db/db';
 import { tbSubscription, tbCustomer, tbPerson, tbPaymentHistory } from '../db/schema';
 import { authenticated } from '../middleware/auth';
@@ -8,8 +8,7 @@ export const subscriptionRoutes = new Elysia({ prefix: '/subscriptions' })
 
   // GET /subscriptions — public list of plans (cheapest first)
   .get('/', async () => {
-    const plans = await db.select().from(tbSubscription);
-    return plans.sort((a, b) => Number(a.price) - Number(b.price));
+    return db.select().from(tbSubscription).orderBy(asc(tbSubscription.price));
   })
 
   // POST /subscriptions/buy — authenticated customers only

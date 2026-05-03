@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Clock, MapPin, Users, X, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,10 +23,17 @@ import './AdminStaffPage.css';
 interface Lecture {
   id: string;
   name: string;
-  time: string;
+  startTime: string;
+  endTime: string;
   room: string;
   capacity: number;
   registered: number;
+}
+
+function formatLectureTime(startIso: string, endIso: string): string {
+  const fmt = (d: Date) =>
+    `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${fmt(new Date(startIso))} - ${fmt(new Date(endIso))}`;
 }
 
 interface StaffMember {
@@ -130,7 +138,7 @@ function LectureCard({
         <div className="staff-lecture-meta">
           <div className="staff-lecture-meta-row">
             <Clock size={12} />
-            <span>{lecture.time}</span>
+            <span>{formatLectureTime(lecture.startTime, lecture.endTime)}</span>
           </div>
           <div className="staff-lecture-meta-row">
             <MapPin size={12} />
@@ -635,8 +643,6 @@ export default function AdminStaffPage() {
   const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadStaff = useCallback(() => {
     setLoadingStaff(true);
@@ -659,16 +665,6 @@ export default function AdminStaffPage() {
       .catch(() => setExerciseTypes([]));
   }, [loadStaff, apiRequest]);
 
-  function showSuccess(message: string) {
-    setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  }
-
-  function showError(message: string) {
-    setErrorMessage(message);
-    setTimeout(() => setErrorMessage(null), 4000);
-  }
-
   async function handleDelete() {
     if (!deleteTarget) return;
     const target = deleteTarget;
@@ -676,9 +672,9 @@ export default function AdminStaffPage() {
     try {
       await apiRequest(`/api/staff/${target.id}`, { method: 'DELETE' });
       loadStaff();
-      showSuccess(`${target.firstName} ${target.lastName} has been removed.`);
+      toast.success(`${target.firstName} ${target.lastName} has been removed.`);
     } catch (err) {
-      showError(
+      toast.error(
         err instanceof Error ? err.message : 'Failed to delete staff member.',
       );
     }
@@ -761,11 +757,6 @@ export default function AdminStaffPage() {
           ))}
         </div>
 
-        {successMessage && (
-          <div className="staff-success">{successMessage}</div>
-        )}
-        {errorMessage && <div className="staff-error">{errorMessage}</div>}
-
         <div className="admin-staff-counter">
           Employee counter: {filtered.length}
         </div>
@@ -845,7 +836,7 @@ export default function AdminStaffPage() {
         onClose={() => setAddOpen(false)}
         onAdded={() => {
           loadStaff();
-          showSuccess('Staff member added successfully.');
+          toast.success('Staff member added successfully.');
         }}
         exerciseTypes={exerciseTypes}
       />
@@ -855,7 +846,7 @@ export default function AdminStaffPage() {
         onClose={() => setEditOpen(false)}
         onSaved={() => {
           loadStaff();
-          showSuccess('Staff member updated successfully.');
+          toast.success('Staff member updated successfully.');
         }}
         exerciseTypes={exerciseTypes}
       />

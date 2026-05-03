@@ -62,6 +62,7 @@ export default function CustomerProfilePage() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [spending, setSpending] = useState<SpendingData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
@@ -70,17 +71,27 @@ export default function CustomerProfilePage() {
   const [unregistering, setUnregistering] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     Promise.all([
       apiRequest<ProfileData>('/api/customer/me'),
       apiRequest<Registration[]>('/api/customer/registrations'),
       apiRequest<SpendingData>('/api/customer/spending'),
     ])
       .then(([p, r, s]) => {
+        if (cancelled) return;
         setProfile(p);
         setRegistrations(r);
         setSpending(s);
       })
-      .finally(() => setLoading(false));
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [apiRequest]);
 
   async function handleUnregister(scheduleId: string) {
@@ -112,6 +123,10 @@ export default function CustomerProfilePage() {
 
   if (loading) {
     return <div className="cp-loading">Loading your profile…</div>;
+  }
+
+  if (error) {
+    return <div className="cp-loading">Failed to load profile: {error}</div>;
   }
 
   const upcoming = registrations.filter(

@@ -33,6 +33,8 @@ function makeChain(resolveTo: unknown[]): any {
     innerJoin: () => chain,
     leftJoin: () => chain,
     where: () => chain,
+    orderBy: () => chain,
+    groupBy: () => chain,
     values: () => chain,
     set: () => chain,
     limit: async () => resolveTo,

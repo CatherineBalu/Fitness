@@ -25,6 +25,8 @@ function makeChain(resolveTo: unknown[]): any {
     from: () => chain,
     innerJoin: () => chain,
     where: () => chain,
+    orderBy: () => chain,
+    groupBy: () => chain,
     values: () => chain,
     set: () => chain,
     limit: async () => resolveTo,
@@ -103,11 +105,12 @@ describe('GET /subscriptions', () => {
   });
 
   it('returns plans sorted by price ascending', async () => {
+    // Sorting is delegated to the DB (orderBy); mock returns already-sorted rows
     selectResponses = [
       [
-        planRow({ id: 'a', price: '299.99' }),
         planRow({ id: 'b', price: '29.99' }),
         planRow({ id: 'c', price: '99.99' }),
+        planRow({ id: 'a', price: '299.99' }),
       ],
     ];
     const res = await app.handle(new Request('http://localhost/subscriptions'));

@@ -44,7 +44,7 @@ docker compose down    # Stop it
 ### Backend (`cd backend`)
 
 ```bash
-bun run dev          # Start dev server (hot reload) on http://localhost:3000
+bun run dev          # Start dev server (hot reload) on http://localhost:3001
 bun test             # Run all tests
 bun test <file>      # Run a single test file
 bun run lint         # ESLint
