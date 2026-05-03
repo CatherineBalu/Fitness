@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock, UserCircle } from 'lucide-react';
 import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Toaster } from 'sonner';
 import { can } from '@/lib/permissions';
+import { useApi } from '@/lib/api';
 import CustomerProfilePage from '@/components/CustomerProfilePage';
 import '../App.css';
 
@@ -33,6 +34,19 @@ export default function RootLayout() {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const role = (user?.publicMetadata as { role?: string })?.role ?? null;
+
+  const { apiRequest } = useApi();
+  const bootstrappedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isSignedIn || !user || role || bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
+    apiRequest('/auth/profile')
+      .catch(() => {})
+      .finally(() => {
+        user.reload().catch(() => {});
+      });
+  }, [isSignedIn, user, role, apiRequest]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdminPath =
