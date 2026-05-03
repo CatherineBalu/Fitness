@@ -126,7 +126,8 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
 // ── Route guards ─────────────────────────────────────────────────────
 export const authenticated = new Elysia({ name: 'authenticated' }).onBeforeHandle(
   { as: 'scoped' },
-  ({ auth, set }) => {
+  ({ set, ...rest }) => {
+    const auth = (rest as unknown as { auth: { userId: string } }).auth;
     if (!auth) {
       set.status = 401;
       return 'Unauthorized';
@@ -135,9 +136,14 @@ export const authenticated = new Elysia({ name: 'authenticated' }).onBeforeHandl
 );
 
 export const requirePermission = (permission: Permission) =>
-  new Elysia({ name: `perm:${permission}` }).onBeforeHandle({ as: 'scoped' }, ({ auth, set }) => {
-    if (!auth?.can(permission)) {
-      set.status = 403;
-      return 'Forbidden';
-    }
-  });
+  new Elysia({ name: `perm:${permission}` }).onBeforeHandle(
+    { as: 'scoped' },
+    ({ set, ...rest }) => {
+      const auth = (rest as unknown as { auth: { userId: string; can: (perm: string) => boolean } })
+        .auth;
+      if (!auth?.can(permission)) {
+        set.status = 403;
+        return 'Forbidden';
+      }
+    },
+  );

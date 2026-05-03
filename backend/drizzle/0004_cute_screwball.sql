@@ -1,0 +1,1 @@
+ALTER TABLE "TB_customer_reservation" RENAME COLUMN "reservationDate" TO "reservation_date";

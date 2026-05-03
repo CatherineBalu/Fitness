@@ -1,4 +1,9 @@
-export const clerkAppearance = {
+import { SignIn } from '@clerk/clerk-react';
+import type { ComponentProps } from 'react';
+
+type Appearance = NonNullable<ComponentProps<typeof SignIn>['appearance']>;
+
+export const clerkAppearance: Appearance = {
   variables: {
     colorBackground: '#161616',
     colorPrimary: '#aacc00',

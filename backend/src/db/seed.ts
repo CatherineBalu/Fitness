@@ -7,7 +7,7 @@ import {
   tbExerciseType,
   tbPerson,
   tbEmployee,
-  tbEmployeeSpecialization, // <-- ADDED
+  tbEmployeeSpecialization,
   tbCustomer,
   tbLecture,
   tbSchedule,
@@ -43,13 +43,14 @@ async function main() {
   try {
     // 1. Clearing database (Important: deletion order matters due to foreign keys)
     console.log('Deleting old data');
+    await db.delete(tbPaymentHistory);
     await db.delete(tbCustomerReservation);
     await db.delete(tbPaymentHistory);
     await db.delete(tbScheduleInstructor);
     await db.delete(tbSchedule);
     await db.delete(tbLecture);
     await db.delete(tbCustomer);
-    await db.delete(tbEmployeeSpecialization); // <-- ADDED
+    await db.delete(tbEmployeeSpecialization);
     await db.delete(tbEmployee);
     await db.delete(tbPerson);
     await db.delete(tbEmployeeType);
@@ -64,7 +65,7 @@ async function main() {
       .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }])
       .returning();
 
-    await db
+    const [basicSub, proSub] = await db
       .insert(tbSubscription)
       .values([
         { name: 'Basic', price: '19', durationDays: 30 },
@@ -91,13 +92,13 @@ async function main() {
         { name: 'Power' },
         { name: 'Cardio' },
         { name: 'Jumping fitness' },
-        { name: 'Pilates' }, // <-- ADDED
-        { name: 'Spinning' }, // <-- ADDED
+        { name: 'Pilates' },
+        { name: 'Spinning' },
       ])
       .returning();
     const [yoga, power, cardio, jumping, pilates, spinning] = exerciseTypes;
 
-    // 3. Persons — 5 trainers + 1 receptionist + 10 customers
+    // 3. Persons
     console.log('Creating persons');
     const trainerNames = [
       { name: 'Sarah', surname: 'Miller' },
@@ -134,6 +135,19 @@ async function main() {
         .returning()
     )[0];
 
+    const customerPersons = await db
+      .insert(tbPerson)
+      .values(
+        Array.from({ length: 15 }).map(() => ({
+          clerkId: `user_${faker.string.uuid()}`,
+          name: faker.person.firstName(),
+          surname: faker.person.lastName(),
+          email: faker.internet.email(),
+          phoneNumber: faker.phone.number(),
+        })),
+      )
+      .returning();
+
     // 4. Employees — trainers + reception
     console.log('Creating employees');
     const trainers = await db
@@ -167,7 +181,20 @@ async function main() {
       { employeeId: tom.id, exerciseTypeId: pilates.id },
     ]);
 
-    // 5. Lectures (customers are created via Clerk signup, not seeded)
+    // 5. Customers
+    console.log('Creating customers');
+    const customers = await db
+      .insert(tbCustomer)
+      .values(
+        customerPersons.map((p) => ({
+          personId: p.id,
+          subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, null]),
+          subscriptionValidUntil: faker.date.future().toISOString(),
+        })),
+      )
+      .returning();
+
+    // 6. Lectures (customers are created via Clerk signup, not seeded)
     console.log('Creating lectures');
     const lectures = await db
       .insert(tbLecture)
@@ -176,18 +203,12 @@ async function main() {
           exerciseTypeId: yoga.id,
           lectureName: 'Vinyasa Yoga',
           description: 'Flowing yoga sequences',
-          forMembers: false, // <-- ADDED
+          forMembers: false,
         },
         {
           exerciseTypeId: yoga.id,
           lectureName: 'Morning Yoga',
           description: 'Gentle morning stretch',
-          forMembers: false,
-        },
-        {
-          exerciseTypeId: yoga.id,
-          lectureName: 'Power Yoga',
-          description: 'Strength-focused yoga',
           forMembers: false,
         },
         {
@@ -200,13 +221,7 @@ async function main() {
           exerciseTypeId: power.id,
           lectureName: 'Power Lifting',
           description: 'Heavy compound lifts',
-          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
-        },
-        {
-          exerciseTypeId: power.id,
-          lectureName: 'Power Hour',
-          description: 'Intense power session',
-          forMembers: false,
+          forMembers: true,
         },
         {
           exerciseTypeId: cardio.id,
@@ -215,16 +230,10 @@ async function main() {
           forMembers: false,
         },
         {
-          exerciseTypeId: spinning.id, // <-- USING NEW SPINNING TYPE
+          exerciseTypeId: spinning.id,
           lectureName: 'Spin Class',
           description: 'Indoor cycling workout',
-          forMembers: true, // <-- EXCLUSIVE FOR MEMBERS
-        },
-        {
-          exerciseTypeId: cardio.id,
-          lectureName: 'Cardio Blast',
-          description: 'Mixed cardio drills',
-          forMembers: false,
+          forMembers: true,
         },
         {
           exerciseTypeId: jumping.id,
@@ -235,26 +244,13 @@ async function main() {
       ])
       .returning();
 
-    // Map lectures by name for easy reference
     const lec = Object.fromEntries(lectures.map((l) => [l.lectureName, l.id]));
 
     // 7. Schedule — spread across current week (Mon-Sun)
     console.log('Creating schedule for current week');
     const mon = getCurrentWeekMonday();
 
-    // Each entry: [lectureName, roomIndex, dayOffset, startHour, startMin, endHour, endMin, trainerId, extraTrainerId?]
-    const scheduleEntries: {
-      lectureName: string;
-      room: (typeof rooms)[number];
-      day: number;
-      startH: number;
-      startM: number;
-      endH: number;
-      endM: number;
-      lead: (typeof trainers)[number];
-      assist?: (typeof trainers)[number];
-    }[] = [
-      // Monday
+    const scheduleEntries = [
       {
         lectureName: 'Morning Yoga',
         room: roomA,
@@ -285,7 +281,6 @@ async function main() {
         endM: 0,
         lead: mike,
       },
-      // Tuesday
       {
         lectureName: 'Spin Class',
         room: roomC,
@@ -315,28 +310,6 @@ async function main() {
         endH: 19,
         endM: 0,
         lead: lucia,
-      },
-      // Wednesday
-      {
-        lectureName: 'Morning Yoga',
-        room: roomA,
-        day: 2,
-        startH: 7,
-        startM: 0,
-        endH: 8,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'Cardio Blast',
-        room: roomC,
-        day: 2,
-        startH: 11,
-        startM: 0,
-        endH: 12,
-        endM: 0,
-        lead: jana,
-        assist: tom,
       },
       {
         lectureName: 'Power Lifting',
@@ -348,155 +321,8 @@ async function main() {
         endM: 0,
         lead: mike,
       },
-      {
-        lectureName: 'Vinyasa Yoga',
-        room: roomA,
-        day: 2,
-        startH: 18,
-        startM: 0,
-        endH: 19,
-        endM: 0,
-        lead: sarah,
-      },
-      // Thursday
-      {
-        lectureName: 'Spin Class',
-        room: roomC,
-        day: 3,
-        startH: 7,
-        startM: 0,
-        endH: 8,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Power Hour',
-        room: roomB,
-        day: 3,
-        startH: 12,
-        startM: 0,
-        endH: 13,
-        endM: 0,
-        lead: mike,
-        assist: tom,
-      },
-      {
-        lectureName: 'Power Yoga',
-        room: roomA,
-        day: 3,
-        startH: 17,
-        startM: 0,
-        endH: 18,
-        endM: 0,
-        lead: sarah,
-      },
-      // Friday
-      {
-        lectureName: 'HIIT Cardio',
-        room: roomC,
-        day: 4,
-        startH: 9,
-        startM: 0,
-        endH: 10,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Power Training',
-        room: roomB,
-        day: 4,
-        startH: 10,
-        startM: 0,
-        endH: 11,
-        endM: 0,
-        lead: mike,
-      },
-      {
-        lectureName: 'Jumping Fitness',
-        room: roomD,
-        day: 4,
-        startH: 17,
-        startM: 0,
-        endH: 18,
-        endM: 0,
-        lead: lucia,
-      },
-      {
-        lectureName: 'Cardio Blast',
-        room: roomC,
-        day: 4,
-        startH: 18,
-        startM: 0,
-        endH: 19,
-        endM: 0,
-        lead: tom,
-      },
-      // Saturday
-      {
-        lectureName: 'Vinyasa Yoga',
-        room: roomA,
-        day: 5,
-        startH: 10,
-        startM: 0,
-        endH: 11,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'Power Hour',
-        room: roomB,
-        day: 5,
-        startH: 14,
-        startM: 0,
-        endH: 15,
-        endM: 0,
-        lead: mike,
-      },
-      {
-        lectureName: 'Jumping Fitness',
-        room: roomD,
-        day: 5,
-        startH: 16,
-        startM: 0,
-        endH: 17,
-        endM: 0,
-        lead: lucia,
-        assist: tom,
-      },
-      // Sunday
-      {
-        lectureName: 'Morning Yoga',
-        room: roomA,
-        day: 6,
-        startH: 9,
-        startM: 0,
-        endH: 10,
-        endM: 0,
-        lead: sarah,
-      },
-      {
-        lectureName: 'Cardio Blast',
-        room: roomC,
-        day: 6,
-        startH: 11,
-        startM: 0,
-        endH: 12,
-        endM: 0,
-        lead: jana,
-      },
-      {
-        lectureName: 'Jumping Fitness',
-        room: roomD,
-        day: 6,
-        startH: 15,
-        startM: 0,
-        endH: 16,
-        endM: 0,
-        lead: lucia,
-      },
     ];
 
-    // Create schedules for previous, current, and next week
     const weekOffsets = [-1, 0, 1];
     const scheduleValues = weekOffsets.flatMap((weekOffset) => {
       const weekMon = new Date(mon);
@@ -511,23 +337,34 @@ async function main() {
 
     const createdSchedules = await db.insert(tbSchedule).values(scheduleValues).returning();
 
-    // 8. Assign instructors — one block of entries per week
+    // 8. Assign instructors
     console.log('Assigning instructors');
     const instructorValues = createdSchedules.flatMap((schedule, i) => {
       const entry = scheduleEntries[i % scheduleEntries.length];
-      const entries = [{ scheduleId: schedule.id, employeeId: entry.lead.id, isLead: true }];
-      if (entry.assist) {
-        entries.push({
-          scheduleId: schedule.id,
-          employeeId: entry.assist.id,
-          isLead: false,
-        });
-      }
-      return entries;
+      return [{ scheduleId: schedule.id, employeeId: entry.lead.id, isLead: true }];
     });
     await db.insert(tbScheduleInstructor).values(instructorValues);
 
-    console.log(`Seed complete: ${createdSchedules.length} scheduled lectures this week`);
+    // 9. Reservations
+    console.log('Creating reservations');
+    const reservationValues = createdSchedules.flatMap((schedule) => {
+      // Pick random number of customers for this schedule
+      const count = faker.number.int({ min: 0, max: 5 });
+      const shuffled = faker.helpers.shuffle([...customers]);
+
+      return shuffled.slice(0, count).map((c) => ({
+        customerId: c.id,
+        scheduleId: schedule.id,
+        // Randomly mark some as attended if it's in the past
+        attended: schedule.startTime < new Date() ? faker.datatype.boolean() : false,
+      }));
+    });
+
+    if (reservationValues.length > 0) {
+      await db.insert(tbCustomerReservation).values(reservationValues);
+    }
+
+    console.log(`Seed complete: ${createdSchedules.length} scheduled lectures with reservations`);
   } catch (error) {
     console.error('Error while seeding', error);
   } finally {
