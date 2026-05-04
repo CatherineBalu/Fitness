@@ -205,7 +205,16 @@ export default function HomePage() {
             Join our world-class fitness facility and transform your body.
             Expert trainers, modern equipment, and flexible membership plans.
           </p>
-          <button className="btn-primary btn-large">Get Started</button>
+          <button
+            className="btn-primary btn-large"
+            onClick={() =>
+              document
+                .getElementById('pricing')
+                ?.scrollIntoView({ behavior: 'smooth' })
+            }
+          >
+            Get Started
+          </button>
         </div>
       </section>
 

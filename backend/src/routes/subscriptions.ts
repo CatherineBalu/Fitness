@@ -50,11 +50,7 @@ export const subscriptionRoutes = new Elysia({ prefix: '/subscriptions' })
           return { error: 'Subscription plan not found' };
         }
 
-        const startDate = new Date(body.startDate);
-        if (Number.isNaN(startDate.getTime())) {
-          set.status = 400;
-          return { error: 'Invalid start date' };
-        }
+        const startDate = new Date(todayIso);
         const validUntil = new Date(startDate);
         validUntil.setUTCDate(validUntil.getUTCDate() + plan.durationDays);
         const validUntilIso = validUntil.toISOString().split('T')[0];
@@ -83,7 +79,6 @@ export const subscriptionRoutes = new Elysia({ prefix: '/subscriptions' })
       {
         body: t.Object({
           subscriptionId: t.String(),
-          startDate: t.String(),
           paymentMethod: t.Optional(t.String()),
         }),
       },

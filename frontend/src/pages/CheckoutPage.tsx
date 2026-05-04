@@ -5,15 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { CalendarIcon, CheckIcon } from 'lucide-react';
+import { CheckIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Form,
@@ -29,7 +23,6 @@ import './CheckoutPage.css';
 const API_URL = import.meta.env.VITE_API_URL as string;
 
 const STEPS = [
-  'Select subscription',
   'Contact details',
   'Order summary',
   'Payment',
@@ -120,7 +113,6 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(0);
 
   // Order state (accumulated across steps)
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [contact, setContact] = useState<ContactForm | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [payPending, setPayPending] = useState(false);
@@ -156,11 +148,11 @@ export default function CheckoutPage() {
   }, [step]);
 
   const validUntil = useMemo(() => {
-    if (!startDate || !plan) return null;
-    const d = new Date(startDate);
+    if (!plan) return null;
+    const d = new Date();
     d.setUTCDate(d.getUTCDate() + plan.durationDays);
     return d;
-  }, [startDate, plan]);
+  }, [plan]);
 
   // ── Contact form (step 1) ─────────────────────────────────────────
   const contactForm = useForm<ContactForm>({
@@ -179,22 +171,21 @@ export default function CheckoutPage() {
 
   const onSubmitContact = (values: ContactForm) => {
     setContact(values);
-    setStep(2);
+    setStep(1);
   };
 
   const handlePay = async () => {
-    if (!plan || !startDate) return;
+    if (!plan) return;
     setPayPending(true);
     try {
       await apiRequest('/subscriptions/buy', {
         method: 'POST',
         body: JSON.stringify({
           subscriptionId: plan.id,
-          startDate: startDate.toISOString().split('T')[0],
           paymentMethod,
         }),
       });
-      setStep(4);
+      setStep(3);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -253,7 +244,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (profile.hasActiveMembership && step < 4) {
+  if (profile.hasActiveMembership && step < 3) {
     return (
       <div className="checkout-page">
         <div className="checkout-inner">
@@ -279,14 +270,6 @@ export default function CheckoutPage() {
       <span className="checkout-summary-value">{formatPrice(plan.price)}</span>
       <span className="checkout-summary-label">Duration:</span>
       <span className="checkout-summary-value">{plan.durationDays} days</span>
-      {startDate && (
-        <>
-          <span className="checkout-summary-label">Starts:</span>
-          <span className="checkout-summary-value">
-            {formatDate(startDate)}
-          </span>
-        </>
-      )}
       {validUntil && (
         <>
           <span className="checkout-summary-label">Valid until:</span>
@@ -310,64 +293,6 @@ export default function CheckoutPage() {
 
         <div className="checkout-panel">
           {step === 0 && (
-            <>
-              <h2 className="checkout-panel-title">Select start date</h2>
-              <p className="checkout-panel-sub">
-                When do you want your {plan.name} membership to begin?
-              </p>
-              {SummaryBlock}
-              <div className="checkout-date-field">
-                <label className="checkout-field-label">
-                  Membership start date{' '}
-                  <span className="checkout-required">*</span>
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button type="button" className="checkout-date-trigger">
-                      <CalendarIcon size={16} />
-                      {startDate ? formatDate(startDate) : 'Pick a date'}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(d) => setStartDate(d)}
-                      disabled={(d) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        return d < today;
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {!startDate && (
-                  <p className="checkout-field-hint">
-                    Pick the day your {plan.name} should start.
-                  </p>
-                )}
-              </div>
-              <div className="checkout-nav">
-                <button
-                  type="button"
-                  className="btn-dark btn-nav"
-                  onClick={() => navigate({ to: '/' })}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary btn-nav"
-                  disabled={!startDate}
-                  onClick={() => setStep(1)}
-                >
-                  Next
-                </button>
-              </div>
-            </>
-          )}
-
-          {step === 1 && (
             <>
               <h2 className="checkout-panel-title">Your details</h2>
               <p className="checkout-panel-sub">
@@ -470,9 +395,9 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       className="btn-dark btn-nav"
-                      onClick={() => setStep(0)}
+                      onClick={() => navigate({ to: '/' })}
                     >
-                      Previous
+                      Cancel
                     </button>
                     <button type="submit" className="btn-primary btn-nav">
                       Next
@@ -483,7 +408,7 @@ export default function CheckoutPage() {
             </>
           )}
 
-          {step === 2 && contact && (
+          {step === 1 && contact && (
             <>
               <h2 className="checkout-panel-title">Order summary</h2>
               <p className="checkout-panel-sub">
@@ -506,14 +431,14 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   className="btn-dark btn-nav"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(0)}
                 >
                   Previous
                 </button>
                 <button
                   type="button"
                   className="btn-primary btn-nav"
-                  onClick={() => setStep(3)}
+                  onClick={() => setStep(2)}
                 >
                   Proceed to payment
                 </button>
@@ -521,7 +446,7 @@ export default function CheckoutPage() {
             </>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <>
               <h2 className="checkout-panel-title">Choose payment method</h2>
               {SummaryBlock}
@@ -543,7 +468,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   className="btn-dark btn-nav"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(1)}
                 >
                   Previous
                 </button>
@@ -561,7 +486,7 @@ export default function CheckoutPage() {
             </>
           )}
 
-          {step === 4 && (
+          {step === 3 && (
             <div className="checkout-success">
               <div className="checkout-success-icon">
                 <CheckIcon size={36} />

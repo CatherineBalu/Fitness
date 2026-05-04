@@ -136,7 +136,6 @@ describe('POST /subscriptions/buy — auth', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscriptionId: PLAN_ID,
-          startDate: '2099-01-01',
         }),
       }),
     );
@@ -153,7 +152,6 @@ describe('POST /subscriptions/buy — auth', () => {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscriptionId: PLAN_ID,
-          startDate: '2099-01-01',
         }),
       }),
     );
@@ -201,7 +199,6 @@ describe('POST /subscriptions/buy — logic', () => {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscriptionId: PLAN_ID,
-          startDate: '2099-01-01',
         }),
       }),
     );
@@ -221,7 +218,6 @@ describe('POST /subscriptions/buy — logic', () => {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscriptionId: PLAN_ID,
-          startDate: '2099-01-01',
         }),
       }),
     );
@@ -242,28 +238,12 @@ describe('POST /subscriptions/buy — logic', () => {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscriptionId: PLAN_ID,
-          startDate: '2099-01-01',
         }),
       }),
     );
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/plan/i);
-  });
-
-  it('returns 400 when the start date is invalid', async () => {
-    selectResponses = [[MIDDLEWARE_PERSON_ROW], [customerRow()], [planRow()]];
-    const res = await app.handle(
-      new Request('http://localhost/subscriptions/buy', {
-        method: 'POST',
-        headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptionId: PLAN_ID,
-          startDate: 'not-a-date',
-        }),
-      }),
-    );
-    expect(res.status).toBe(400);
   });
 
   it('succeeds (201) with a valid-until date when all preconditions pass', async () => {
@@ -274,7 +254,6 @@ describe('POST /subscriptions/buy — logic', () => {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscriptionId: PLAN_ID,
-          startDate: '2099-01-01',
         }),
       }),
     );
@@ -284,7 +263,9 @@ describe('POST /subscriptions/buy — logic', () => {
       subscriptionValidUntil: string;
     };
     expect(body.success).toBe(true);
-    // 30-day plan starting 2099-01-01 → ends 2099-01-31
-    expect(body.subscriptionValidUntil).toBe('2099-01-31');
+    // 30-day plan starting today → ends today + 30 days
+    const expected = new Date();
+    expected.setUTCDate(expected.getUTCDate() + 30);
+    expect(body.subscriptionValidUntil).toBe(expected.toISOString().split('T')[0]);
   });
 });
