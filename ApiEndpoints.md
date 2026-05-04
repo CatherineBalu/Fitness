@@ -29,6 +29,11 @@
 - POST `/schedule/:id/reservations` — register the current customer for a lecture (requires auth + `reservation:write` permission)
 - DELETE `/schedule/:id/reservations` — cancel the current customer's reservation for a lecture
 
+### Subscriptions
+
+- GET `/subscriptions` — public list of subscription plans (cheapest first)
+- POST `/subscriptions/buy` — authenticated customer purchases a plan, starting today (body: `{ subscriptionId, paymentMethod? }`)
+
 ### Customer (requires auth)
 
 - GET `/api/customer/me` — current customer's profile and active membership details
