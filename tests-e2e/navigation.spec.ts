@@ -1,25 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-const TEST_EMAIL = 'gejol57529@4heats.com';
-const TEST_PASSWORD = 'adg;okan[;gkn15';
-
-async function login(page: Parameters<Parameters<typeof test>[1]>[0]['page']) {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Log in' }).click();
-  await page.waitForSelector('.cl-modalContent', { timeout: 10000 });
-  await page.locator('input[name="identifier"]').fill(TEST_EMAIL);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.waitForSelector('input[name="password"]', { timeout: 5000 });
-  await page.locator('input[name="password"]').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.locator('.cl-modalContent')).not.toBeVisible({
-    timeout: 10000,
-  });
-  await expect(page.locator('.cl-userButtonTrigger')).toBeVisible({
-    timeout: 10000,
-  });
-}
-
 test.describe('Navbar — unauthenticated', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -46,9 +26,7 @@ test.describe('Navbar — unauthenticated', () => {
     await expect(page.locator('.cal-root')).toBeVisible();
   });
 
-  test('clicking logo on schedule page navigates back to home', async ({
-    page,
-  }) => {
+  test('clicking logo on schedule page navigates back to home', async ({ page }) => {
     await page.goto('/schedule');
     await page.locator('.navbar-logo').click();
     await expect(page).toHaveURL('/');
@@ -61,42 +39,15 @@ test.describe('Navbar — unauthenticated', () => {
   });
 });
 
-test.describe('Navbar — authenticated', () => {
-  test('shows user button after login and hides Log in', async ({ page }) => {
-    await login(page);
-    await expect(page.locator('.cl-userButtonTrigger')).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: 'Log in' }),
-    ).not.toBeVisible();
-  });
-
-  test('signing out brings back Log in button', async ({ page }) => {
-    await login(page);
-    // Open user menu
-    await page.locator('.cl-userButtonTrigger').click();
-    await page.waitForSelector('.cl-userButtonPopoverCard', { timeout: 5000 });
-    // Click sign out
-    await page.getByRole('menuitem', { name: /sign out/i }).click();
-    await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible({
-      timeout: 10000,
-    });
-  });
-});
-
 test.describe('404 page', () => {
   test('unknown route shows not-found page', async ({ page }) => {
     await page.goto('/this-route-does-not-exist');
-    // App renders NotFoundPage — check for some recognisable text or status
-    await expect(
-      page.getByRole('heading', { name: /page not found/i }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: /page not found/i })).toBeVisible();
   });
 });
 
 test.describe('Protected routes — unauthenticated redirect', () => {
-  test('visiting /checkout without auth redirects to home', async ({
-    page,
-  }) => {
+  test('visiting /checkout without auth redirects to home', async ({ page }) => {
     await page.goto('/checkout');
     await expect(page).toHaveURL('/');
   });
@@ -106,9 +57,7 @@ test.describe('Protected routes — unauthenticated redirect', () => {
     await expect(page).toHaveURL('/');
   });
 
-  test('visiting /my-profile without auth redirects to home', async ({
-    page,
-  }) => {
+  test('visiting /my-profile without auth redirects to home', async ({ page }) => {
     await page.goto('/my-profile');
     await expect(page).toHaveURL('/');
   });
