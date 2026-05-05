@@ -52,3 +52,45 @@ backend:test:
     - cd backend
     - bun install
     - bun test # Built-in test runner for Bun
+
+# ==========================================
+# E2E JOBS (Playwright — runs in MR pipelines only)
+# ==========================================
+
+e2e:test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.59.1-jammy
+  tags:
+    - shared-fi
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: fitness
+    POSTGRES_USER: fitness
+    POSTGRES_PASSWORD: fitness
+    DATABASE_URL: "postgres://fitness:fitness@postgres:5432/fitness"
+    CI: "true"
+    # E2E_TEST_EMAIL, E2E_TEST_PASSWORD, CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY,
+    # FRONTEND_URL and VITE_API_URL must be defined as protected CI/CD variables
+    # in the GitLab project settings.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "devel"
+      when: manual
+      allow_failure: true
+  before_script:
+    - curl -fsSL https://bun.sh/install | bash
+    - export PATH="$HOME/.bun/bin:$PATH"
+    - npm ci
+    - cd frontend && npm ci && cd ..
+    - cd backend && bun install && cd ..
+    - cd backend && bunx drizzle-kit push && bun run src/db/seed.ts && cd ..
+  script:
+    - npx playwright test
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    expire_in: 1 week
