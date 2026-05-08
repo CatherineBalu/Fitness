@@ -84,9 +84,9 @@ e2e:test:
     - curl -fsSL https://bun.sh/install | bash
     - export PATH="$HOME/.bun/bin:$PATH"
     - npm ci
-    - cd frontend && npm ci && cd ..
-    - cd backend && bun install && cd ..
-    - cd backend && bunx drizzle-kit push && bun run src/db/seed.ts && cd ..
+    - (cd frontend && npm ci)
+    - (cd backend && bun install)
+    - (cd backend && bunx drizzle-kit push && bun run src/db/seed.ts)
   script:
     - npx playwright test
   artifacts:
