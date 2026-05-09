@@ -1,0 +1,83 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('Schedule page — authenticated interactions', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/schedule');
+    await page.waitForSelector('.cal-week-grid', { timeout: 10_000 });
+  });
+
+  test('register dialog appears when clicking Register on a future lecture', async ({ page }) => {
+    const registerBtn = page
+      .locator('.cal-register-btn')
+      .filter({ hasText: 'Register' })
+      .first();
+
+    const count = await registerBtn.count();
+    if (count === 0) {
+      test.skip();
+      return;
+    }
+
+    await registerBtn.click();
+    await expect(page.getByRole('dialog').getByText('Register for lecture')).toBeVisible({
+      timeout: 5_000,
+    });
+  });
+
+  test('register dialog shows lecture name', async ({ page }) => {
+    const registerBtn = page
+      .locator('.cal-register-btn')
+      .filter({ hasText: 'Register' })
+      .first();
+
+    const count = await registerBtn.count();
+    if (count === 0) {
+      test.skip();
+      return;
+    }
+
+    const card = registerBtn.locator('..').locator('..');
+    const lectureName = await card.locator('.cal-activity-name').textContent();
+
+    await registerBtn.click();
+    if (lectureName) {
+      await expect(page.getByRole('dialog')).toContainText(lectureName, { timeout: 5_000 });
+    }
+  });
+
+  test('closing register dialog via Escape removes it', async ({ page }) => {
+    const registerBtn = page
+      .locator('.cal-register-btn')
+      .filter({ hasText: 'Register' })
+      .first();
+
+    const count = await registerBtn.count();
+    if (count === 0) {
+      test.skip();
+      return;
+    }
+
+    await registerBtn.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3_000 });
+  });
+
+  test('unregister dialog appears for already-registered lecture', async ({ page }) => {
+    const unregisterBtn = page
+      .locator('.cal-unregister-btn')
+      .filter({ hasText: 'Unregister' })
+      .first();
+
+    const count = await unregisterBtn.count();
+    if (count === 0) {
+      test.skip();
+      return;
+    }
+
+    await unregisterBtn.click();
+    await expect(page.getByRole('dialog').getByText('Cancel reservation')).toBeVisible({
+      timeout: 5_000,
+    });
+  });
+});
