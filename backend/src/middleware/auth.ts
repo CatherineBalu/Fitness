@@ -69,7 +69,11 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
     try {
       const verified = await verifyToken(token, {
         secretKey: process.env.CLERK_SECRET_KEY,
-        authorizedParties: [process.env.FRONTEND_URL ?? 'http://localhost:5173'],
+        authorizedParties: [
+          process.env.FRONTEND_URL ?? 'http://localhost:5173',
+          'http://localhost:5173',
+          'http://127.0.0.1:5173',
+        ],
       });
       const publicMetadata = (verified.publicMetadata ?? {}) as { role?: string };
       const hasRole = typeof publicMetadata.role === 'string' && publicMetadata.role.length > 0;

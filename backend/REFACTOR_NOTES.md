@@ -127,3 +127,23 @@ Recommended: option 1.
 - `tests/subscriptions.test.ts:61` — same.
 
 These existed before the refactor and are independent of route/service split.
+
+---
+
+## Known issue: real Clerk users are not linked to seed staff
+
+Endpoints like `/api/staff/me/lectures` return **404** when an authenticated admin/employee hits them. Reason: `seed.ts` inserts staff rows with placeholder `clerkId` values (`seed_instructor_1`, `seed_instructor_2`, ...). Real Clerk users have their own `clerkId`, so the lookup `employee → person where clerk_id = <real id>` finds nothing.
+
+This is **not refactor-related** — same behaviour on Docker postgres or future Neon hosting. Will reproduce until one of the following is in place:
+
+1. **Admin UI to assign roles** — promote an existing customer to staff/instructor from the app.
+2. **Env-driven seed** — e.g. `SEED_ADMIN_EMAIL`, seed then upgrades the matching person to employee.
+3. **Manual SQL** for now:
+   ```sql
+   INSERT INTO employee (person_id, employee_type_id, hire_date)
+   SELECT p.id, et.id, CURRENT_DATE
+   FROM person p, employee_type et
+   WHERE p.email = '<your-email>' AND et.role_name = 'Instructor';
+   ```
+
+Pick the approach when this is prioritised; out of scope for NUE-54.
