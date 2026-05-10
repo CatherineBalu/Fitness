@@ -13,7 +13,7 @@ import {
   tbScheduleInstructor,
   tbSubscription,
 } from '../db/schema';
-import { NotFoundError, UnauthorizedError } from './errors';
+import { NotFoundError, UnauthorizedError } from '../lib/errors';
 
 // ── Admin ─────────────────────────────────────────────────────────────
 

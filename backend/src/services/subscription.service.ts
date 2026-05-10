@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { db } from '../db/db';
 import { tbCustomer, tbPaymentHistory, tbSubscription } from '../db/schema';
-import { ConflictError, NotFoundError } from './errors';
+import { ConflictError, NotFoundError } from '../lib/errors';
 import { getCustomerByClerkIdOrThrow } from './customer.service';
 
 export function isMembershipActive(validUntil: string | null): boolean {

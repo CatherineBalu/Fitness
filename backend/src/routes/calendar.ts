@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { handleRoute } from '../services/errors';
+import { handleRoute } from '../lib/errors';
 import {
   addMemberByEmail,
   bulkUpdateAttendance,

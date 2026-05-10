@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { requirePermission } from '../../middleware/auth';
-import { handleRoute } from '../../services/errors';
+import { handleRoute } from '../../lib/errors';
 import {
   getAdminOverview,
   getOccupancy,

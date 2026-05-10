@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/db';
 import { tbCustomer, tbPerson } from '../db/schema';
-import { NotFoundError } from './errors';
+import { NotFoundError } from '../lib/errors';
 import { isMembershipActive } from './subscription.service';
 
 export async function getProfile(clerkId: string, role: string) {

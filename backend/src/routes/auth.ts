@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { authenticated } from '../middleware/auth';
-import { handleRoute } from '../services/errors';
+import { handleRoute } from '../lib/errors';
 import { getProfile } from '../services/auth.service';
 
 export const profileRoutes = new Elysia({ prefix: '/auth' })

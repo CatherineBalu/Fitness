@@ -10,7 +10,7 @@ import {
   tbSchedule,
   tbScheduleInstructor,
 } from '../db/schema';
-import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from './errors';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../lib/errors';
 import { findCustomerByClerkId, getCustomerByClerkIdOrThrow } from './customer.service';
 import { isMembershipActive } from './subscription.service';
 

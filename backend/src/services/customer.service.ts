@@ -10,7 +10,7 @@ import {
   tbSchedule,
   tbSubscription,
 } from '../db/schema';
-import { NotFoundError } from './errors';
+import { NotFoundError } from '../lib/errors';
 import { isMembershipActive } from './subscription.service';
 
 export type CustomerLookup = {

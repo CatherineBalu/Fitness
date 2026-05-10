@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { requirePermission } from '../../middleware/auth';
-import { handleRoute } from '../../services/errors';
+import { handleRoute } from '../../lib/errors';
 import { getInstructorStats } from '../../services/stats.service';
 
 export const staffStatsRoutes = new Elysia({ prefix: '/api/stats/staff' })

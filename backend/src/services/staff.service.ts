@@ -14,7 +14,7 @@ import {
   tbScheduleInstructor,
 } from '../db/schema';
 import { clerk } from '../middleware/auth';
-import { BadRequestError, NotFoundError } from './errors';
+import { BadRequestError, NotFoundError } from '../lib/errors';
 
 function generateTempPassword(): string {
   const bytes = new Uint8Array(16);

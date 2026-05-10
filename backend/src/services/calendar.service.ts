@@ -12,7 +12,7 @@ import {
   tbSchedule,
   tbScheduleInstructor,
 } from '../db/schema';
-import { BadRequestError, ConflictError, NotFoundError, ValidationError } from './errors';
+import { BadRequestError, ConflictError, NotFoundError, ValidationError } from '../lib/errors';
 import { findCustomerByEmail, findCustomerByPersonId } from './customer.service';
 
 const createScheduleSchema = z
