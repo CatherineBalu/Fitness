@@ -12,7 +12,7 @@ import {
   tbSchedule,
   tbScheduleInstructor,
 } from '../db/schema';
-import { BadRequestError, ConflictError, NotFoundError, ValidationError } from '../lib/errors';
+import { ConflictError, DomainValidationError, NotFoundError } from '../lib/errors';
 import { findCustomerByEmail, findCustomerByPersonId } from './customer.service';
 
 const createScheduleSchema = z
@@ -73,7 +73,7 @@ export async function listInstructors() {
 export async function createSchedule(input: CreateScheduleInput): Promise<{ id: string }> {
   const result = createScheduleSchema.safeParse(input);
   if (!result.success) {
-    throw new ValidationError('Validation failed', result.error.flatten().fieldErrors);
+    throw new DomainValidationError('Validation failed', result.error.flatten().fieldErrors);
   }
   const { lectureId, roomId, startTime, endTime, instructors } = result.data;
 
@@ -134,7 +134,7 @@ export async function addMemberByEmail(scheduleId: string, email: string) {
       .where(eq(tbPerson.email, email))
       .limit(1);
     if (!person) throw new NotFoundError('Person with this email does not exist.');
-    throw new BadRequestError('This person is not a registered customer.');
+    throw new DomainValidationError('This person is not a registered customer.');
   }
 
   const [existing] = await db

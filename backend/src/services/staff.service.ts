@@ -14,7 +14,7 @@ import {
   tbScheduleInstructor,
 } from '../db/schema';
 import { clerk } from '../middleware/auth';
-import { BadRequestError, NotFoundError } from '../lib/errors';
+import { DomainValidationError, NotFoundError } from '../lib/errors';
 
 function generateTempPassword(): string {
   const bytes = new Uint8Array(16);
@@ -138,7 +138,7 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
     .where(eq(tbEmployeeType.roleName, input.role))
     .limit(1);
 
-  if (!roleRow) throw new BadRequestError(`Unknown role: ${input.role}`);
+  if (!roleRow) throw new DomainValidationError(`Unknown role: ${input.role}`);
 
   const tempPassword = generateTempPassword();
 
@@ -157,7 +157,7 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
       clerkErr.errors?.[0]?.longMessage ??
       clerkErr.errors?.[0]?.message ??
       (err instanceof Error ? err.message : 'Failed to create user');
-    throw new BadRequestError(message);
+    throw new DomainValidationError(message);
   }
 
   const today = new Date().toISOString().slice(0, 10);

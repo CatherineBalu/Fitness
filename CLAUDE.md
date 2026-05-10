@@ -61,7 +61,7 @@ A component or hook used by 2+ pages moves out of the page folder to `components
 **Service** (exported as object: `export const staffService = { list, getById, create }`):
 - Drizzle queries, business rules, transactions
 - Trusts input (already validated by route — type comes from `z.infer<typeof schema>`)
-- Throws domain errors from `lib/errors.ts` (`NotFoundError`, `DomainValidationError`)
+- Throws domain errors from `lib/errors.ts` (`NotFoundError`, `DomainValidationError`, `PermissionError`, `UnauthorizedError`, `ConflictError`)
 - **No HTTP knowledge** (no `set.status`, no Elysia types, no req/res)
 
 Domain errors are caught in the global Elysia `.onError` in `index.ts` and mapped to HTTP status codes.
@@ -113,7 +113,7 @@ TanStack file-based routing in `frontend/src/routes/`. Code-based `router.tsx` i
 - `async/await` only — no `.then()` chains (ESLint: `promise/prefer-await-to-then`).
 - No floating promises (ESLint: `@typescript-eslint/no-floating-promises`). Use `void` for intentional fire-and-forget.
 - `try/catch` only at boundaries: Elysia `.onError` (BE), TanStack Query `onError` callbacks (FE), React Error Boundary (FE crashes). Internal code lets errors bubble.
-- Backend: throw domain errors from `lib/errors.ts` (`NotFoundError`, `DomainValidationError`, `PermissionError`); global `.onError` maps to HTTP status codes.
+- Backend: throw domain errors from `lib/errors.ts` (`NotFoundError` 404, `DomainValidationError` 422, `PermissionError` 403, `UnauthorizedError` 401, `ConflictError` 409); global `.onError` maps to HTTP status codes.
 - Frontend: never wrap API calls in `try/catch` inside event handlers — use `useMutation` with `onError` for toasts.
 - Independent requests → `Promise.all`. Sequential `await` only when the second depends on the first.
 - Use `useMutation`'s `isPending` to disable buttons during requests; do not manage your own loading state.

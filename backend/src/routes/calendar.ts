@@ -1,5 +1,4 @@
 import { Elysia, t } from 'elysia';
-import { handleRoute } from '../lib/errors';
 import {
   addMemberByEmail,
   bulkUpdateAttendance,
@@ -14,20 +13,19 @@ import {
 
 export const calendarRoutes = new Elysia({ prefix: '/calendar' })
 
-  .get('/lectures', ({ set }) => handleRoute(set, () => listLectureTemplates()))
+  .get('/lectures', () => listLectureTemplates())
 
-  .get('/rooms', ({ set }) => handleRoute(set, () => listRooms()))
+  .get('/rooms', () => listRooms())
 
-  .get('/instructors', ({ set }) => handleRoute(set, () => listInstructors()))
+  .get('/instructors', () => listInstructors())
 
   .post(
     '/',
-    ({ body, set }) =>
-      handleRoute(set, async () => {
-        const result = await createSchedule(body);
-        set.status = 201;
-        return result;
-      }),
+    async ({ body, set }) => {
+      const result = await createSchedule(body);
+      set.status = 201;
+      return result;
+    },
     {
       body: t.Object({
         lectureId: t.String(),
@@ -46,24 +44,19 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
     },
   )
 
-  .get(
-    '/:id/members',
-    ({ params, set }) => handleRoute(set, () => listScheduleMembers(params.id)),
-    {
-      params: t.Object({
-        id: t.String({ format: 'uuid', error: 'Invalid schedule ID format' }),
-      }),
-    },
-  )
+  .get('/:id/members', ({ params }) => listScheduleMembers(params.id), {
+    params: t.Object({
+      id: t.String({ format: 'uuid', error: 'Invalid schedule ID format' }),
+    }),
+  })
 
   .post(
     '/:id/members',
-    ({ params, body, set }) =>
-      handleRoute(set, async () => {
-        const result = await addMemberByEmail(params.id, body.email);
-        set.status = 201;
-        return result;
-      }),
+    async ({ params, body, set }) => {
+      const result = await addMemberByEmail(params.id, body.email);
+      set.status = 201;
+      return result;
+    },
     {
       params: t.Object({ id: t.String({ format: 'uuid' }) }),
       body: t.Object({ email: t.String({ format: 'email' }) }),
@@ -72,11 +65,10 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
 
   .delete(
     '/:id/members/:personId',
-    ({ params, set }) =>
-      handleRoute(set, async () => {
-        await removeMember(params.id, params.personId);
-        return { success: true };
-      }),
+    async ({ params }) => {
+      await removeMember(params.id, params.personId);
+      return { success: true };
+    },
     {
       params: t.Object({
         id: t.String({ format: 'uuid' }),
@@ -87,11 +79,10 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
 
   .patch(
     '/:id',
-    ({ params, body, set }) =>
-      handleRoute(set, async () => {
-        await updateSchedule(params.id, body);
-        return { success: true };
-      }),
+    async ({ params, body }) => {
+      await updateSchedule(params.id, body);
+      return { success: true };
+    },
     {
       params: t.Object({ id: t.String({ format: 'uuid' }) }),
       body: t.Object({
@@ -104,11 +95,10 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
 
   .patch(
     '/:id/attendance',
-    ({ params, body, set }) =>
-      handleRoute(set, async () => {
-        await bulkUpdateAttendance(params.id, body.attendanceRecords);
-        return { success: true };
-      }),
+    async ({ params, body }) => {
+      await bulkUpdateAttendance(params.id, body.attendanceRecords);
+      return { success: true };
+    },
     {
       params: t.Object({ id: t.String({ format: 'uuid' }) }),
       body: t.Object({

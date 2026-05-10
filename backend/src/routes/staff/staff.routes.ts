@@ -1,6 +1,5 @@
 import { Elysia, t } from 'elysia';
 import { requirePermission } from '../../middleware/auth';
-import { handleRoute } from '../../lib/errors';
 import {
   createStaff,
   deleteStaff,
@@ -13,28 +12,25 @@ import {
 export const staffRoutes = new Elysia({ prefix: '/api/staff' })
   .use(requirePermission('staff:read'))
 
-  .get('/', ({ set }) => handleRoute(set, () => listEmployees()))
+  .get('/', () => listEmployees())
 
-  .get('/me/lectures', ({ set, ...rest }) => {
+  .get('/me/lectures', ({ ...rest }) => {
     const auth = (rest as unknown as { auth: { userId: string } }).auth;
-    return handleRoute(set, () => getEmployeeLecturesForClerkUser(auth.userId));
+    return getEmployeeLecturesForClerkUser(auth.userId);
   })
 
-  .get('/:id/lectures', ({ params, set }) =>
-    handleRoute(set, () => getEmployeeLectures(params.id)),
-  );
+  .get('/:id/lectures', ({ params }) => getEmployeeLectures(params.id));
 
 export const staffWriteRoutes = new Elysia({ prefix: '/api/staff' })
   .use(requirePermission('staff:write'))
 
   .post(
     '/',
-    ({ body, set }) =>
-      handleRoute(set, async () => {
-        const result = await createStaff(body);
-        set.status = 201;
-        return { success: true, ...result };
-      }),
+    async ({ body, set }) => {
+      const result = await createStaff(body);
+      set.status = 201;
+      return { success: true, ...result };
+    },
     {
       body: t.Object({
         firstName: t.String({ minLength: 1 }),
@@ -48,11 +44,10 @@ export const staffWriteRoutes = new Elysia({ prefix: '/api/staff' })
 
   .patch(
     '/:id',
-    ({ params, body, set }) =>
-      handleRoute(set, async () => {
-        await updateStaff(params.id, body);
-        return { success: true };
-      }),
+    async ({ params, body }) => {
+      await updateStaff(params.id, body);
+      return { success: true };
+    },
     {
       body: t.Object({
         firstName: t.String({ minLength: 1 }),
@@ -65,9 +60,7 @@ export const staffWriteRoutes = new Elysia({ prefix: '/api/staff' })
 export const staffDeleteRoutes = new Elysia({ prefix: '/api/staff' })
   .use(requirePermission('staff:delete'))
 
-  .delete('/:id', ({ params, set }) =>
-    handleRoute(set, async () => {
-      await deleteStaff(params.id);
-      return { success: true };
-    }),
-  );
+  .delete('/:id', async ({ params }) => {
+    await deleteStaff(params.id);
+    return { success: true };
+  });

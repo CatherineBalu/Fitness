@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
+import { DomainValidationError, HttpError } from './lib/errors';
 import { clerkMiddleware } from './middleware/auth';
 import { profileRoutes } from './routes/auth';
 import { scheduleRoutes } from './routes/schedule';
@@ -28,6 +29,23 @@ export const app = new Elysia()
     }),
   )
   .use(clerkMiddleware)
+  .onError(({ code, error, set }) => {
+    if (error instanceof DomainValidationError) {
+      set.status = error.status;
+      return { error: error.message, fieldErrors: error.fieldErrors ?? {} };
+    }
+    if (error instanceof HttpError) {
+      set.status = error.status;
+      return { error: error.message };
+    }
+    if (code === 'VALIDATION') {
+      set.status = 422;
+      return { error: 'Validation failed', details: error.message };
+    }
+    console.error('[unexpected]', error);
+    set.status = 500;
+    return { error: 'Internal server error' };
+  })
   .get('/', () => 'OK')
   .use(profileRoutes)
   .use(scheduleRoutes)

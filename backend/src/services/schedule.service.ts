@@ -10,7 +10,12 @@ import {
   tbSchedule,
   tbScheduleInstructor,
 } from '../db/schema';
-import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../lib/errors';
+import {
+  DomainValidationError,
+  ConflictError,
+  PermissionError,
+  NotFoundError,
+} from '../lib/errors';
 import { findCustomerByClerkId, getCustomerByClerkIdOrThrow } from './customer.service';
 import { isMembershipActive } from './subscription.service';
 
@@ -147,10 +152,10 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
 
   if (!schedule) throw new NotFoundError('Lecture not found');
   if (schedule.startTime < new Date()) {
-    throw new BadRequestError('Cannot register for a lecture that has already started');
+    throw new DomainValidationError('Cannot register for a lecture that has already started');
   }
   if (schedule.forMembers && !isMembershipActive(customer.subscriptionValidUntil)) {
-    throw new ForbiddenError('This lecture is for members only');
+    throw new PermissionError('This lecture is for members only');
   }
 
   const [existing] = await db
