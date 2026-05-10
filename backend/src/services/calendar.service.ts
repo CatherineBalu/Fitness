@@ -2,15 +2,15 @@ import { eq, and, asc } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/db';
 import {
-  tbCustomer,
-  tbCustomerReservation,
-  tbEmployee,
-  tbExerciseType,
-  tbLecture,
-  tbPerson,
-  tbRoom,
-  tbSchedule,
-  tbScheduleInstructor,
+  customers,
+  customerReservations,
+  employees,
+  exerciseTypes,
+  lectures,
+  persons,
+  rooms,
+  schedules,
+  scheduleInstructors,
 } from '../db/schema';
 import { ConflictError, DomainValidationError, NotFoundError } from '../lib/errors';
 import { findCustomerByEmail, findCustomerByPersonId } from './customer.service';
@@ -40,32 +40,32 @@ export type CreateScheduleInput = z.input<typeof createScheduleSchema>;
 export async function listLectureTemplates() {
   return db
     .select({
-      id: tbLecture.id,
-      lectureName: tbLecture.lectureName,
-      exerciseType: tbExerciseType.name,
+      id: lectures.id,
+      lectureName: lectures.lectureName,
+      exerciseType: exerciseTypes.name,
     })
-    .from(tbLecture)
-    .innerJoin(tbExerciseType, eq(tbLecture.exerciseTypeId, tbExerciseType.id))
-    .orderBy(tbLecture.lectureName);
+    .from(lectures)
+    .innerJoin(exerciseTypes, eq(lectures.exerciseTypeId, exerciseTypes.id))
+    .orderBy(lectures.lectureName);
 }
 
 export async function listRooms() {
   return db
-    .select({ id: tbRoom.id, name: tbRoom.name, capacity: tbRoom.capacity })
-    .from(tbRoom)
-    .orderBy(tbRoom.name);
+    .select({ id: rooms.id, name: rooms.name, capacity: rooms.capacity })
+    .from(rooms)
+    .orderBy(rooms.name);
 }
 
 export async function listInstructors() {
   const rows = await db
     .select({
-      id: tbEmployee.id,
-      name: tbPerson.name,
-      surname: tbPerson.surname,
+      id: employees.id,
+      name: persons.name,
+      surname: persons.surname,
     })
-    .from(tbEmployee)
-    .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-    .orderBy(tbPerson.surname);
+    .from(employees)
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .orderBy(persons.surname);
 
   return rows.map((i) => ({ id: i.id, name: `${i.name} ${i.surname}` }));
 }
@@ -79,7 +79,7 @@ export async function createSchedule(input: CreateScheduleInput): Promise<{ id: 
 
   return db.transaction(async (tx) => {
     const [schedule] = await tx
-      .insert(tbSchedule)
+      .insert(schedules)
       .values({
         lectureId,
         roomId,
@@ -89,7 +89,7 @@ export async function createSchedule(input: CreateScheduleInput): Promise<{ id: 
       .returning();
 
     if (instructors && instructors.length > 0) {
-      await tx.insert(tbScheduleInstructor).values(
+      await tx.insert(scheduleInstructors).values(
         instructors.map((inst) => ({
           scheduleId: schedule.id,
           employeeId: inst.employeeId,
@@ -105,17 +105,17 @@ export async function createSchedule(input: CreateScheduleInput): Promise<{ id: 
 export async function listScheduleMembers(scheduleId: string) {
   const rows = await db
     .select({
-      id: tbPerson.id,
-      name: tbPerson.name,
-      surname: tbPerson.surname,
-      email: tbPerson.email,
-      attended: tbCustomerReservation.attended,
+      id: persons.id,
+      name: persons.name,
+      surname: persons.surname,
+      email: persons.email,
+      attended: customerReservations.attended,
     })
-    .from(tbCustomerReservation)
-    .innerJoin(tbCustomer, eq(tbCustomerReservation.customerId, tbCustomer.id))
-    .innerJoin(tbPerson, eq(tbCustomer.personId, tbPerson.id))
-    .where(eq(tbCustomerReservation.scheduleId, scheduleId))
-    .orderBy(asc(tbPerson.surname));
+    .from(customerReservations)
+    .innerJoin(customers, eq(customerReservations.customerId, customers.id))
+    .innerJoin(persons, eq(customers.personId, persons.id))
+    .where(eq(customerReservations.scheduleId, scheduleId))
+    .orderBy(asc(persons.surname));
 
   return rows.map((m) => ({
     id: m.id,
@@ -129,26 +129,26 @@ export async function addMemberByEmail(scheduleId: string, email: string) {
   const customer = await findCustomerByEmail(email);
   if (!customer) {
     const [person] = await db
-      .select({ id: tbPerson.id })
-      .from(tbPerson)
-      .where(eq(tbPerson.email, email))
+      .select({ id: persons.id })
+      .from(persons)
+      .where(eq(persons.email, email))
       .limit(1);
     if (!person) throw new NotFoundError('Person with this email does not exist.');
     throw new DomainValidationError('This person is not a registered customer.');
   }
 
   const [existing] = await db
-    .select({ id: tbCustomerReservation.id })
-    .from(tbCustomerReservation)
+    .select({ id: customerReservations.id })
+    .from(customerReservations)
     .where(
       and(
-        eq(tbCustomerReservation.scheduleId, scheduleId),
-        eq(tbCustomerReservation.customerId, customer.customerId),
+        eq(customerReservations.scheduleId, scheduleId),
+        eq(customerReservations.customerId, customer.customerId),
       ),
     );
   if (existing) throw new ConflictError('Customer is already registered for this lecture.');
 
-  await db.insert(tbCustomerReservation).values({
+  await db.insert(customerReservations).values({
     scheduleId,
     customerId: customer.customerId,
   });
@@ -165,11 +165,11 @@ export async function removeMember(scheduleId: string, personId: string): Promis
   if (!customer) throw new NotFoundError('Customer not found.');
 
   await db
-    .delete(tbCustomerReservation)
+    .delete(customerReservations)
     .where(
       and(
-        eq(tbCustomerReservation.scheduleId, scheduleId),
-        eq(tbCustomerReservation.customerId, customer.id),
+        eq(customerReservations.scheduleId, scheduleId),
+        eq(customerReservations.customerId, customer.id),
       ),
     );
 }
@@ -180,13 +180,13 @@ export async function updateSchedule(
 ): Promise<void> {
   const [current] = await db
     .select({
-      id: tbSchedule.id,
-      roomId: tbSchedule.roomId,
-      startTime: tbSchedule.startTime,
-      endTime: tbSchedule.endTime,
+      id: schedules.id,
+      roomId: schedules.roomId,
+      startTime: schedules.startTime,
+      endTime: schedules.endTime,
     })
-    .from(tbSchedule)
-    .where(eq(tbSchedule.id, scheduleId));
+    .from(schedules)
+    .where(eq(schedules.id, scheduleId));
 
   if (!current) throw new NotFoundError('Schedule not found.');
 
@@ -203,14 +203,14 @@ export async function updateSchedule(
   }
 
   await db
-    .update(tbSchedule)
+    .update(schedules)
     .set({
       roomId: patch.roomId ?? current.roomId,
       startTime: newStartDate,
       endTime: newEndDate,
       updatedAt: new Date(),
     })
-    .where(eq(tbSchedule.id, scheduleId));
+    .where(eq(schedules.id, scheduleId));
 }
 
 export async function bulkUpdateAttendance(
@@ -222,12 +222,12 @@ export async function bulkUpdateAttendance(
       const customer = await findCustomerByPersonId(record.personId);
       if (customer) {
         await tx
-          .update(tbCustomerReservation)
+          .update(customerReservations)
           .set({ attended: record.attended, updatedAt: new Date() })
           .where(
             and(
-              eq(tbCustomerReservation.scheduleId, scheduleId),
-              eq(tbCustomerReservation.customerId, customer.id),
+              eq(customerReservations.scheduleId, scheduleId),
+              eq(customerReservations.customerId, customer.id),
             ),
           );
       }

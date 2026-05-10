@@ -1,18 +1,18 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/db';
-import { tbCustomer, tbPerson } from '../db/schema';
+import { customers, persons } from '../db/schema';
 import { NotFoundError } from '../lib/errors';
 import { isMembershipActive } from './subscription.service';
 
 export async function getProfile(clerkId: string, role: string) {
-  const [person] = await db.select().from(tbPerson).where(eq(tbPerson.clerkId, clerkId)).limit(1);
+  const [person] = await db.select().from(persons).where(eq(persons.clerkId, clerkId)).limit(1);
 
   if (!person) throw new NotFoundError('Profile not found');
 
   const [customer] = await db
-    .select({ subscriptionValidUntil: tbCustomer.subscriptionValidUntil })
-    .from(tbCustomer)
-    .where(eq(tbCustomer.personId, person.id))
+    .select({ subscriptionValidUntil: customers.subscriptionValidUntil })
+    .from(customers)
+    .where(eq(customers.personId, person.id))
     .limit(1);
 
   return {

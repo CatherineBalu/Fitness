@@ -18,13 +18,13 @@ const timestamps = {
 
 // --- NUMERALS AND TYPES ---
 
-export const tbEmployeeType = pgTable('employee_type', {
+export const employeeTypes = pgTable('employee_type', {
   id: uuid('id').primaryKey().defaultRandom(),
   roleName: text('role_name').notNull().unique(),
   ...timestamps,
 });
 
-export const tbSubscription = pgTable('subscription', {
+export const subscriptions = pgTable('subscription', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   price: numeric('price').notNull(),
@@ -32,13 +32,13 @@ export const tbSubscription = pgTable('subscription', {
   ...timestamps,
 });
 
-export const tbExerciseType = pgTable('exercise_type', {
+export const exerciseTypes = pgTable('exercise_type', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   ...timestamps,
 });
 
-export const tbRoom = pgTable('room', {
+export const rooms = pgTable('room', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   capacity: integer('capacity').notNull(),
@@ -47,7 +47,7 @@ export const tbRoom = pgTable('room', {
 
 // --- USERS ---
 
-export const tbPerson = pgTable('person', {
+export const persons = pgTable('person', {
   id: uuid('id').primaryKey().defaultRandom(),
   clerkId: text('clerk_id').notNull().unique(),
   name: text('name').notNull(),
@@ -57,78 +57,78 @@ export const tbPerson = pgTable('person', {
   ...timestamps,
 });
 
-export const tbEmployee = pgTable('employee', {
+export const employees = pgTable('employee', {
   id: uuid('id').primaryKey().defaultRandom(),
   personId: uuid('person_id')
     .notNull()
-    .references(() => tbPerson.id),
+    .references(() => persons.id),
   employeeTypeId: uuid('employee_type_id')
     .notNull()
-    .references(() => tbEmployeeType.id),
+    .references(() => employeeTypes.id),
   hireDate: date('hire_date').notNull(),
   ...timestamps,
 });
 
-export const tbEmployeeSpecialization = pgTable(
+export const employeeSpecializations = pgTable(
   'employee_specialization',
   {
     employeeId: uuid('employee_id')
       .notNull()
-      .references(() => tbEmployee.id),
+      .references(() => employees.id),
     exerciseTypeId: uuid('exercise_type_id')
       .notNull()
-      .references(() => tbExerciseType.id),
+      .references(() => exerciseTypes.id),
     ...timestamps,
   },
   (t) => [primaryKey({ columns: [t.employeeId, t.exerciseTypeId] })],
 );
 
-export const tbCustomer = pgTable('customer', {
+export const customers = pgTable('customer', {
   id: uuid('id').primaryKey().defaultRandom(),
   personId: uuid('person_id')
     .notNull()
-    .references(() => tbPerson.id),
-  subscriptionId: uuid('subscription_id').references(() => tbSubscription.id),
+    .references(() => persons.id),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
   subscriptionValidUntil: date('subscription_valid_until'),
   ...timestamps,
 });
 
 // --- LECTURES AND SCHEDULE ---
 
-export const tbLecture = pgTable('lecture', {
+export const lectures = pgTable('lecture', {
   id: uuid('id').primaryKey().defaultRandom(),
   exerciseTypeId: uuid('exercise_type_id')
     .notNull()
-    .references(() => tbExerciseType.id),
+    .references(() => exerciseTypes.id),
   lectureName: text('lecture_name').notNull(),
   description: text('description').notNull(),
   forMembers: boolean('for_members').default(false).notNull(),
   ...timestamps,
 });
 
-export const tbSchedule = pgTable('schedule', {
+export const schedules = pgTable('schedule', {
   id: uuid('id').primaryKey().defaultRandom(),
   lectureId: uuid('lecture_id')
     .notNull()
-    .references(() => tbLecture.id),
+    .references(() => lectures.id),
   roomId: uuid('room_id')
     .notNull()
-    .references(() => tbRoom.id),
+    .references(() => rooms.id),
   startTime: timestamp('start_time', { withTimezone: true }).notNull(),
   endTime: timestamp('end_time', { withTimezone: true }).notNull(),
   forMembers: boolean('for_members').default(false).notNull(),
   ...timestamps,
 });
 
-export const tbScheduleInstructor = pgTable(
+export const scheduleInstructors = pgTable(
   'schedule_instructor',
   {
     scheduleId: uuid('schedule_id')
       .notNull()
-      .references(() => tbSchedule.id),
+      .references(() => schedules.id),
     employeeId: uuid('employee_id')
       .notNull()
-      .references(() => tbEmployee.id),
+      .references(() => employees.id),
     isLead: boolean('is_lead').default(false).notNull(),
     ...timestamps,
   },
@@ -137,27 +137,27 @@ export const tbScheduleInstructor = pgTable(
 
 // --- RESERVATION AND PAYMENT HISTORY ---
 
-export const tbCustomerReservation = pgTable('customer_reservation', {
+export const customerReservations = pgTable('customer_reservation', {
   id: uuid('id').primaryKey().defaultRandom(),
   customerId: uuid('customer_id')
     .notNull()
-    .references(() => tbCustomer.id),
+    .references(() => customers.id),
   scheduleId: uuid('schedule_id')
     .notNull()
-    .references(() => tbSchedule.id),
+    .references(() => schedules.id),
   attended: boolean('attended').default(false).notNull(),
   reservationDate: timestamp('reservation_date', { withTimezone: true }).defaultNow().notNull(),
   ...timestamps,
 });
 
-export const tbPaymentHistory = pgTable('payment_history', {
+export const paymentHistory = pgTable('payment_history', {
   id: uuid('id').primaryKey().defaultRandom(),
   customerId: uuid('customer_id')
     .notNull()
-    .references(() => tbCustomer.id),
+    .references(() => customers.id),
   subscriptionId: uuid('subscription_id')
     .notNull()
-    .references(() => tbSubscription.id),
+    .references(() => subscriptions.id),
   amount: numeric('amount').notNull(),
   paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
   paymentMethod: text('payment_method').notNull(),

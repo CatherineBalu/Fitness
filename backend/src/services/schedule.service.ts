@@ -1,14 +1,14 @@
 import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/db';
 import {
-  tbCustomerReservation,
-  tbEmployee,
-  tbExerciseType,
-  tbLecture,
-  tbPerson,
-  tbRoom,
-  tbSchedule,
-  tbScheduleInstructor,
+  customerReservations,
+  employees,
+  exerciseTypes,
+  lectures,
+  persons,
+  rooms,
+  schedules,
+  scheduleInstructors,
 } from '../db/schema';
 import {
   DomainValidationError,
@@ -43,39 +43,39 @@ export async function listSchedules(
   const to = new Date(toIso);
   to.setHours(23, 59, 59, 999);
 
-  const schedules = await db
+  const scheduleRows = await db
     .select({
-      id: tbSchedule.id,
-      startTime: tbSchedule.startTime,
-      endTime: tbSchedule.endTime,
-      lectureName: tbLecture.lectureName,
-      description: tbLecture.description,
-      forMembers: tbLecture.forMembers,
-      roomName: tbRoom.name,
-      roomCapacity: tbRoom.capacity,
-      exerciseType: tbExerciseType.name,
+      id: schedules.id,
+      startTime: schedules.startTime,
+      endTime: schedules.endTime,
+      lectureName: lectures.lectureName,
+      description: lectures.description,
+      forMembers: lectures.forMembers,
+      roomName: rooms.name,
+      roomCapacity: rooms.capacity,
+      exerciseType: exerciseTypes.name,
     })
-    .from(tbSchedule)
-    .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
-    .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
-    .innerJoin(tbExerciseType, eq(tbLecture.exerciseTypeId, tbExerciseType.id))
-    .where(and(gte(tbSchedule.startTime, from), lte(tbSchedule.startTime, to)));
+    .from(schedules)
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
+    .innerJoin(exerciseTypes, eq(lectures.exerciseTypeId, exerciseTypes.id))
+    .where(and(gte(schedules.startTime, from), lte(schedules.startTime, to)));
 
-  if (schedules.length === 0) return [];
+  if (scheduleRows.length === 0) return [];
 
-  const scheduleIds = schedules.map((s) => s.id);
+  const scheduleIds = scheduleRows.map((s) => s.id);
 
   let registeredSet = new Set<string>();
   if (clerkId) {
     const customer = await findCustomerByClerkId(clerkId);
     if (customer) {
       const registered = await db
-        .select({ scheduleId: tbCustomerReservation.scheduleId })
-        .from(tbCustomerReservation)
+        .select({ scheduleId: customerReservations.scheduleId })
+        .from(customerReservations)
         .where(
           and(
-            eq(tbCustomerReservation.customerId, customer.customerId),
-            inArray(tbCustomerReservation.scheduleId, scheduleIds),
+            eq(customerReservations.customerId, customer.customerId),
+            inArray(customerReservations.scheduleId, scheduleIds),
           ),
         );
       registeredSet = new Set(registered.map((r) => r.scheduleId));
@@ -84,24 +84,24 @@ export async function listSchedules(
 
   const allInstructors = await db
     .select({
-      scheduleId: tbScheduleInstructor.scheduleId,
-      name: tbPerson.name,
-      surname: tbPerson.surname,
-      isLead: tbScheduleInstructor.isLead,
+      scheduleId: scheduleInstructors.scheduleId,
+      name: persons.name,
+      surname: persons.surname,
+      isLead: scheduleInstructors.isLead,
     })
-    .from(tbScheduleInstructor)
-    .innerJoin(tbEmployee, eq(tbScheduleInstructor.employeeId, tbEmployee.id))
-    .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-    .where(inArray(tbScheduleInstructor.scheduleId, scheduleIds));
+    .from(scheduleInstructors)
+    .innerJoin(employees, eq(scheduleInstructors.employeeId, employees.id))
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .where(inArray(scheduleInstructors.scheduleId, scheduleIds));
 
   const allCounts = await db
     .select({
-      scheduleId: tbCustomerReservation.scheduleId,
+      scheduleId: customerReservations.scheduleId,
       count: sql<number>`count(*)::int`,
     })
-    .from(tbCustomerReservation)
-    .where(inArray(tbCustomerReservation.scheduleId, scheduleIds))
-    .groupBy(tbCustomerReservation.scheduleId);
+    .from(customerReservations)
+    .where(inArray(customerReservations.scheduleId, scheduleIds))
+    .groupBy(customerReservations.scheduleId);
 
   const instructorsBySchedule = new Map<string, typeof allInstructors>();
   for (const row of allInstructors) {
@@ -115,7 +115,7 @@ export async function listSchedules(
     countBySchedule.set(row.scheduleId, row.count);
   }
 
-  return schedules.map((s) => ({
+  return scheduleRows.map((s) => ({
     id: s.id,
     startTime: s.startTime.toISOString(),
     endTime: s.endTime.toISOString(),
@@ -137,34 +137,34 @@ export async function listSchedules(
 export async function createReservation(clerkId: string, scheduleId: string): Promise<void> {
   const customer = await getCustomerByClerkIdOrThrow(clerkId);
 
-  const [schedule] = await db
+  const [scheduleRow] = await db
     .select({
-      id: tbSchedule.id,
-      startTime: tbSchedule.startTime,
-      forMembers: tbLecture.forMembers,
-      roomCapacity: tbRoom.capacity,
+      id: schedules.id,
+      startTime: schedules.startTime,
+      forMembers: lectures.forMembers,
+      roomCapacity: rooms.capacity,
     })
-    .from(tbSchedule)
-    .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
-    .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
-    .where(eq(tbSchedule.id, scheduleId))
+    .from(schedules)
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
+    .where(eq(schedules.id, scheduleId))
     .limit(1);
 
-  if (!schedule) throw new NotFoundError('Lecture not found');
-  if (schedule.startTime < new Date()) {
+  if (!scheduleRow) throw new NotFoundError('Lecture not found');
+  if (scheduleRow.startTime < new Date()) {
     throw new DomainValidationError('Cannot register for a lecture that has already started');
   }
-  if (schedule.forMembers && !isMembershipActive(customer.subscriptionValidUntil)) {
+  if (scheduleRow.forMembers && !isMembershipActive(customer.subscriptionValidUntil)) {
     throw new PermissionError('This lecture is for members only');
   }
 
   const [existing] = await db
-    .select({ customerId: tbCustomerReservation.customerId })
-    .from(tbCustomerReservation)
+    .select({ customerId: customerReservations.customerId })
+    .from(customerReservations)
     .where(
       and(
-        eq(tbCustomerReservation.customerId, customer.customerId),
-        eq(tbCustomerReservation.scheduleId, scheduleId),
+        eq(customerReservations.customerId, customer.customerId),
+        eq(customerReservations.scheduleId, scheduleId),
       ),
     )
     .limit(1);
@@ -172,11 +172,11 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
 
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(tbCustomerReservation)
-    .where(eq(tbCustomerReservation.scheduleId, scheduleId));
-  if (count >= schedule.roomCapacity) throw new ConflictError('Lecture is full');
+    .from(customerReservations)
+    .where(eq(customerReservations.scheduleId, scheduleId));
+  if (count >= scheduleRow.roomCapacity) throw new ConflictError('Lecture is full');
 
-  await db.insert(tbCustomerReservation).values({
+  await db.insert(customerReservations).values({
     customerId: customer.customerId,
     scheduleId,
   });
@@ -186,14 +186,14 @@ export async function cancelReservation(clerkId: string, scheduleId: string): Pr
   const customer = await getCustomerByClerkIdOrThrow(clerkId);
 
   const deleted = await db
-    .delete(tbCustomerReservation)
+    .delete(customerReservations)
     .where(
       and(
-        eq(tbCustomerReservation.customerId, customer.customerId),
-        eq(tbCustomerReservation.scheduleId, scheduleId),
+        eq(customerReservations.customerId, customer.customerId),
+        eq(customerReservations.scheduleId, scheduleId),
       ),
     )
-    .returning({ customerId: tbCustomerReservation.customerId });
+    .returning({ customerId: customerReservations.customerId });
 
   if (deleted.length === 0) throw new NotFoundError('Reservation not found');
 }

@@ -1,17 +1,17 @@
 import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/db';
 import {
-  tbCustomer,
-  tbCustomerReservation,
-  tbEmployee,
-  tbEmployeeSpecialization,
-  tbEmployeeType,
-  tbExerciseType,
-  tbLecture,
-  tbPerson,
-  tbRoom,
-  tbSchedule,
-  tbScheduleInstructor,
+  customers,
+  customerReservations,
+  employees,
+  employeeSpecializations,
+  employeeTypes,
+  exerciseTypes,
+  lectures,
+  persons,
+  rooms,
+  schedules,
+  scheduleInstructors,
 } from '../db/schema';
 import { clerk } from '../middleware/auth';
 import { DomainValidationError, NotFoundError } from '../lib/errors';
@@ -39,26 +39,26 @@ export type UpdateStaffInput = {
 export async function listEmployees() {
   const rows = await db
     .select({
-      id: tbEmployee.id,
-      firstName: tbPerson.name,
-      lastName: tbPerson.surname,
-      email: tbPerson.email,
-      clerkId: tbPerson.clerkId,
-      role: tbEmployeeType.roleName,
-      since: tbEmployee.hireDate,
+      id: employees.id,
+      firstName: persons.name,
+      lastName: persons.surname,
+      email: persons.email,
+      clerkId: persons.clerkId,
+      role: employeeTypes.roleName,
+      since: employees.hireDate,
     })
-    .from(tbEmployee)
-    .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-    .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id))
-    .orderBy(asc(tbPerson.surname));
+    .from(employees)
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .innerJoin(employeeTypes, eq(employees.employeeTypeId, employeeTypes.id))
+    .orderBy(asc(persons.surname));
 
   const specRows = await db
     .select({
-      employeeId: tbEmployeeSpecialization.employeeId,
-      name: tbExerciseType.name,
+      employeeId: employeeSpecializations.employeeId,
+      name: exerciseTypes.name,
     })
-    .from(tbEmployeeSpecialization)
-    .innerJoin(tbExerciseType, eq(tbEmployeeSpecialization.exerciseTypeId, tbExerciseType.id));
+    .from(employeeSpecializations)
+    .innerJoin(exerciseTypes, eq(employeeSpecializations.exerciseTypeId, exerciseTypes.id));
 
   const byEmployee = new Map<string, string[]>();
   for (const r of specRows) {
@@ -76,35 +76,35 @@ export async function listEmployees() {
 export async function getEmployeeLectures(employeeId: string) {
   const rows = await db
     .select({
-      id: tbSchedule.id,
-      lectureName: tbLecture.lectureName,
-      startTime: tbSchedule.startTime,
-      endTime: tbSchedule.endTime,
-      roomName: tbRoom.name,
-      capacity: tbRoom.capacity,
+      id: schedules.id,
+      lectureName: lectures.lectureName,
+      startTime: schedules.startTime,
+      endTime: schedules.endTime,
+      roomName: rooms.name,
+      capacity: rooms.capacity,
     })
-    .from(tbScheduleInstructor)
-    .innerJoin(tbSchedule, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
-    .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
-    .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
-    .where(eq(tbScheduleInstructor.employeeId, employeeId))
-    .orderBy(asc(tbSchedule.startTime));
+    .from(scheduleInstructors)
+    .innerJoin(schedules, eq(scheduleInstructors.scheduleId, schedules.id))
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
+    .where(eq(scheduleInstructors.employeeId, employeeId))
+    .orderBy(asc(schedules.startTime));
 
   if (rows.length === 0) return [];
 
   const countRows = await db
     .select({
-      scheduleId: tbCustomerReservation.scheduleId,
+      scheduleId: customerReservations.scheduleId,
       count: sql<number>`count(*)::int`,
     })
-    .from(tbCustomerReservation)
+    .from(customerReservations)
     .where(
       inArray(
-        tbCustomerReservation.scheduleId,
+        customerReservations.scheduleId,
         rows.map((r) => r.id),
       ),
     )
-    .groupBy(tbCustomerReservation.scheduleId);
+    .groupBy(customerReservations.scheduleId);
 
   const countBySchedule = new Map(countRows.map((r) => [r.scheduleId, r.count]));
 
@@ -121,10 +121,10 @@ export async function getEmployeeLectures(employeeId: string) {
 
 export async function getEmployeeLecturesForClerkUser(clerkId: string) {
   const [employee] = await db
-    .select({ id: tbEmployee.id })
-    .from(tbEmployee)
-    .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-    .where(eq(tbPerson.clerkId, clerkId))
+    .select({ id: employees.id })
+    .from(employees)
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .where(eq(persons.clerkId, clerkId))
     .limit(1);
 
   if (!employee) throw new NotFoundError('Staff profile not found');
@@ -134,8 +134,8 @@ export async function getEmployeeLecturesForClerkUser(clerkId: string) {
 export async function createStaff(input: CreateStaffInput): Promise<{ temporaryPassword: string }> {
   const [roleRow] = await db
     .select()
-    .from(tbEmployeeType)
-    .where(eq(tbEmployeeType.roleName, input.role))
+    .from(employeeTypes)
+    .where(eq(employeeTypes.roleName, input.role))
     .limit(1);
 
   if (!roleRow) throw new DomainValidationError(`Unknown role: ${input.role}`);
@@ -165,7 +165,7 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
   try {
     await db.transaction(async (tx) => {
       const [person] = await tx
-        .insert(tbPerson)
+        .insert(persons)
         .values({
           clerkId: clerkUser.id,
           name: input.firstName,
@@ -175,7 +175,7 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
         .returning();
 
       const [employee] = await tx
-        .insert(tbEmployee)
+        .insert(employees)
         .values({
           personId: person.id,
           employeeTypeId: roleRow.id,
@@ -188,7 +188,7 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
         input.specializations &&
         input.specializations.length > 0
       ) {
-        await tx.insert(tbEmployeeSpecialization).values(
+        await tx.insert(employeeSpecializations).values(
           input.specializations.map((exerciseTypeId) => ({
             employeeId: employee.id,
             exerciseTypeId,
@@ -208,15 +208,15 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
 export async function updateStaff(employeeId: string, input: UpdateStaffInput): Promise<void> {
   const [employee] = await db
     .select({
-      employeeId: tbEmployee.id,
-      personId: tbPerson.id,
-      clerkId: tbPerson.clerkId,
-      role: tbEmployeeType.roleName,
+      employeeId: employees.id,
+      personId: persons.id,
+      clerkId: persons.clerkId,
+      role: employeeTypes.roleName,
     })
-    .from(tbEmployee)
-    .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-    .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id))
-    .where(eq(tbEmployee.id, employeeId))
+    .from(employees)
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .innerJoin(employeeTypes, eq(employees.employeeTypeId, employeeTypes.id))
+    .where(eq(employees.id, employeeId))
     .limit(1);
 
   if (!employee) throw new NotFoundError('Staff member not found');
@@ -229,16 +229,16 @@ export async function updateStaff(employeeId: string, input: UpdateStaffInput): 
     .catch(() => {});
 
   await db
-    .update(tbPerson)
+    .update(persons)
     .set({ name: input.firstName, surname: input.lastName, updatedAt: new Date() })
-    .where(eq(tbPerson.id, employee.personId));
+    .where(eq(persons.id, employee.personId));
 
   if (employee.role === 'Instructor' && input.specializations) {
     await db
-      .delete(tbEmployeeSpecialization)
-      .where(eq(tbEmployeeSpecialization.employeeId, employee.employeeId));
+      .delete(employeeSpecializations)
+      .where(eq(employeeSpecializations.employeeId, employee.employeeId));
     if (input.specializations.length > 0) {
-      await db.insert(tbEmployeeSpecialization).values(
+      await db.insert(employeeSpecializations).values(
         input.specializations.map((exerciseTypeId) => ({
           employeeId: employee.employeeId,
           exerciseTypeId,
@@ -251,13 +251,13 @@ export async function updateStaff(employeeId: string, input: UpdateStaffInput): 
 export async function deleteStaff(employeeId: string): Promise<void> {
   const [employee] = await db
     .select({
-      employeeId: tbEmployee.id,
-      personId: tbPerson.id,
-      clerkId: tbPerson.clerkId,
+      employeeId: employees.id,
+      personId: persons.id,
+      clerkId: persons.clerkId,
     })
-    .from(tbEmployee)
-    .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-    .where(eq(tbEmployee.id, employeeId))
+    .from(employees)
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .where(eq(employees.id, employeeId))
     .limit(1);
 
   if (!employee) throw new NotFoundError('Staff member not found');
@@ -265,43 +265,43 @@ export async function deleteStaff(employeeId: string): Promise<void> {
   await clerk.users.deleteUser(employee.clerkId).catch(() => {});
   await db.transaction(async (tx) => {
     await tx
-      .delete(tbEmployeeSpecialization)
-      .where(eq(tbEmployeeSpecialization.employeeId, employee.employeeId));
+      .delete(employeeSpecializations)
+      .where(eq(employeeSpecializations.employeeId, employee.employeeId));
     await tx
-      .delete(tbScheduleInstructor)
-      .where(eq(tbScheduleInstructor.employeeId, employee.employeeId));
-    await tx.delete(tbEmployee).where(eq(tbEmployee.id, employee.employeeId));
-    await tx.delete(tbPerson).where(eq(tbPerson.id, employee.personId));
+      .delete(scheduleInstructors)
+      .where(eq(scheduleInstructors.employeeId, employee.employeeId));
+    await tx.delete(employees).where(eq(employees.id, employee.employeeId));
+    await tx.delete(persons).where(eq(persons.id, employee.personId));
   });
 }
 
 export async function listExerciseTypes() {
   return db
-    .select({ id: tbExerciseType.id, name: tbExerciseType.name })
-    .from(tbExerciseType)
-    .orderBy(asc(tbExerciseType.name));
+    .select({ id: exerciseTypes.id, name: exerciseTypes.name })
+    .from(exerciseTypes)
+    .orderBy(asc(exerciseTypes.name));
 }
 
 export async function listEmployeeTypes() {
   return db
-    .select({ id: tbEmployeeType.id, roleName: tbEmployeeType.roleName })
-    .from(tbEmployeeType)
-    .orderBy(asc(tbEmployeeType.roleName));
+    .select({ id: employeeTypes.id, roleName: employeeTypes.roleName })
+    .from(employeeTypes)
+    .orderBy(asc(employeeTypes.roleName));
 }
 
 export async function listLectureMembers(scheduleId: string) {
   const rows = await db
     .select({
-      id: tbCustomer.id,
-      name: tbPerson.name,
-      surname: tbPerson.surname,
-      email: tbPerson.email,
+      id: customers.id,
+      name: persons.name,
+      surname: persons.surname,
+      email: persons.email,
     })
-    .from(tbCustomerReservation)
-    .innerJoin(tbCustomer, eq(tbCustomerReservation.customerId, tbCustomer.id))
-    .innerJoin(tbPerson, eq(tbCustomer.personId, tbPerson.id))
-    .where(eq(tbCustomerReservation.scheduleId, scheduleId))
-    .orderBy(asc(tbPerson.surname));
+    .from(customerReservations)
+    .innerJoin(customers, eq(customerReservations.customerId, customers.id))
+    .innerJoin(persons, eq(customers.personId, persons.id))
+    .where(eq(customerReservations.scheduleId, scheduleId))
+    .orderBy(asc(persons.surname));
 
   return rows.map((r) => ({
     id: r.id,

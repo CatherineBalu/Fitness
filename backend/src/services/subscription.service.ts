@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 import { db } from '../db/db';
-import { tbCustomer, tbPaymentHistory, tbSubscription } from '../db/schema';
+import { customers, paymentHistory, subscriptions } from '../db/schema';
 import { ConflictError, NotFoundError } from '../lib/errors';
 import { getCustomerByClerkIdOrThrow } from './customer.service';
 
@@ -11,7 +11,7 @@ export function isMembershipActive(validUntil: string | null): boolean {
 }
 
 export async function listSubscriptions() {
-  return db.select().from(tbSubscription).orderBy(asc(tbSubscription.price));
+  return db.select().from(subscriptions).orderBy(asc(subscriptions.price));
 }
 
 export async function buySubscription(
@@ -27,8 +27,8 @@ export async function buySubscription(
 
   const [plan] = await db
     .select()
-    .from(tbSubscription)
-    .where(eq(tbSubscription.id, subscriptionId))
+    .from(subscriptions)
+    .where(eq(subscriptions.id, subscriptionId))
     .limit(1);
   if (!plan) throw new NotFoundError('Subscription plan not found');
 
@@ -38,7 +38,7 @@ export async function buySubscription(
   const validUntilIso = validUntil.toISOString().slice(0, 10);
 
   await db.transaction(async (tx) => {
-    await tx.insert(tbPaymentHistory).values({
+    await tx.insert(paymentHistory).values({
       customerId: customer.customerId,
       subscriptionId: plan.id,
       amount: plan.price,
@@ -46,13 +46,13 @@ export async function buySubscription(
     });
 
     await tx
-      .update(tbCustomer)
+      .update(customers)
       .set({
         subscriptionId: plan.id,
         subscriptionValidUntil: validUntilIso,
         updatedAt: new Date(),
       })
-      .where(eq(tbCustomer.id, customer.customerId));
+      .where(eq(customers.id, customer.customerId));
   });
 
   return { subscriptionValidUntil: validUntilIso };

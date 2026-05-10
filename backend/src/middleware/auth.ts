@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { db } from '../db/db';
-import { tbPerson, tbCustomer } from '../db/schema';
+import { persons, customers } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 export const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -93,11 +93,11 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
         }
       }
 
-      // JIT provisioning: create tbPerson + tbCustomer on first authenticated request
+      // JIT provisioning: create persons + customers on first authenticated request
       const [existing] = await db
         .select()
-        .from(tbPerson)
-        .where(eq(tbPerson.clerkId, clerkId))
+        .from(persons)
+        .where(eq(persons.clerkId, clerkId))
         .limit(1);
 
       if (!existing) {
@@ -107,11 +107,11 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
         const lastName = clerkUser.lastName ?? '';
 
         const [person] = await db
-          .insert(tbPerson)
+          .insert(persons)
           .values({ clerkId, name: firstName, surname: lastName, email })
           .returning();
 
-        await db.insert(tbCustomer).values({ personId: person.id });
+        await db.insert(customers).values({ personId: person.id });
       }
 
       return {

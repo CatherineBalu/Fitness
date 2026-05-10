@@ -1,14 +1,14 @@
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/db';
 import {
-  tbCustomer,
-  tbCustomerReservation,
-  tbLecture,
-  tbPaymentHistory,
-  tbPerson,
-  tbRoom,
-  tbSchedule,
-  tbSubscription,
+  customers,
+  customerReservations,
+  lectures,
+  paymentHistory,
+  persons,
+  rooms,
+  schedules,
+  subscriptions,
 } from '../db/schema';
 import { NotFoundError } from '../lib/errors';
 import { isMembershipActive } from './subscription.service';
@@ -22,13 +22,13 @@ export type CustomerLookup = {
 export async function findCustomerByClerkId(clerkId: string): Promise<CustomerLookup | null> {
   const [row] = await db
     .select({
-      customerId: tbCustomer.id,
-      personId: tbCustomer.personId,
-      subscriptionValidUntil: tbCustomer.subscriptionValidUntil,
+      customerId: customers.id,
+      personId: customers.personId,
+      subscriptionValidUntil: customers.subscriptionValidUntil,
     })
-    .from(tbCustomer)
-    .innerJoin(tbPerson, eq(tbCustomer.personId, tbPerson.id))
-    .where(eq(tbPerson.clerkId, clerkId))
+    .from(customers)
+    .innerJoin(persons, eq(customers.personId, persons.id))
+    .where(eq(persons.clerkId, clerkId))
     .limit(1);
   return row ?? null;
 }
@@ -42,19 +42,19 @@ export async function getCustomerByClerkIdOrThrow(clerkId: string): Promise<Cust
 export async function getCustomerProfile(clerkId: string) {
   const [row] = await db
     .select({
-      name: tbPerson.name,
-      surname: tbPerson.surname,
-      email: tbPerson.email,
-      phoneNumber: tbPerson.phoneNumber,
-      subscriptionValidUntil: tbCustomer.subscriptionValidUntil,
-      subscriptionName: tbSubscription.name,
-      subscriptionPrice: tbSubscription.price,
-      subscriptionDurationDays: tbSubscription.durationDays,
+      name: persons.name,
+      surname: persons.surname,
+      email: persons.email,
+      phoneNumber: persons.phoneNumber,
+      subscriptionValidUntil: customers.subscriptionValidUntil,
+      subscriptionName: subscriptions.name,
+      subscriptionPrice: subscriptions.price,
+      subscriptionDurationDays: subscriptions.durationDays,
     })
-    .from(tbPerson)
-    .innerJoin(tbCustomer, eq(tbCustomer.personId, tbPerson.id))
-    .leftJoin(tbSubscription, eq(tbCustomer.subscriptionId, tbSubscription.id))
-    .where(eq(tbPerson.clerkId, clerkId))
+    .from(persons)
+    .innerJoin(customers, eq(customers.personId, persons.id))
+    .leftJoin(subscriptions, eq(customers.subscriptionId, subscriptions.id))
+    .where(eq(persons.clerkId, clerkId))
     .limit(1);
 
   if (!row) throw new NotFoundError('Customer profile not found');
@@ -79,29 +79,29 @@ export async function getCustomerProfile(clerkId: string) {
 export async function cancelMembership(clerkId: string): Promise<void> {
   const customer = await getCustomerByClerkIdOrThrow(clerkId);
   await db
-    .update(tbCustomer)
+    .update(customers)
     .set({ subscriptionId: null, subscriptionValidUntil: null, updatedAt: new Date() })
-    .where(eq(tbCustomer.id, customer.customerId));
+    .where(eq(customers.id, customer.customerId));
 }
 
 export async function getCustomerRegistrations(clerkId: string) {
   const customer = await getCustomerByClerkIdOrThrow(clerkId);
   return db
     .select({
-      reservationId: tbCustomerReservation.id,
-      scheduleId: tbSchedule.id,
-      reservationDate: tbCustomerReservation.reservationDate,
-      lectureName: tbLecture.lectureName,
-      startTime: tbSchedule.startTime,
-      endTime: tbSchedule.endTime,
-      roomName: tbRoom.name,
+      reservationId: customerReservations.id,
+      scheduleId: schedules.id,
+      reservationDate: customerReservations.reservationDate,
+      lectureName: lectures.lectureName,
+      startTime: schedules.startTime,
+      endTime: schedules.endTime,
+      roomName: rooms.name,
     })
-    .from(tbCustomerReservation)
-    .innerJoin(tbSchedule, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
-    .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
-    .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
-    .where(eq(tbCustomerReservation.customerId, customer.customerId))
-    .orderBy(desc(tbSchedule.startTime));
+    .from(customerReservations)
+    .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
+    .where(eq(customerReservations.customerId, customer.customerId))
+    .orderBy(desc(schedules.startTime));
 }
 
 export async function getCustomerSpending(clerkId: string) {
@@ -109,21 +109,21 @@ export async function getCustomerSpending(clerkId: string) {
 
   const payments = await db
     .select({
-      id: tbPaymentHistory.id,
-      subscriptionName: tbSubscription.name,
-      amount: tbPaymentHistory.amount,
-      paymentDate: tbPaymentHistory.paymentDate,
-      paymentMethod: tbPaymentHistory.paymentMethod,
+      id: paymentHistory.id,
+      subscriptionName: subscriptions.name,
+      amount: paymentHistory.amount,
+      paymentDate: paymentHistory.paymentDate,
+      paymentMethod: paymentHistory.paymentMethod,
     })
-    .from(tbPaymentHistory)
-    .innerJoin(tbSubscription, eq(tbPaymentHistory.subscriptionId, tbSubscription.id))
-    .where(eq(tbPaymentHistory.customerId, customer.customerId))
-    .orderBy(desc(tbPaymentHistory.paymentDate));
+    .from(paymentHistory)
+    .innerJoin(subscriptions, eq(paymentHistory.subscriptionId, subscriptions.id))
+    .where(eq(paymentHistory.customerId, customer.customerId))
+    .orderBy(desc(paymentHistory.paymentDate));
 
   const [totalRow] = await db
-    .select({ total: sql<number>`coalesce(sum(${tbPaymentHistory.amount}), 0)::float` })
-    .from(tbPaymentHistory)
-    .where(eq(tbPaymentHistory.customerId, customer.customerId));
+    .select({ total: sql<number>`coalesce(sum(${paymentHistory.amount}), 0)::float` })
+    .from(paymentHistory)
+    .where(eq(paymentHistory.customerId, customer.customerId));
 
   return {
     total: totalRow.total,
@@ -134,24 +134,24 @@ export async function getCustomerSpending(clerkId: string) {
 export async function findCustomerByEmail(email: string) {
   const [row] = await db
     .select({
-      customerId: tbCustomer.id,
-      personId: tbPerson.id,
-      name: tbPerson.name,
-      surname: tbPerson.surname,
-      email: tbPerson.email,
+      customerId: customers.id,
+      personId: persons.id,
+      name: persons.name,
+      surname: persons.surname,
+      email: persons.email,
     })
-    .from(tbPerson)
-    .innerJoin(tbCustomer, eq(tbCustomer.personId, tbPerson.id))
-    .where(eq(tbPerson.email, email))
+    .from(persons)
+    .innerJoin(customers, eq(customers.personId, persons.id))
+    .where(eq(persons.email, email))
     .limit(1);
   return row ?? null;
 }
 
 export async function findCustomerByPersonId(personId: string) {
   const [row] = await db
-    .select({ id: tbCustomer.id })
-    .from(tbCustomer)
-    .where(eq(tbCustomer.personId, personId))
+    .select({ id: customers.id })
+    .from(customers)
+    .where(eq(customers.personId, personId))
     .limit(1);
   return row ?? null;
 }

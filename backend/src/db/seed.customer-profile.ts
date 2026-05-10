@@ -17,19 +17,19 @@
  */
 import { db, closeConnection } from './db';
 import {
-  tbCustomer,
-  tbCustomerReservation,
-  tbEmployee,
-  tbEmployeeSpecialization,
-  tbEmployeeType,
-  tbExerciseType,
-  tbLecture,
-  tbPaymentHistory,
-  tbPerson,
-  tbRoom,
-  tbSchedule,
-  tbScheduleInstructor,
-  tbSubscription,
+  customers,
+  customerReservations,
+  employees,
+  employeeSpecializations,
+  employeeTypes,
+  exerciseTypes,
+  lectures,
+  paymentHistory,
+  persons,
+  rooms,
+  schedules,
+  scheduleInstructors,
+  subscriptions,
 } from './schema';
 
 const TEST_CLERK_ID = process.env.SEED_TEST_CLERK_ID ?? 'seed_test_customer';
@@ -55,29 +55,29 @@ async function main() {
   try {
     // ── 1. Clear (FK-safe order) ──────────────────────────────────────────
     console.log('Clearing old data...');
-    await db.delete(tbPaymentHistory);
-    await db.delete(tbCustomerReservation);
-    await db.delete(tbScheduleInstructor);
-    await db.delete(tbSchedule);
-    await db.delete(tbLecture);
-    await db.delete(tbCustomer);
-    await db.delete(tbEmployeeSpecialization);
-    await db.delete(tbEmployee);
-    await db.delete(tbPerson);
-    await db.delete(tbEmployeeType);
-    await db.delete(tbSubscription);
-    await db.delete(tbRoom);
-    await db.delete(tbExerciseType);
+    await db.delete(paymentHistory);
+    await db.delete(customerReservations);
+    await db.delete(scheduleInstructors);
+    await db.delete(schedules);
+    await db.delete(lectures);
+    await db.delete(customers);
+    await db.delete(employeeSpecializations);
+    await db.delete(employees);
+    await db.delete(persons);
+    await db.delete(employeeTypes);
+    await db.delete(subscriptions);
+    await db.delete(rooms);
+    await db.delete(exerciseTypes);
 
     // ── 2. Reference data ────────────────────────────────────────────────
     console.log('Creating reference data...');
     const [instructorRole] = await db
-      .insert(tbEmployeeType)
+      .insert(employeeTypes)
       .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }])
       .returning();
 
     const [subMonthly, subYearly] = await db
-      .insert(tbSubscription)
+      .insert(subscriptions)
       .values([
         { name: 'Monthly Basic', price: '490', durationDays: 30 },
         { name: 'Year PRO', price: '3990', durationDays: 365 },
@@ -85,7 +85,7 @@ async function main() {
       .returning();
 
     const [roomA, roomB] = await db
-      .insert(tbRoom)
+      .insert(rooms)
       .values([
         { name: 'Room A', capacity: 15 },
         { name: 'Room B', capacity: 20 },
@@ -93,13 +93,13 @@ async function main() {
       .returning();
 
     const [yoga, cardio, power] = await db
-      .insert(tbExerciseType)
+      .insert(exerciseTypes)
       .values([{ name: 'Yoga' }, { name: 'Cardio' }, { name: 'Power' }])
       .returning();
 
     // ── 3. One instructor ────────────────────────────────────────────────
     const [instructorPerson] = await db
-      .insert(tbPerson)
+      .insert(persons)
       .values({
         clerkId: 'seed_instructor_profile_test',
         name: 'Jana',
@@ -109,7 +109,7 @@ async function main() {
       .returning();
 
     const [instructor] = await db
-      .insert(tbEmployee)
+      .insert(employees)
       .values({
         personId: instructorPerson.id,
         employeeTypeId: instructorRole.id,
@@ -117,14 +117,14 @@ async function main() {
       })
       .returning();
 
-    await db.insert(tbEmployeeSpecialization).values([
+    await db.insert(employeeSpecializations).values([
       { employeeId: instructor.id, exerciseTypeId: yoga.id },
       { employeeId: instructor.id, exerciseTypeId: cardio.id },
     ]);
 
     // ── 4. Lectures ───────────────────────────────────────────────────────
     const [yogaLec, cardioLec, powerLec, spinLec, hiitLec] = await db
-      .insert(tbLecture)
+      .insert(lectures)
       .values([
         {
           exerciseTypeId: yoga.id,
@@ -162,7 +162,7 @@ async function main() {
     // ── 5. Schedule slots ─────────────────────────────────────────────────
     // 2 upcoming + 3 past slots for registrations, plus extras for variety
     const slots = await db
-      .insert(tbSchedule)
+      .insert(schedules)
       .values([
         // Upcoming (for the test customer)
         {
@@ -221,7 +221,7 @@ async function main() {
 
     // Assign instructor to all slots
     await db
-      .insert(tbScheduleInstructor)
+      .insert(scheduleInstructors)
       .values(slots.map((s) => ({ scheduleId: s.id, employeeId: instructor.id, isLead: true })));
 
     const [upcomingYoga, upcomingSpin, pastCardio, pastPower, pastHiit] = slots;
@@ -229,7 +229,7 @@ async function main() {
     // ── 6. Test customer ──────────────────────────────────────────────────
     console.log(`Creating test customer (clerkId: ${TEST_CLERK_ID})...`);
     const [testPerson] = await db
-      .insert(tbPerson)
+      .insert(persons)
       .values({
         clerkId: TEST_CLERK_ID,
         name: 'Test',
@@ -242,7 +242,7 @@ async function main() {
     validUntil.setUTCDate(validUntil.getUTCDate() + 20);
 
     const [testCustomer] = await db
-      .insert(tbCustomer)
+      .insert(customers)
       .values({
         personId: testPerson.id,
         subscriptionId: subMonthly.id,
@@ -252,7 +252,7 @@ async function main() {
 
     // ── 7. Registrations ──────────────────────────────────────────────────
     console.log('Creating registrations...');
-    await db.insert(tbCustomerReservation).values([
+    await db.insert(customerReservations).values([
       // Upcoming
       {
         customerId: testCustomer.id,
@@ -272,7 +272,7 @@ async function main() {
 
     // ── 8. Payment history ────────────────────────────────────────────────
     console.log('Creating payment history...');
-    await db.insert(tbPaymentHistory).values([
+    await db.insert(paymentHistory).values([
       // This month — Monthly Basic
       {
         customerId: testCustomer.id,

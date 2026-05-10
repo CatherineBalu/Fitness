@@ -1,17 +1,17 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { db } from '../db/db';
 import {
-  tbCustomer,
-  tbCustomerReservation,
-  tbEmployee,
-  tbEmployeeType,
-  tbLecture,
-  tbPaymentHistory,
-  tbPerson,
-  tbRoom,
-  tbSchedule,
-  tbScheduleInstructor,
-  tbSubscription,
+  customers,
+  customerReservations,
+  employees,
+  employeeTypes,
+  lectures,
+  paymentHistory,
+  persons,
+  rooms,
+  schedules,
+  scheduleInstructors,
+  subscriptions,
 } from '../db/schema';
 import { NotFoundError, UnauthorizedError } from '../lib/errors';
 
@@ -20,40 +20,40 @@ import { NotFoundError, UnauthorizedError } from '../lib/errors';
 export async function getAdminOverview() {
   const [memberships] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(tbCustomer)
-    .where(gte(tbCustomer.subscriptionValidUntil, sql`current_date`));
+    .from(customers)
+    .where(gte(customers.subscriptionValidUntil, sql`current_date`));
 
   const [revenue] = await db
-    .select({ total: sql<number>`coalesce(sum(${tbPaymentHistory.amount}), 0)::float` })
-    .from(tbPaymentHistory)
-    .where(gte(tbPaymentHistory.paymentDate, sql`date_trunc('month', current_date)`));
+    .select({ total: sql<number>`coalesce(sum(${paymentHistory.amount}), 0)::float` })
+    .from(paymentHistory)
+    .where(gte(paymentHistory.paymentDate, sql`date_trunc('month', current_date)`));
 
   const [reservations] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(tbCustomerReservation)
-    .innerJoin(tbSchedule, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
-    .where(gte(tbSchedule.startTime, sql`date_trunc('month', current_date)`));
+    .from(customerReservations)
+    .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
+    .where(gte(schedules.startTime, sql`date_trunc('month', current_date)`));
 
   const [occupancy] = await db
     .select({
       pct: sql<number>`coalesce(avg(
-        case when ${tbRoom.capacity} > 0
-          then coalesce(res_counts.cnt, 0)::float / ${tbRoom.capacity} * 100
+        case when ${rooms.capacity} > 0
+          then coalesce(res_counts.cnt, 0)::float / ${rooms.capacity} * 100
           else 0
         end
       ), 0)::float`,
     })
-    .from(tbSchedule)
-    .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
+    .from(schedules)
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
     .leftJoin(
       sql`(
-        select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
-        from ${tbCustomerReservation}
-        group by ${tbCustomerReservation.scheduleId}
+        select ${customerReservations.scheduleId} as schedule_id, count(*)::int as cnt
+        from ${customerReservations}
+        group by ${customerReservations.scheduleId}
       ) res_counts`,
-      sql`res_counts.schedule_id = ${tbSchedule.id}`,
+      sql`res_counts.schedule_id = ${schedules.id}`,
     )
-    .where(gte(tbSchedule.startTime, sql`date_trunc('month', current_date)`));
+    .where(gte(schedules.startTime, sql`date_trunc('month', current_date)`));
 
   return {
     activeMemberships: memberships.count,
@@ -67,13 +67,13 @@ export async function getRevenueMonthly(monthsRaw = 12) {
   const months = Math.min(Math.max(monthsRaw, 1), 36);
   return db
     .select({
-      month: sql<string>`to_char(${tbPaymentHistory.paymentDate}, 'YYYY-MM')`,
-      total: sql<number>`sum(${tbPaymentHistory.amount})::float`,
+      month: sql<string>`to_char(${paymentHistory.paymentDate}, 'YYYY-MM')`,
+      total: sql<number>`sum(${paymentHistory.amount})::float`,
     })
-    .from(tbPaymentHistory)
+    .from(paymentHistory)
     .where(
       gte(
-        tbPaymentHistory.paymentDate,
+        paymentHistory.paymentDate,
         sql`(date_trunc('month', current_date) - (${months - 1} || ' months')::interval)`,
       ),
     )
@@ -84,60 +84,60 @@ export async function getRevenueMonthly(monthsRaw = 12) {
 export async function getRevenueBySubscription() {
   return db
     .select({
-      subscriptionName: tbSubscription.name,
-      total: sql<number>`sum(${tbPaymentHistory.amount})::float`,
+      subscriptionName: subscriptions.name,
+      total: sql<number>`sum(${paymentHistory.amount})::float`,
       count: sql<number>`count(*)::int`,
     })
-    .from(tbPaymentHistory)
-    .innerJoin(tbSubscription, eq(tbPaymentHistory.subscriptionId, tbSubscription.id))
-    .groupBy(tbSubscription.id, tbSubscription.name)
-    .orderBy(sql`sum(${tbPaymentHistory.amount}) desc`);
+    .from(paymentHistory)
+    .innerJoin(subscriptions, eq(paymentHistory.subscriptionId, subscriptions.id))
+    .groupBy(subscriptions.id, subscriptions.name)
+    .orderBy(sql`sum(${paymentHistory.amount}) desc`);
 }
 
 export async function getTopLectures(limitRaw = 10) {
   const limit = Math.min(Math.max(limitRaw, 1), 50);
   return db
     .select({
-      lectureName: tbLecture.lectureName,
-      reservationCount: sql<number>`count(${tbCustomerReservation.customerId})::int`,
+      lectureName: lectures.lectureName,
+      reservationCount: sql<number>`count(${customerReservations.customerId})::int`,
     })
-    .from(tbCustomerReservation)
-    .innerJoin(tbSchedule, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
-    .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
-    .groupBy(tbLecture.id, tbLecture.lectureName)
-    .orderBy(desc(sql`count(${tbCustomerReservation.customerId})`))
+    .from(customerReservations)
+    .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .groupBy(lectures.id, lectures.lectureName)
+    .orderBy(desc(sql`count(${customerReservations.customerId})`))
     .limit(limit);
 }
 
 export async function getOccupancy() {
   const rows = await db
     .select({
-      lectureName: tbLecture.lectureName,
+      lectureName: lectures.lectureName,
       avgReservations: sql<number>`avg(coalesce(res_counts.cnt, 0))::float`,
-      capacity: sql<number>`avg(${tbRoom.capacity})::float`,
+      capacity: sql<number>`avg(${rooms.capacity})::float`,
       occupancyPct: sql<number>`avg(
-        case when ${tbRoom.capacity} > 0
-          then coalesce(res_counts.cnt, 0)::float / ${tbRoom.capacity} * 100
+        case when ${rooms.capacity} > 0
+          then coalesce(res_counts.cnt, 0)::float / ${rooms.capacity} * 100
           else 0
         end
       )::float`,
     })
-    .from(tbSchedule)
-    .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
-    .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
+    .from(schedules)
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
     .leftJoin(
       sql`(
-        select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
-        from ${tbCustomerReservation}
-        group by ${tbCustomerReservation.scheduleId}
+        select ${customerReservations.scheduleId} as schedule_id, count(*)::int as cnt
+        from ${customerReservations}
+        group by ${customerReservations.scheduleId}
       ) res_counts`,
-      sql`res_counts.schedule_id = ${tbSchedule.id}`,
+      sql`res_counts.schedule_id = ${schedules.id}`,
     )
-    .groupBy(tbLecture.id, tbLecture.lectureName)
+    .groupBy(lectures.id, lectures.lectureName)
     .orderBy(
       desc(sql`avg(
-        case when ${tbRoom.capacity} > 0
-          then res_counts.cnt::float / ${tbRoom.capacity} * 100
+        case when ${rooms.capacity} > 0
+          then res_counts.cnt::float / ${rooms.capacity} * 100
           else 0
         end
       )`),
@@ -158,13 +158,13 @@ export async function getInstructorStats(clerkId: string | null) {
 
   const [employee] = await db
     .select({
-      employeeId: tbEmployee.id,
-      employeeType: tbEmployeeType.roleName,
+      employeeId: employees.id,
+      employeeType: employeeTypes.roleName,
     })
-    .from(tbEmployee)
-    .innerJoin(tbPerson, eq(tbEmployee.personId, tbPerson.id))
-    .innerJoin(tbEmployeeType, eq(tbEmployee.employeeTypeId, tbEmployeeType.id))
-    .where(eq(tbPerson.clerkId, clerkId))
+    .from(employees)
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .innerJoin(employeeTypes, eq(employees.employeeTypeId, employeeTypes.id))
+    .where(eq(persons.clerkId, clerkId))
     .limit(1);
 
   if (!employee) throw new NotFoundError('Employee profile not found');
@@ -177,63 +177,63 @@ export async function getInstructorStats(clerkId: string | null) {
 
   const [monthLectures] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(tbScheduleInstructor)
-    .innerJoin(tbSchedule, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
+    .from(scheduleInstructors)
+    .innerJoin(schedules, eq(scheduleInstructors.scheduleId, schedules.id))
     .where(
       and(
-        eq(tbScheduleInstructor.employeeId, employee.employeeId),
-        gte(tbSchedule.startTime, monthStart),
+        eq(scheduleInstructors.employeeId, employee.employeeId),
+        gte(schedules.startTime, monthStart),
       ),
     );
 
   const [monthAttendees] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(tbCustomerReservation)
+    .from(customerReservations)
     .innerJoin(
-      tbScheduleInstructor,
-      eq(tbCustomerReservation.scheduleId, tbScheduleInstructor.scheduleId),
+      scheduleInstructors,
+      eq(customerReservations.scheduleId, scheduleInstructors.scheduleId),
     )
-    .innerJoin(tbSchedule, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
+    .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
     .where(
       and(
-        eq(tbScheduleInstructor.employeeId, employee.employeeId),
-        gte(tbSchedule.startTime, monthStart),
+        eq(scheduleInstructors.employeeId, employee.employeeId),
+        gte(schedules.startTime, monthStart),
       ),
     );
 
   const [fillRate] = await db
     .select({
       pct: sql<number>`coalesce(avg(
-        case when ${tbRoom.capacity} > 0
-          then coalesce(res_counts.cnt, 0)::float / ${tbRoom.capacity} * 100
+        case when ${rooms.capacity} > 0
+          then coalesce(res_counts.cnt, 0)::float / ${rooms.capacity} * 100
           else 0
         end
       ), 0)::float`,
     })
-    .from(tbSchedule)
-    .innerJoin(tbScheduleInstructor, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
-    .innerJoin(tbRoom, eq(tbSchedule.roomId, tbRoom.id))
+    .from(schedules)
+    .innerJoin(scheduleInstructors, eq(scheduleInstructors.scheduleId, schedules.id))
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
     .leftJoin(
       sql`(
-        select ${tbCustomerReservation.scheduleId} as schedule_id, count(*)::int as cnt
-        from ${tbCustomerReservation}
-        group by ${tbCustomerReservation.scheduleId}
+        select ${customerReservations.scheduleId} as schedule_id, count(*)::int as cnt
+        from ${customerReservations}
+        group by ${customerReservations.scheduleId}
       ) res_counts`,
-      sql`res_counts.schedule_id = ${tbSchedule.id}`,
+      sql`res_counts.schedule_id = ${schedules.id}`,
     )
-    .where(eq(tbScheduleInstructor.employeeId, employee.employeeId));
+    .where(eq(scheduleInstructors.employeeId, employee.employeeId));
 
   const lecturesByMonth = await db
     .select({
-      month: sql<string>`to_char(${tbSchedule.startTime}, 'YYYY-MM')`,
+      month: sql<string>`to_char(${schedules.startTime}, 'YYYY-MM')`,
       count: sql<number>`count(*)::int`,
     })
-    .from(tbScheduleInstructor)
-    .innerJoin(tbSchedule, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
+    .from(scheduleInstructors)
+    .innerJoin(schedules, eq(scheduleInstructors.scheduleId, schedules.id))
     .where(
       and(
-        eq(tbScheduleInstructor.employeeId, employee.employeeId),
-        gte(tbSchedule.startTime, sql`(date_trunc('month', current_date) - interval '5 months')`),
+        eq(scheduleInstructors.employeeId, employee.employeeId),
+        gte(schedules.startTime, sql`(date_trunc('month', current_date) - interval '5 months')`),
       ),
     )
     .groupBy(sql`1`)
@@ -241,16 +241,16 @@ export async function getInstructorStats(clerkId: string | null) {
 
   const [mostPopular] = await db
     .select({
-      lectureName: tbLecture.lectureName,
-      reservationCount: sql<number>`count(${tbCustomerReservation.customerId})::int`,
+      lectureName: lectures.lectureName,
+      reservationCount: sql<number>`count(${customerReservations.customerId})::int`,
     })
-    .from(tbScheduleInstructor)
-    .innerJoin(tbSchedule, eq(tbScheduleInstructor.scheduleId, tbSchedule.id))
-    .innerJoin(tbLecture, eq(tbSchedule.lectureId, tbLecture.id))
-    .leftJoin(tbCustomerReservation, eq(tbCustomerReservation.scheduleId, tbSchedule.id))
-    .where(eq(tbScheduleInstructor.employeeId, employee.employeeId))
-    .groupBy(tbLecture.id, tbLecture.lectureName)
-    .orderBy(desc(sql`count(${tbCustomerReservation.customerId})`))
+    .from(scheduleInstructors)
+    .innerJoin(schedules, eq(scheduleInstructors.scheduleId, schedules.id))
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .leftJoin(customerReservations, eq(customerReservations.scheduleId, schedules.id))
+    .where(eq(scheduleInstructors.employeeId, employee.employeeId))
+    .groupBy(lectures.id, lectures.lectureName)
+    .orderBy(desc(sql`count(${customerReservations.customerId})`))
     .limit(1);
 
   return {
