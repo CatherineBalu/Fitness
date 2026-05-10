@@ -14,8 +14,6 @@ For commands, deps, env vars, CI config — read `package.json`, `.env.example`,
 
 ## Conventions
 
-> NUE-54 refactor in progress. **[TBD]** = pending team decision.
-
 ### File Naming
 
 | Kind | Convention | Example |
@@ -86,9 +84,9 @@ Service does **not** re-run Zod on already-validated input. Type safety from `z.
 - All DB access through service layer — no direct `db.select(...)` from routes.
 - Schema change → run `bunx drizzle-kit push` then re-seed (see Definition of Done).
 
-### Routing — **[TBD]**
+### Routing
 
-Migrate from code-based `router.tsx` to TanStack file-based routing in `frontend/src/routes/`. One-shot migration.
+TanStack file-based routing in `frontend/src/routes/`. Code-based `router.tsx` is being removed in NUE-54 (one-shot migration). File names are `kebab-case.tsx` and match the URL segment; dynamic params use `$param.tsx`; `__root.tsx` holds the root layout. Route guards (auth, permission) live in `lib/routeGuards.ts` and are wired via `beforeLoad`.
 
 ### TanStack Query
 
