@@ -20,4 +20,4 @@ async function testSelect() {
   }
 }
 
-testSelect();
+void testSelect();

@@ -317,4 +317,4 @@ To link to your real account, re-run with:
   }
 }
 
-main();
+void main();

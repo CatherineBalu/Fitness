@@ -43,11 +43,18 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isSignedIn || !user || role || bootstrappedRef.current) return;
     bootstrappedRef.current = true;
-    apiRequest('/auth/profile')
-      .catch(() => {})
-      .finally(() => {
-        user.reload().catch(() => {});
-      });
+    void (async () => {
+      try {
+        await apiRequest('/auth/profile');
+      } catch {
+        // bootstrap failure is non-fatal — user still loads with no role
+      }
+      try {
+        await user.reload();
+      } catch {
+        // reload failure is non-fatal
+      }
+    })();
   }, [isSignedIn, user, role, apiRequest]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
