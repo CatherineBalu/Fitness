@@ -80,7 +80,7 @@ export default function RootLayout() {
 
           {mode === 'public' && (
             <div
-              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+              className={`navbar-links${menuOpen ? 'navbar-links--open' : ''}`}
             >
               <Link to="/" onClick={closeMenu}>
                 Home
@@ -128,7 +128,7 @@ export default function RootLayout() {
 
           {mode === 'staff' && (
             <div
-              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+              className={`navbar-links${menuOpen ? 'navbar-links--open' : ''}`}
             >
               <Link to="/admin/calendar" onClick={closeMenu}>
                 Calendar
@@ -144,7 +144,7 @@ export default function RootLayout() {
 
           {mode === 'admin' && (
             <div
-              className={`navbar-links${menuOpen ? ' navbar-links--open' : ''}`}
+              className={`navbar-links${menuOpen ? 'navbar-links--open' : ''}`}
             >
               <Link to="/admin/staff" onClick={closeMenu}>
                 Manage Staff
@@ -170,7 +170,7 @@ export default function RootLayout() {
             onClick={() => setMenuOpen((o) => !o)}
           >
             <span
-              className={`hamburger-bar${menuOpen ? ' hamburger-bar--open' : ''}`}
+              className={`hamburger-bar${menuOpen ? 'hamburger-bar--open' : ''}`}
             />
           </button>
         </div>

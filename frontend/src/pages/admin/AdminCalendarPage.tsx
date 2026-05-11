@@ -166,21 +166,21 @@ function LectureCard({
       className={`lecture-card relative ${isPast ? 'opacity-70 grayscale-[0.3]' : ''}`}
     >
       <CardContent className="lecture-card-content">
-        <div className="lecture-card-top flex justify-between items-start mb-1 min-h-[16px]">
+        <div className="lecture-card-top mb-1 flex min-h-[16px] items-start justify-between">
           {!isPast && <span className={`status-dot status-dot--${status}`} />}
           {isPast && (
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-auto">
+            <span className="ml-auto text-[10px] font-bold tracking-wider text-slate-500 uppercase">
               Past
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 mb-2">
+        <div className="mb-2 flex items-center gap-2">
           <h3 className="lecture-name m-0 pr-0">{lecture.name}</h3>
           {!isPast && (
             <button
               onClick={() => onEditLecture(lecture)}
-              className="text-slate-400 hover:text-white transition-colors"
+              className="text-slate-400 transition-colors hover:text-white"
               title="Edit Lecture"
             >
               <Pencil size={14} />
@@ -209,7 +209,7 @@ function LectureCard({
           </div>
         </div>
 
-        <div className="flex gap-2 mt-2 w-full">
+        <div className="mt-2 flex w-full gap-2">
           {!isPast && (
             <Button
               size="sm"
@@ -640,37 +640,37 @@ export default function AdminCalendarPage() {
 
         {/* History Date Range Picker */}
         {filter === 'history' && (
-          <div className="flex flex-col sm:flex-row items-end gap-4 mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-800 mb-2">
-            <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <div className="mt-4 mb-2 flex flex-col items-end gap-4 rounded-lg border border-slate-800 bg-slate-900/50 p-4 sm:flex-row">
+            <div className="flex w-full flex-col gap-1 sm:w-auto">
               <label className="text-xs text-slate-400">From Date</label>
               <Input
                 type="date"
                 value={historyFrom}
                 max={maxHistoryDateStr}
                 onChange={(e) => setHistoryFrom(e.target.value)}
-                className="bg-slate-950 border-slate-700 text-sm"
+                className="border-slate-700 bg-slate-950 text-sm"
               />
             </div>
-            <div className="flex flex-col gap-1 w-full sm:w-auto">
+            <div className="flex w-full flex-col gap-1 sm:w-auto">
               <label className="text-xs text-slate-400">To Date</label>
               <Input
                 type="date"
                 value={historyTo}
                 max={maxHistoryDateStr}
                 onChange={(e) => setHistoryTo(e.target.value)}
-                className="bg-slate-950 border-slate-700 text-sm"
+                className="border-slate-700 bg-slate-950 text-sm"
               />
             </div>
             <Button
               onClick={() => loadSchedule(historyFrom, historyTo)}
-              className="bg-[#aacc00] hover:bg-[#bbdd11] text-black w-full sm:w-auto"
+              className="w-full bg-[#aacc00] text-black hover:bg-[#bbdd11] sm:w-auto"
             >
               Load Range
             </Button>
             <Button
               onClick={() => loadSchedule('2000-01-01', maxHistoryDateStr)}
               variant="outline"
-              className="bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-slate-200 w-full sm:w-auto"
+              className="w-full border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-slate-200 sm:w-auto"
             >
               Load All History
             </Button>
@@ -707,7 +707,7 @@ export default function AdminCalendarPage() {
             />
           ))}
           {!loading && filtered.length === 0 && (
-            <p className="text-slate-500 col-span-full text-center py-8">
+            <p className="col-span-full py-8 text-center text-slate-500">
               No lectures found for this filter.
             </p>
           )}
@@ -737,13 +737,13 @@ export default function AdminCalendarPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col gap-2 mt-2 border-b border-slate-800 pb-4">
+          <div className="mt-2 flex flex-col gap-2 border-b border-slate-800 pb-4">
             <div className="flex gap-2">
               <Input
                 placeholder="Enter member's email..."
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
-                className="bg-slate-900 border-slate-700"
+                className="border-slate-700 bg-slate-900"
               />
               <Button
                 onClick={handleAddMember}
@@ -760,14 +760,14 @@ export default function AdminCalendarPage() {
             )}
           </div>
 
-          <div className="flex flex-col gap-2 mt-2 max-h-[300px] overflow-y-auto pr-2">
+          <div className="mt-2 flex max-h-[300px] flex-col gap-2 overflow-y-auto pr-2">
             {loadingMembers && (
-              <p className="text-sm text-center text-slate-400 py-4 animate-pulse">
+              <p className="animate-pulse py-4 text-center text-sm text-slate-400">
                 Loading members...
               </p>
             )}
             {membersError && (
-              <p className="text-sm text-center text-red-400 py-4">
+              <p className="py-4 text-center text-sm text-red-400">
                 {membersError}
               </p>
             )}
@@ -777,11 +777,11 @@ export default function AdminCalendarPage() {
               members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center p-3 rounded-lg border border-slate-800 bg-slate-900/50 group"
+                  className="group flex items-center rounded-lg border border-slate-800 bg-slate-900/50 p-3"
                 >
                   <button
                     onClick={() => handleRemoveMember(member.id)}
-                    className="text-slate-500 hover:text-red-500 mr-3 transition-colors"
+                    className="mr-3 text-slate-500 transition-colors hover:text-red-500"
                     title="Remove member"
                   >
                     <X size={18} />
@@ -798,7 +798,7 @@ export default function AdminCalendarPage() {
               ))}
 
             {!loadingMembers && !membersError && members.length === 0 && (
-              <p className="text-sm text-center text-slate-500 py-4">
+              <p className="py-4 text-center text-sm text-slate-500">
                 No members registered yet.
               </p>
             )}
@@ -817,13 +817,13 @@ export default function AdminCalendarPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col gap-4 mt-4">
+          <div className="mt-4 flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-sm text-slate-300">Lecture Name</label>
               <Input
                 value={editLectureData.name}
                 disabled
-                className="bg-slate-900 opacity-50 cursor-not-allowed text-slate-400"
+                className="cursor-not-allowed bg-slate-900 text-slate-400 opacity-50"
               />
               <p className="text-xs text-slate-500">
                 Name is bound to the template and cannot be changed here.
@@ -843,7 +843,7 @@ export default function AdminCalendarPage() {
                 </SelectTrigger>
                 <SelectContent
                   position="popper"
-                  className="max-h-[200px] overflow-y-auto z-[100]"
+                  className="z-[100] max-h-[200px] overflow-y-auto"
                 >
                   {rooms.map((room) => (
                     <SelectItem key={room.id} value={room.id}>
@@ -855,7 +855,7 @@ export default function AdminCalendarPage() {
             </div>
 
             <div className="flex gap-4">
-              <div className="flex flex-col gap-1 flex-1">
+              <div className="flex flex-1 flex-col gap-1">
                 <label className="text-sm text-slate-300">Start Time</label>
                 <Input
                   type="time"
@@ -868,7 +868,7 @@ export default function AdminCalendarPage() {
                   }
                 />
               </div>
-              <div className="flex flex-col gap-1 flex-1">
+              <div className="flex flex-1 flex-col gap-1">
                 <label className="text-sm text-slate-300">End Time</label>
                 <Input
                   type="time"
@@ -912,13 +912,13 @@ export default function AdminCalendarPage() {
         open={capacityWarningOpen}
         onOpenChange={setCapacityWarningOpen}
       >
-        <AlertDialogContent className="bg-slate-950 border border-slate-800 z-[70] sm:max-w-md shadow-2xl">
+        <AlertDialogContent className="z-[70] border border-slate-800 bg-slate-950 shadow-2xl sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-500 flex items-center gap-2 text-xl font-semibold">
+            <AlertDialogTitle className="flex items-center gap-2 text-xl font-semibold text-red-500">
               <AlertTriangle size={22} />
               Capacity Warning
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400 mt-3 text-sm leading-relaxed">
+            <AlertDialogDescription className="mt-3 text-sm leading-relaxed text-slate-400">
               You are trying to change the room to{' '}
               <strong className="text-slate-200">
                 {pendingEditRoom?.name}
@@ -939,13 +939,13 @@ export default function AdminCalendarPage() {
               proceed?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="border-t border-slate-800/50 pt-4 mt-4">
-            <AlertDialogCancel className="bg-black hover:bg-slate-300 text-white border border-slate-700 sm:mt-0 hover:text-gray">
+          <AlertDialogFooter className="mt-4 border-t border-slate-800/50 pt-4">
+            <AlertDialogCancel className="hover:text-gray border border-slate-700 bg-black text-white hover:bg-slate-300 sm:mt-0">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={executeSaveEdit}
-              className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-md"
+              className="border-0 bg-red-600 text-white shadow-md hover:bg-red-700"
             >
               Yes, Overbook Room
             </AlertDialogAction>
@@ -970,20 +970,20 @@ export default function AdminCalendarPage() {
             </p>
           </DialogHeader>
 
-          <div className="flex flex-col gap-3 mt-4 max-h-[350px] overflow-y-auto pr-2">
+          <div className="mt-4 flex max-h-[350px] flex-col gap-3 overflow-y-auto pr-2">
             {loadingMembers ? (
-              <p className="text-sm text-center text-slate-400 py-4 animate-pulse">
+              <p className="animate-pulse py-4 text-center text-sm text-slate-400">
                 Loading members...
               </p>
             ) : members.length === 0 ? (
-              <p className="text-sm text-center text-slate-500 py-4">
+              <p className="py-4 text-center text-sm text-slate-500">
                 No members registered for this class.
               </p>
             ) : (
               members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-900/50"
+                  className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 p-3"
                 >
                   <div className="flex flex-col">
                     <span className="font-medium text-slate-200">
@@ -1023,7 +1023,7 @@ export default function AdminCalendarPage() {
               <Button
                 onClick={handleSaveAttendance}
                 disabled={isSavingAttendance}
-                className="bg-[#aacc00] hover:bg-[#bbdd11] text-black border-0"
+                className="border-0 bg-[#aacc00] text-black hover:bg-[#bbdd11]"
               >
                 {isSavingAttendance ? 'Saving...' : 'Save Attendance'}
               </Button>
