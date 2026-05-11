@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
+import { swagger } from '@elysiajs/swagger';
 import { DomainValidationError, HttpError } from './lib/errors';
 import { clerkMiddleware } from './middleware/auth';
 import { profileRoutes } from './routes/auth';
@@ -23,6 +24,18 @@ export const app = new Elysia()
         'http://127.0.0.1:5173',
       ],
       credentials: true,
+    }),
+  )
+  .use(
+    swagger({
+      path: '/swagger',
+      documentation: {
+        info: {
+          title: 'Gym Management API',
+          version: '1.0.0',
+          description: 'Backend API for the pb138 gym management web app.',
+        },
+      },
     }),
   )
   .use(clerkMiddleware)
