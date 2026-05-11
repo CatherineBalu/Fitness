@@ -255,16 +255,29 @@ export async function updateStaff(employeeId: string, input: UpdateStaffInput): 
     .where(eq(persons.id, employee.personId));
 
   if (employee.role === 'Instructor' && input.specializations) {
+    const now = new Date();
     await db
-      .delete(employeeSpecializations)
-      .where(eq(employeeSpecializations.employeeId, employee.employeeId));
-    if (input.specializations.length > 0) {
-      await db.insert(employeeSpecializations).values(
-        input.specializations.map((exerciseTypeId) => ({
-          employeeId: employee.employeeId,
-          exerciseTypeId,
-        })),
+      .update(employeeSpecializations)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(employeeSpecializations.employeeId, employee.employeeId),
+          notDeleted(employeeSpecializations),
+        ),
       );
+    if (input.specializations.length > 0) {
+      await db
+        .insert(employeeSpecializations)
+        .values(
+          input.specializations.map((exerciseTypeId) => ({
+            employeeId: employee.employeeId,
+            exerciseTypeId,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [employeeSpecializations.employeeId, employeeSpecializations.exerciseTypeId],
+          set: { deletedAt: null, updatedAt: now },
+        });
     }
   }
 }
@@ -285,14 +298,33 @@ export async function deleteStaff(employeeId: string): Promise<void> {
 
   await clerk.users.deleteUser(employee.clerkId).catch(() => {});
   await db.transaction(async (tx) => {
+    const now = new Date();
     await tx
-      .delete(employeeSpecializations)
-      .where(eq(employeeSpecializations.employeeId, employee.employeeId));
+      .update(employeeSpecializations)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(employeeSpecializations.employeeId, employee.employeeId),
+          notDeleted(employeeSpecializations),
+        ),
+      );
     await tx
-      .delete(scheduleInstructors)
-      .where(eq(scheduleInstructors.employeeId, employee.employeeId));
-    await tx.delete(employees).where(eq(employees.id, employee.employeeId));
-    await tx.delete(persons).where(eq(persons.id, employee.personId));
+      .update(scheduleInstructors)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(scheduleInstructors.employeeId, employee.employeeId),
+          notDeleted(scheduleInstructors),
+        ),
+      );
+    await tx
+      .update(employees)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(eq(employees.id, employee.employeeId));
+    await tx
+      .update(persons)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(eq(persons.id, employee.personId));
   });
 }
 

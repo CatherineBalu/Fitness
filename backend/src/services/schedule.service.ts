@@ -213,15 +213,17 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
 export async function cancelReservation(clerkId: string, scheduleId: string): Promise<void> {
   const customer = await getCustomerByClerkIdOrThrow(clerkId);
 
-  const deleted = await db
-    .delete(customerReservations)
+  const updated = await db
+    .update(customerReservations)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(
       and(
         eq(customerReservations.customerId, customer.customerId),
         eq(customerReservations.scheduleId, scheduleId),
+        notDeleted(customerReservations),
       ),
     )
     .returning({ customerId: customerReservations.customerId });
 
-  if (deleted.length === 0) throw new NotFoundError('Reservation not found');
+  if (updated.length === 0) throw new NotFoundError('Reservation not found');
 }

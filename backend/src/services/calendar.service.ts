@@ -177,11 +177,13 @@ export async function removeMember(scheduleId: string, personId: string): Promis
   if (!customer) throw new NotFoundError('Customer not found.');
 
   await db
-    .delete(customerReservations)
+    .update(customerReservations)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(
       and(
         eq(customerReservations.scheduleId, scheduleId),
         eq(customerReservations.customerId, customer.id),
+        notDeleted(customerReservations),
       ),
     );
 }
