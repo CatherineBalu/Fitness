@@ -84,3 +84,66 @@ routes, soft-delete filtre, použitie apiClient) chytá code review.
 - Že nový kód mimo `pages/**` rešpektuje ESLint pravidlá bez disable
   komentárov
 - CLAUDE.md či sedí s tým, čo skutočne robíme
+
+---
+
+## Diff voči reportu od cvičiaceho
+
+Sekcia mimo NUE-54 scope-u: porovnanie bodov z reportu s tým, čo
+reálne odovzdávame. Cieľom je, aby tím vedel, čo je hotové, čo je
+**zámerne** odložené do M3, a čo sme **vôbec neadresovali** a treba
+o tom rozhodnúť.
+
+### Hotové v NUE-54
+
+- Setup konvencií (`CLAUDE.md` ako single source of truth)
+- Update `CLAUDE.md`
+- ESLint pravidlá (5 pravidiel, viď vyššie)
+- Data fetching infra — `apiClient` + TanStack Query (async/await,
+  bez raw `fetch` v novom kóde)
+- Service layer (Janko)
+- DB: `tb_` prefix preč, `id/createdAt/updatedAt/deletedAt` na
+  každej tabuľke (Janko)
+- Route dekompozícia (Janko)
+- Inline `style={{}}` zakázané ESLint pravidlom (`react/forbid-dom-props`)
+
+### Infra hotová, staré stránky zatiaľ nie — odložené na M3
+
+Všetko nižšie pokrýva transitional override v `frontend/eslint.config.js`
+(`TODO(NUE-M3)`). Override sa zmaže keď M3 refactor migruje stránku.
+
+- **Tailwind vs CSS mašuje** — 9 `.css` súborov stále existuje
+  (`App.css`, `CustomerProfilePage.css`, `SchedulePage.css`,
+  `CheckoutPage.css`, `stats.css`, 4× admin)
+- **Inline `style={{}}`** v 7 súboroch (`CheckoutPage`,
+  `AdminCalendarPage`, `MyProfilePage`, `HomePage`, `SchedulePage`,
+  `AddScheduleDialog`, `AdminDashboardPage`)
+- **Raw `fetch()`** v `HomePage`, `AddScheduleDialog`,
+  `AdminCalendarPage`, `CheckoutPage`
+- **`useEffect` na data fetching** vrátane `StaffStatisticsPage`
+  (cvičiaci ho spomenul menom)
+- **Veľké súbory bez dekompozície** — `AdminCalendarPage.tsx`
+  1038 r., `AdminStaffPage.tsx` 866 r., `SchedulePage.tsx` 586 r.,
+  `CheckoutPage.tsx` 545 r.
+- **Mašup shadcn / non-shadcn** primitív
+- **Naming notations** — napr. `CustomerProfilePage.tsx` žije v
+  `components/` namiesto `pages/`
+
+### Vôbec neadresované — treba rozhodnúť
+
+1. **Kubb** — generátor TS klienta z OpenAPI. Máme
+   `@elysiajs/swagger` na `/swagger`, takže OpenAPI doc už existuje.
+   Návrh: **odložiť na M3/M4**, lebo dnes by sa generovalo proti
+   meniacej sa Elysia schéme a získali by sme málo (apiClient máme
+   napísaný ručne, je to ~80 riadkov). Zmysel to bude dávať keď
+   BE prestane meniť tvar response-ov.
+2. **Monorepository (npm/bun workspaces, shared FE↔BE)** —
+   aktuálne sú `frontend/` a `backend/` dva samostatné balíky
+   (jeden npm, druhý bun), bez workspaces, bez `shared/` priečinka.
+   Kandidáti na zdieľanie: validation Zod schemas, error type
+   names, permission enum (dnes žije len v FE
+   `frontend/src/lib/permissions.ts`, BE má len stringy).
+   Návrh: **odložiť za M3** — najprv chceme stabilizovať konvencie
+   page-by-page, potom extrahovať `shared/`. Ak chceme ešte
+   v M3, tak ako samostatný ticket pred page refactorom.
+3. **File-based routing (TanStack)** — viď otvorenú otázku vyššie.
