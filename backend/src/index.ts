@@ -1,18 +1,19 @@
-import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
+import { Elysia } from 'elysia';
+
 import { DomainValidationError, HttpError } from './lib/errors';
 import { clerkMiddleware } from './middleware/auth';
 import { profileRoutes } from './routes/auth';
-import { scheduleRoutes } from './routes/schedule';
 import { calendarRoutes } from './routes/calendar';
-import { staffRoutes, staffWriteRoutes, staffDeleteRoutes } from './routes/staff/staff';
-import { lectureRoutes } from './routes/staff/lecture';
-import { exerciseTypeRoutes } from './routes/staff/exercise-type';
+import { customerRoutes } from './routes/customer';
+import { scheduleRoutes } from './routes/schedule';
 import { employeeTypeRoutes } from './routes/staff/employee-type';
+import { exerciseTypeRoutes } from './routes/staff/exercise-type';
+import { lectureRoutes } from './routes/staff/lecture';
+import { staffRoutes, staffWriteRoutes, staffDeleteRoutes } from './routes/staff/staff';
 import { adminStatsRoutes } from './routes/stats/admin';
 import { staffStatsRoutes } from './routes/stats/staff';
-import { customerRoutes } from './routes/customer';
 import { subscriptionRoutes } from './routes/subscriptions';
 
 export const app = new Elysia()

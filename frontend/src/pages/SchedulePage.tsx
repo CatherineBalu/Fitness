@@ -1,10 +1,11 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { useAuth, SignInButton } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,

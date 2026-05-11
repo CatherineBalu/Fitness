@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearch, Link } from '@tanstack/react-router';
 import { useUser } from '@clerk/clerk-react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
+import { useNavigate, useSearch, Link } from '@tanstack/react-router';
 import { CheckIcon } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Form,
   FormControl,
@@ -17,6 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useApi } from '@/lib/api';
 import './CheckoutPage.css';
 

@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia';
+
 import { requirePermission } from '../../middleware/auth';
 import { listLectureMembers } from '../../services/staff.service';
 

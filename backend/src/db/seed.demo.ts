@@ -6,6 +6,7 @@
  * Run:  cd backend && bun run src/db/seed.demo.ts
  */
 import { faker } from '@faker-js/faker';
+
 import { db, closeConnection } from './db';
 import * as schema from './schema';
 

@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+
 import {
   addMemberByEmail,
   bulkUpdateAttendance,

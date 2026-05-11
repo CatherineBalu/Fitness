@@ -1,9 +1,10 @@
 import { and, asc, eq } from 'drizzle-orm';
+
+import { getCustomerByClerkIdOrThrow } from './customer.service';
 import { db } from '../db/db';
 import { customers, paymentHistory, subscriptions } from '../db/schema';
 import { ConflictError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
-import { getCustomerByClerkIdOrThrow } from './customer.service';
 
 export function isMembershipActive(validUntil: string | null): boolean {
   if (!validUntil) return false;

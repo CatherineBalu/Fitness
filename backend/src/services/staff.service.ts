@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+
 import { db } from '../db/db';
 import {
   customers,
@@ -13,9 +14,9 @@ import {
   schedules,
   scheduleInstructors,
 } from '../db/schema';
-import { clerk } from '../middleware/auth';
 import { DomainValidationError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
+import { clerk } from '../middleware/auth';
 
 function generateTempPassword(): string {
   const bytes = new Uint8Array(16);

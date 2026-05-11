@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+
 import { db, closeConnection } from './db';
 import * as schema from './schema';
 

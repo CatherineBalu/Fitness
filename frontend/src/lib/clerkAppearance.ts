@@ -1,4 +1,4 @@
-import { SignIn } from '@clerk/clerk-react';
+import type { SignIn } from '@clerk/clerk-react';
 import type { ComponentProps } from 'react';
 
 type Appearance = NonNullable<ComponentProps<typeof SignIn>['appearance']>;

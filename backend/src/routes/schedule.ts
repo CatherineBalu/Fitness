@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+
 import { requirePermission } from '../middleware/auth';
 import { cancelReservation, createReservation, listSchedules } from '../services/schedule.service';
 

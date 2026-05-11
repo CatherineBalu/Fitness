@@ -4,18 +4,19 @@ import {
   createRootRoute,
   redirect,
 } from '@tanstack/react-router';
+
 import RootLayout from '@/layouts/RootLayout';
-import HomePage from '@/pages/HomePage';
-import SchedulePage from '@/pages/SchedulePage';
-import CheckoutPage from '@/pages/CheckoutPage';
-import NotFoundPage from '@/pages/NotFoundPage';
+import { can, type Permission } from '@/lib/permissions';
+import AdminCalendarPage from '@/pages/admin/AdminCalendarPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminStaffPage from '@/pages/admin/AdminStaffPage';
-import AdminCalendarPage from '@/pages/admin/AdminCalendarPage';
 import AdminStatisticsPage from '@/pages/admin/AdminStatisticsPage';
-import StaffStatisticsPage from '@/pages/staff/StaffStatisticsPage';
+import CheckoutPage from '@/pages/CheckoutPage';
+import HomePage from '@/pages/HomePage';
 import MyProfilePage from '@/pages/MyProfilePage';
-import { can, type Permission } from '@/lib/permissions';
+import NotFoundPage from '@/pages/NotFoundPage';
+import SchedulePage from '@/pages/SchedulePage';
+import StaffStatisticsPage from '@/pages/staff/StaffStatisticsPage';
 
 function getRole(): string | null {
   return (

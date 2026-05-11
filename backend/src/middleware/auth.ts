@@ -1,8 +1,9 @@
-import { Elysia } from 'elysia';
 import { createClerkClient, verifyToken } from '@clerk/backend';
+import { eq } from 'drizzle-orm';
+import { Elysia } from 'elysia';
+
 import { db } from '../db/db';
 import { persons, customers } from '../db/schema';
-import { eq } from 'drizzle-orm';
 
 export const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 

@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { SignInButton, useAuth, useClerk } from '@clerk/clerk-react';
+import { useNavigate } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import heroImg from '../assets/hero.png';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
 import {
   Carousel,
   CarouselContent,
@@ -10,15 +18,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { useApi } from '@/lib/api';
+
+import heroImg from '../assets/hero.png';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 

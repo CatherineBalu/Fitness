@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
 import { Calendar, Users, TrendingUp, Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+
+import { StatCard } from '@/components/stats/StatCard';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   ChartContainer,
@@ -9,7 +11,6 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { useApi } from '@/lib/api';
-import { StatCard } from '@/components/stats/StatCard';
 import '@/components/stats/stats.css';
 
 interface LecturesByMonth {

@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { MapPin, Phone, Mail, Clock, UserCircle } from 'lucide-react';
-import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
+import { useEffect, useRef, useState } from 'react';
 import { Toaster } from 'sonner';
-import { can } from '@/lib/permissions';
-import { useApi } from '@/lib/api';
-import CustomerProfilePage from '@/components/CustomerProfilePage';
+
 import ThemeToggle from '@/components/common/ThemeToggle';
+import CustomerProfilePage from '@/components/CustomerProfilePage';
+import { useApi } from '@/lib/api';
+import { can } from '@/lib/permissions';
 import '../App.css';
 
 const SocialIcon = ({ d }: { d: string }) => (

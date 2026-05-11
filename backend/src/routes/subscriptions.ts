@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+
 import { authenticated } from '../middleware/auth';
 import { buySubscription, listSubscriptions } from '../services/subscription.service';
 

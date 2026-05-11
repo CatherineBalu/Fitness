@@ -1,5 +1,7 @@
 import { eq, and, asc } from 'drizzle-orm';
 import { z } from 'zod';
+
+import { findCustomerByEmail, findCustomerByPersonId } from './customer.service';
 import { db } from '../db/db';
 import {
   customers,
@@ -14,7 +16,6 @@ import {
 } from '../db/schema';
 import { ConflictError, DomainValidationError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
-import { findCustomerByEmail, findCustomerByPersonId } from './customer.service';
 
 const createScheduleSchema = z
   .object({

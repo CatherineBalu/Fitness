@@ -1,9 +1,10 @@
 import { and, eq } from 'drizzle-orm';
+
+import { isMembershipActive } from './subscription.service';
 import { db } from '../db/db';
 import { customers, persons } from '../db/schema';
 import { NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
-import { isMembershipActive } from './subscription.service';
 
 export async function getProfile(clerkId: string, role: string) {
   const [person] = await db

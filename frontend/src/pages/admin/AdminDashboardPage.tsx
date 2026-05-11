@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/clerk-react';
+import { Link } from '@tanstack/react-router';
 import {
   Calendar,
   Users,
@@ -6,11 +7,11 @@ import {
   CalendarCheck,
   ArrowRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link } from '@tanstack/react-router';
-import { useUser } from '@clerk/clerk-react';
-import { useApi } from '@/lib/api';
+import { useEffect, useState } from 'react';
+
 import { StatCard } from '@/components/stats/StatCard';
+import { Button } from '@/components/ui/button';
+import { useApi } from '@/lib/api';
 import './AdminDashboardPage.css';
 
 interface Lecture {

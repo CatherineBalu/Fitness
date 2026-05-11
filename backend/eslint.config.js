@@ -18,9 +18,7 @@ export default tseslint.config(
       },
     },
     settings: {
-      'import-x/resolver-next': [
-        createTypeScriptImportResolver({ project: './tsconfig.json' }),
-      ],
+      'import-x/resolver-next': [createTypeScriptImportResolver({ project: './tsconfig.json' })],
       'import-x/core-modules': ['bun:test'],
     },
     rules: {
@@ -28,16 +26,8 @@ export default tseslint.config(
       'import-x/order': [
         'error',
         {
-          groups: [
-            'builtin',
-            'external',
-            'internal',
-            ['parent', 'sibling', 'index'],
-            'type',
-          ],
-          pathGroups: [
-            { pattern: '@/**', group: 'internal', position: 'before' },
-          ],
+          groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index'], 'type'],
+          pathGroups: [{ pattern: '@/**', group: 'internal', position: 'before' }],
           pathGroupsExcludedImportTypes: ['type'],
           'newlines-between': 'always',
           alphabetize: { order: 'asc', caseInsensitive: true },

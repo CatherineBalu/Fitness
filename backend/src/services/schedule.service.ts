@@ -1,4 +1,7 @@
 import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
+
+import { findCustomerByClerkId, getCustomerByClerkIdOrThrow } from './customer.service';
+import { isMembershipActive } from './subscription.service';
 import { db } from '../db/db';
 import {
   customerReservations,
@@ -17,8 +20,6 @@ import {
   NotFoundError,
 } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
-import { findCustomerByClerkId, getCustomerByClerkIdOrThrow } from './customer.service';
-import { isMembershipActive } from './subscription.service';
 
 export type ScheduleListItem = {
   id: string;

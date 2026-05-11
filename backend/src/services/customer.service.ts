@@ -1,4 +1,6 @@
 import { and, eq, desc, sql } from 'drizzle-orm';
+
+import { isMembershipActive } from './subscription.service';
 import { db } from '../db/db';
 import {
   customers,
@@ -12,7 +14,6 @@ import {
 } from '../db/schema';
 import { NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
-import { isMembershipActive } from './subscription.service';
 
 export type CustomerLookup = {
   customerId: string;
