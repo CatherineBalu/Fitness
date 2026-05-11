@@ -46,6 +46,14 @@ mock.module('../src/db/db', () => ({
     select: () => makeChain(selectResponses.shift() ?? []),
     insert: () => makeChain([]),
     update: () => makeChain([]),
+    transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        select: () => makeChain(selectResponses.shift() ?? []),
+        insert: () => makeChain([]),
+        update: () => makeChain([]),
+      };
+      return fn(tx);
+    },
   },
 }));
 
@@ -58,10 +66,9 @@ function authHeader() {
 }
 
 function mockVerifiedToken(role: string) {
-  mockVerifyToken.mockImplementation(async () => ({
-    sub: 'user_test',
-    publicMetadata: { role },
-  }));
+  mockVerifyToken.mockImplementation(
+    async () => ({ sub: 'user_test', publicMetadata: { role } }) as never,
+  );
 }
 
 const PLAN_ID = '00000000-0000-0000-0000-000000000001';
