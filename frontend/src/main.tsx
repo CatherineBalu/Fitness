@@ -7,18 +7,21 @@ import './index.css';
 import { router } from './router';
 import { clerkAppearance } from '@/lib/clerkAppearance';
 import { queryClient } from '@/lib/queryClient';
+import ThemeProvider from '@/components/common/ThemeProvider';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider
-      publishableKey={PUBLISHABLE_KEY}
-      appearance={clerkAppearance}
-    >
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </ClerkProvider>
+    <ThemeProvider>
+      <ClerkProvider
+        publishableKey={PUBLISHABLE_KEY}
+        appearance={clerkAppearance}
+      >
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </ClerkProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

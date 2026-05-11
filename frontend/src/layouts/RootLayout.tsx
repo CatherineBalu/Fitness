@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import { can } from '@/lib/permissions';
 import { useApi } from '@/lib/api';
 import CustomerProfilePage from '@/components/CustomerProfilePage';
+import ThemeToggle from '@/components/common/ThemeToggle';
 import '../App.css';
 
 const SocialIcon = ({ d }: { d: string }) => (
@@ -163,6 +164,8 @@ export default function RootLayout() {
               <UserButton />
             </div>
           )}
+
+          <ThemeToggle className="ml-2" />
 
           <button
             className="hamburger"
