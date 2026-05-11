@@ -1,7 +1,8 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../db/db';
 import { customers, paymentHistory, subscriptions } from '../db/schema';
 import { ConflictError, NotFoundError } from '../lib/errors';
+import { notDeleted } from '../lib/notDeleted';
 import { getCustomerByClerkIdOrThrow } from './customer.service';
 
 export function isMembershipActive(validUntil: string | null): boolean {
@@ -11,7 +12,11 @@ export function isMembershipActive(validUntil: string | null): boolean {
 }
 
 export async function listSubscriptions() {
-  return db.select().from(subscriptions).orderBy(asc(subscriptions.price));
+  return db
+    .select()
+    .from(subscriptions)
+    .where(notDeleted(subscriptions))
+    .orderBy(asc(subscriptions.price));
 }
 
 export async function buySubscription(
@@ -28,7 +33,7 @@ export async function buySubscription(
   const [plan] = await db
     .select()
     .from(subscriptions)
-    .where(eq(subscriptions.id, subscriptionId))
+    .where(and(eq(subscriptions.id, subscriptionId), notDeleted(subscriptions)))
     .limit(1);
   if (!plan) throw new NotFoundError('Subscription plan not found');
 

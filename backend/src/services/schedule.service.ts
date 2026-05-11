@@ -16,6 +16,7 @@ import {
   PermissionError,
   NotFoundError,
 } from '../lib/errors';
+import { notDeleted } from '../lib/notDeleted';
 import { findCustomerByClerkId, getCustomerByClerkIdOrThrow } from './customer.service';
 import { isMembershipActive } from './subscription.service';
 
@@ -59,7 +60,16 @@ export async function listSchedules(
     .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
     .innerJoin(rooms, eq(schedules.roomId, rooms.id))
     .innerJoin(exerciseTypes, eq(lectures.exerciseTypeId, exerciseTypes.id))
-    .where(and(gte(schedules.startTime, from), lte(schedules.startTime, to)));
+    .where(
+      and(
+        gte(schedules.startTime, from),
+        lte(schedules.startTime, to),
+        notDeleted(schedules),
+        notDeleted(lectures),
+        notDeleted(rooms),
+        notDeleted(exerciseTypes),
+      ),
+    );
 
   if (scheduleRows.length === 0) return [];
 
@@ -76,6 +86,7 @@ export async function listSchedules(
           and(
             eq(customerReservations.customerId, customer.customerId),
             inArray(customerReservations.scheduleId, scheduleIds),
+            notDeleted(customerReservations),
           ),
         );
       registeredSet = new Set(registered.map((r) => r.scheduleId));
@@ -92,7 +103,14 @@ export async function listSchedules(
     .from(scheduleInstructors)
     .innerJoin(employees, eq(scheduleInstructors.employeeId, employees.id))
     .innerJoin(persons, eq(employees.personId, persons.id))
-    .where(inArray(scheduleInstructors.scheduleId, scheduleIds));
+    .where(
+      and(
+        inArray(scheduleInstructors.scheduleId, scheduleIds),
+        notDeleted(scheduleInstructors),
+        notDeleted(employees),
+        notDeleted(persons),
+      ),
+    );
 
   const allCounts = await db
     .select({
@@ -100,7 +118,9 @@ export async function listSchedules(
       count: sql<number>`count(*)::int`,
     })
     .from(customerReservations)
-    .where(inArray(customerReservations.scheduleId, scheduleIds))
+    .where(
+      and(inArray(customerReservations.scheduleId, scheduleIds), notDeleted(customerReservations)),
+    )
     .groupBy(customerReservations.scheduleId);
 
   const instructorsBySchedule = new Map<string, typeof allInstructors>();
@@ -147,7 +167,14 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
     .from(schedules)
     .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
     .innerJoin(rooms, eq(schedules.roomId, rooms.id))
-    .where(eq(schedules.id, scheduleId))
+    .where(
+      and(
+        eq(schedules.id, scheduleId),
+        notDeleted(schedules),
+        notDeleted(lectures),
+        notDeleted(rooms),
+      ),
+    )
     .limit(1);
 
   if (!scheduleRow) throw new NotFoundError('Lecture not found');
@@ -165,6 +192,7 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
       and(
         eq(customerReservations.customerId, customer.customerId),
         eq(customerReservations.scheduleId, scheduleId),
+        notDeleted(customerReservations),
       ),
     )
     .limit(1);
@@ -173,7 +201,7 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(customerReservations)
-    .where(eq(customerReservations.scheduleId, scheduleId));
+    .where(and(eq(customerReservations.scheduleId, scheduleId), notDeleted(customerReservations)));
   if (count >= scheduleRow.roomCapacity) throw new ConflictError('Lecture is full');
 
   await db.insert(customerReservations).values({

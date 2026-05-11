@@ -1,4 +1,4 @@
-import { eq, desc, sql } from 'drizzle-orm';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/db';
 import {
   customers,
@@ -11,6 +11,7 @@ import {
   subscriptions,
 } from '../db/schema';
 import { NotFoundError } from '../lib/errors';
+import { notDeleted } from '../lib/notDeleted';
 import { isMembershipActive } from './subscription.service';
 
 export type CustomerLookup = {
@@ -28,7 +29,7 @@ export async function findCustomerByClerkId(clerkId: string): Promise<CustomerLo
     })
     .from(customers)
     .innerJoin(persons, eq(customers.personId, persons.id))
-    .where(eq(persons.clerkId, clerkId))
+    .where(and(eq(persons.clerkId, clerkId), notDeleted(customers), notDeleted(persons)))
     .limit(1);
   return row ?? null;
 }
@@ -53,8 +54,11 @@ export async function getCustomerProfile(clerkId: string) {
     })
     .from(persons)
     .innerJoin(customers, eq(customers.personId, persons.id))
-    .leftJoin(subscriptions, eq(customers.subscriptionId, subscriptions.id))
-    .where(eq(persons.clerkId, clerkId))
+    .leftJoin(
+      subscriptions,
+      and(eq(customers.subscriptionId, subscriptions.id), notDeleted(subscriptions)),
+    )
+    .where(and(eq(persons.clerkId, clerkId), notDeleted(persons), notDeleted(customers)))
     .limit(1);
 
   if (!row) throw new NotFoundError('Customer profile not found');
@@ -100,7 +104,15 @@ export async function getCustomerRegistrations(clerkId: string) {
     .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
     .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
     .innerJoin(rooms, eq(schedules.roomId, rooms.id))
-    .where(eq(customerReservations.customerId, customer.customerId))
+    .where(
+      and(
+        eq(customerReservations.customerId, customer.customerId),
+        notDeleted(customerReservations),
+        notDeleted(schedules),
+        notDeleted(lectures),
+        notDeleted(rooms),
+      ),
+    )
     .orderBy(desc(schedules.startTime));
 }
 
@@ -117,13 +129,19 @@ export async function getCustomerSpending(clerkId: string) {
     })
     .from(paymentHistory)
     .innerJoin(subscriptions, eq(paymentHistory.subscriptionId, subscriptions.id))
-    .where(eq(paymentHistory.customerId, customer.customerId))
+    .where(
+      and(
+        eq(paymentHistory.customerId, customer.customerId),
+        notDeleted(paymentHistory),
+        notDeleted(subscriptions),
+      ),
+    )
     .orderBy(desc(paymentHistory.paymentDate));
 
   const [totalRow] = await db
     .select({ total: sql<number>`coalesce(sum(${paymentHistory.amount}), 0)::float` })
     .from(paymentHistory)
-    .where(eq(paymentHistory.customerId, customer.customerId));
+    .where(and(eq(paymentHistory.customerId, customer.customerId), notDeleted(paymentHistory)));
 
   return {
     total: totalRow.total,
@@ -142,7 +160,7 @@ export async function findCustomerByEmail(email: string) {
     })
     .from(persons)
     .innerJoin(customers, eq(customers.personId, persons.id))
-    .where(eq(persons.email, email))
+    .where(and(eq(persons.email, email), notDeleted(persons), notDeleted(customers)))
     .limit(1);
   return row ?? null;
 }
@@ -151,7 +169,7 @@ export async function findCustomerByPersonId(personId: string) {
   const [row] = await db
     .select({ id: customers.id })
     .from(customers)
-    .where(eq(customers.personId, personId))
+    .where(and(eq(customers.personId, personId), notDeleted(customers)))
     .limit(1);
   return row ?? null;
 }

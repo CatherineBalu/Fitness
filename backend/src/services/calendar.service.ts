@@ -13,6 +13,7 @@ import {
   scheduleInstructors,
 } from '../db/schema';
 import { ConflictError, DomainValidationError, NotFoundError } from '../lib/errors';
+import { notDeleted } from '../lib/notDeleted';
 import { findCustomerByEmail, findCustomerByPersonId } from './customer.service';
 
 const createScheduleSchema = z
@@ -46,6 +47,7 @@ export async function listLectureTemplates() {
     })
     .from(lectures)
     .innerJoin(exerciseTypes, eq(lectures.exerciseTypeId, exerciseTypes.id))
+    .where(and(notDeleted(lectures), notDeleted(exerciseTypes)))
     .orderBy(lectures.lectureName);
 }
 
@@ -53,6 +55,7 @@ export async function listRooms() {
   return db
     .select({ id: rooms.id, name: rooms.name, capacity: rooms.capacity })
     .from(rooms)
+    .where(notDeleted(rooms))
     .orderBy(rooms.name);
 }
 
@@ -65,6 +68,7 @@ export async function listInstructors() {
     })
     .from(employees)
     .innerJoin(persons, eq(employees.personId, persons.id))
+    .where(and(notDeleted(employees), notDeleted(persons)))
     .orderBy(persons.surname);
 
   return rows.map((i) => ({ id: i.id, name: `${i.name} ${i.surname}` }));
@@ -114,7 +118,14 @@ export async function listScheduleMembers(scheduleId: string) {
     .from(customerReservations)
     .innerJoin(customers, eq(customerReservations.customerId, customers.id))
     .innerJoin(persons, eq(customers.personId, persons.id))
-    .where(eq(customerReservations.scheduleId, scheduleId))
+    .where(
+      and(
+        eq(customerReservations.scheduleId, scheduleId),
+        notDeleted(customerReservations),
+        notDeleted(customers),
+        notDeleted(persons),
+      ),
+    )
     .orderBy(asc(persons.surname));
 
   return rows.map((m) => ({
@@ -131,7 +142,7 @@ export async function addMemberByEmail(scheduleId: string, email: string) {
     const [person] = await db
       .select({ id: persons.id })
       .from(persons)
-      .where(eq(persons.email, email))
+      .where(and(eq(persons.email, email), notDeleted(persons)))
       .limit(1);
     if (!person) throw new NotFoundError('Person with this email does not exist.');
     throw new DomainValidationError('This person is not a registered customer.');
@@ -144,6 +155,7 @@ export async function addMemberByEmail(scheduleId: string, email: string) {
       and(
         eq(customerReservations.scheduleId, scheduleId),
         eq(customerReservations.customerId, customer.customerId),
+        notDeleted(customerReservations),
       ),
     );
   if (existing) throw new ConflictError('Customer is already registered for this lecture.');
@@ -186,7 +198,7 @@ export async function updateSchedule(
       endTime: schedules.endTime,
     })
     .from(schedules)
-    .where(eq(schedules.id, scheduleId));
+    .where(and(eq(schedules.id, scheduleId), notDeleted(schedules)));
 
   if (!current) throw new NotFoundError('Schedule not found.');
 

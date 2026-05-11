@@ -14,6 +14,7 @@ import {
   subscriptions,
 } from '../db/schema';
 import { NotFoundError, UnauthorizedError } from '../lib/errors';
+import { notDeleted } from '../lib/notDeleted';
 
 // ── Admin ─────────────────────────────────────────────────────────────
 
@@ -21,18 +22,29 @@ export async function getAdminOverview() {
   const [memberships] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(customers)
-    .where(gte(customers.subscriptionValidUntil, sql`current_date`));
+    .where(and(gte(customers.subscriptionValidUntil, sql`current_date`), notDeleted(customers)));
 
   const [revenue] = await db
     .select({ total: sql<number>`coalesce(sum(${paymentHistory.amount}), 0)::float` })
     .from(paymentHistory)
-    .where(gte(paymentHistory.paymentDate, sql`date_trunc('month', current_date)`));
+    .where(
+      and(
+        gte(paymentHistory.paymentDate, sql`date_trunc('month', current_date)`),
+        notDeleted(paymentHistory),
+      ),
+    );
 
   const [reservations] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(customerReservations)
     .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
-    .where(gte(schedules.startTime, sql`date_trunc('month', current_date)`));
+    .where(
+      and(
+        gte(schedules.startTime, sql`date_trunc('month', current_date)`),
+        notDeleted(customerReservations),
+        notDeleted(schedules),
+      ),
+    );
 
   const [occupancy] = await db
     .select({
@@ -49,11 +61,18 @@ export async function getAdminOverview() {
       sql`(
         select ${customerReservations.scheduleId} as schedule_id, count(*)::int as cnt
         from ${customerReservations}
+        where ${customerReservations.deletedAt} is null
         group by ${customerReservations.scheduleId}
       ) res_counts`,
       sql`res_counts.schedule_id = ${schedules.id}`,
     )
-    .where(gte(schedules.startTime, sql`date_trunc('month', current_date)`));
+    .where(
+      and(
+        gte(schedules.startTime, sql`date_trunc('month', current_date)`),
+        notDeleted(schedules),
+        notDeleted(rooms),
+      ),
+    );
 
   return {
     activeMemberships: memberships.count,
@@ -72,9 +91,12 @@ export async function getRevenueMonthly(monthsRaw = 12) {
     })
     .from(paymentHistory)
     .where(
-      gte(
-        paymentHistory.paymentDate,
-        sql`(date_trunc('month', current_date) - (${months - 1} || ' months')::interval)`,
+      and(
+        gte(
+          paymentHistory.paymentDate,
+          sql`(date_trunc('month', current_date) - (${months - 1} || ' months')::interval)`,
+        ),
+        notDeleted(paymentHistory),
       ),
     )
     .groupBy(sql`1`)
@@ -90,6 +112,7 @@ export async function getRevenueBySubscription() {
     })
     .from(paymentHistory)
     .innerJoin(subscriptions, eq(paymentHistory.subscriptionId, subscriptions.id))
+    .where(and(notDeleted(paymentHistory), notDeleted(subscriptions)))
     .groupBy(subscriptions.id, subscriptions.name)
     .orderBy(sql`sum(${paymentHistory.amount}) desc`);
 }
@@ -104,6 +127,7 @@ export async function getTopLectures(limitRaw = 10) {
     .from(customerReservations)
     .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
     .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .where(and(notDeleted(customerReservations), notDeleted(schedules), notDeleted(lectures)))
     .groupBy(lectures.id, lectures.lectureName)
     .orderBy(desc(sql`count(${customerReservations.customerId})`))
     .limit(limit);
@@ -129,10 +153,12 @@ export async function getOccupancy() {
       sql`(
         select ${customerReservations.scheduleId} as schedule_id, count(*)::int as cnt
         from ${customerReservations}
+        where ${customerReservations.deletedAt} is null
         group by ${customerReservations.scheduleId}
       ) res_counts`,
       sql`res_counts.schedule_id = ${schedules.id}`,
     )
+    .where(and(notDeleted(schedules), notDeleted(lectures), notDeleted(rooms)))
     .groupBy(lectures.id, lectures.lectureName)
     .orderBy(
       desc(sql`avg(
@@ -164,7 +190,14 @@ export async function getInstructorStats(clerkId: string | null) {
     .from(employees)
     .innerJoin(persons, eq(employees.personId, persons.id))
     .innerJoin(employeeTypes, eq(employees.employeeTypeId, employeeTypes.id))
-    .where(eq(persons.clerkId, clerkId))
+    .where(
+      and(
+        eq(persons.clerkId, clerkId),
+        notDeleted(employees),
+        notDeleted(persons),
+        notDeleted(employeeTypes),
+      ),
+    )
     .limit(1);
 
   if (!employee) throw new NotFoundError('Employee profile not found');
@@ -183,6 +216,8 @@ export async function getInstructorStats(clerkId: string | null) {
       and(
         eq(scheduleInstructors.employeeId, employee.employeeId),
         gte(schedules.startTime, monthStart),
+        notDeleted(scheduleInstructors),
+        notDeleted(schedules),
       ),
     );
 
@@ -198,6 +233,9 @@ export async function getInstructorStats(clerkId: string | null) {
       and(
         eq(scheduleInstructors.employeeId, employee.employeeId),
         gte(schedules.startTime, monthStart),
+        notDeleted(customerReservations),
+        notDeleted(scheduleInstructors),
+        notDeleted(schedules),
       ),
     );
 
@@ -217,11 +255,19 @@ export async function getInstructorStats(clerkId: string | null) {
       sql`(
         select ${customerReservations.scheduleId} as schedule_id, count(*)::int as cnt
         from ${customerReservations}
+        where ${customerReservations.deletedAt} is null
         group by ${customerReservations.scheduleId}
       ) res_counts`,
       sql`res_counts.schedule_id = ${schedules.id}`,
     )
-    .where(eq(scheduleInstructors.employeeId, employee.employeeId));
+    .where(
+      and(
+        eq(scheduleInstructors.employeeId, employee.employeeId),
+        notDeleted(schedules),
+        notDeleted(scheduleInstructors),
+        notDeleted(rooms),
+      ),
+    );
 
   const lecturesByMonth = await db
     .select({
@@ -234,6 +280,8 @@ export async function getInstructorStats(clerkId: string | null) {
       and(
         eq(scheduleInstructors.employeeId, employee.employeeId),
         gte(schedules.startTime, sql`(date_trunc('month', current_date) - interval '5 months')`),
+        notDeleted(scheduleInstructors),
+        notDeleted(schedules),
       ),
     )
     .groupBy(sql`1`)
@@ -247,8 +295,18 @@ export async function getInstructorStats(clerkId: string | null) {
     .from(scheduleInstructors)
     .innerJoin(schedules, eq(scheduleInstructors.scheduleId, schedules.id))
     .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
-    .leftJoin(customerReservations, eq(customerReservations.scheduleId, schedules.id))
-    .where(eq(scheduleInstructors.employeeId, employee.employeeId))
+    .leftJoin(
+      customerReservations,
+      and(eq(customerReservations.scheduleId, schedules.id), notDeleted(customerReservations)),
+    )
+    .where(
+      and(
+        eq(scheduleInstructors.employeeId, employee.employeeId),
+        notDeleted(scheduleInstructors),
+        notDeleted(schedules),
+        notDeleted(lectures),
+      ),
+    )
     .groupBy(lectures.id, lectures.lectureName)
     .orderBy(desc(sql`count(${customerReservations.customerId})`))
     .limit(1);

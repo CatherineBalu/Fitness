@@ -1,4 +1,4 @@
-import { asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/db';
 import {
   customers,
@@ -15,6 +15,7 @@ import {
 } from '../db/schema';
 import { clerk } from '../middleware/auth';
 import { DomainValidationError, NotFoundError } from '../lib/errors';
+import { notDeleted } from '../lib/notDeleted';
 
 function generateTempPassword(): string {
   const bytes = new Uint8Array(16);
@@ -50,6 +51,7 @@ export async function listEmployees() {
     .from(employees)
     .innerJoin(persons, eq(employees.personId, persons.id))
     .innerJoin(employeeTypes, eq(employees.employeeTypeId, employeeTypes.id))
+    .where(and(notDeleted(employees), notDeleted(persons), notDeleted(employeeTypes)))
     .orderBy(asc(persons.surname));
 
   const specRows = await db
@@ -58,7 +60,8 @@ export async function listEmployees() {
       name: exerciseTypes.name,
     })
     .from(employeeSpecializations)
-    .innerJoin(exerciseTypes, eq(employeeSpecializations.exerciseTypeId, exerciseTypes.id));
+    .innerJoin(exerciseTypes, eq(employeeSpecializations.exerciseTypeId, exerciseTypes.id))
+    .where(and(notDeleted(employeeSpecializations), notDeleted(exerciseTypes)));
 
   const byEmployee = new Map<string, string[]>();
   for (const r of specRows) {
@@ -87,7 +90,15 @@ export async function getEmployeeLectures(employeeId: string) {
     .innerJoin(schedules, eq(scheduleInstructors.scheduleId, schedules.id))
     .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
     .innerJoin(rooms, eq(schedules.roomId, rooms.id))
-    .where(eq(scheduleInstructors.employeeId, employeeId))
+    .where(
+      and(
+        eq(scheduleInstructors.employeeId, employeeId),
+        notDeleted(scheduleInstructors),
+        notDeleted(schedules),
+        notDeleted(lectures),
+        notDeleted(rooms),
+      ),
+    )
     .orderBy(asc(schedules.startTime));
 
   if (rows.length === 0) return [];
@@ -99,9 +110,12 @@ export async function getEmployeeLectures(employeeId: string) {
     })
     .from(customerReservations)
     .where(
-      inArray(
-        customerReservations.scheduleId,
-        rows.map((r) => r.id),
+      and(
+        inArray(
+          customerReservations.scheduleId,
+          rows.map((r) => r.id),
+        ),
+        notDeleted(customerReservations),
       ),
     )
     .groupBy(customerReservations.scheduleId);
@@ -124,7 +138,7 @@ export async function getEmployeeLecturesForClerkUser(clerkId: string) {
     .select({ id: employees.id })
     .from(employees)
     .innerJoin(persons, eq(employees.personId, persons.id))
-    .where(eq(persons.clerkId, clerkId))
+    .where(and(eq(persons.clerkId, clerkId), notDeleted(employees), notDeleted(persons)))
     .limit(1);
 
   if (!employee) throw new NotFoundError('Staff profile not found');
@@ -135,7 +149,7 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
   const [roleRow] = await db
     .select()
     .from(employeeTypes)
-    .where(eq(employeeTypes.roleName, input.role))
+    .where(and(eq(employeeTypes.roleName, input.role), notDeleted(employeeTypes)))
     .limit(1);
 
   if (!roleRow) throw new DomainValidationError(`Unknown role: ${input.role}`);
@@ -216,7 +230,14 @@ export async function updateStaff(employeeId: string, input: UpdateStaffInput): 
     .from(employees)
     .innerJoin(persons, eq(employees.personId, persons.id))
     .innerJoin(employeeTypes, eq(employees.employeeTypeId, employeeTypes.id))
-    .where(eq(employees.id, employeeId))
+    .where(
+      and(
+        eq(employees.id, employeeId),
+        notDeleted(employees),
+        notDeleted(persons),
+        notDeleted(employeeTypes),
+      ),
+    )
     .limit(1);
 
   if (!employee) throw new NotFoundError('Staff member not found');
@@ -257,7 +278,7 @@ export async function deleteStaff(employeeId: string): Promise<void> {
     })
     .from(employees)
     .innerJoin(persons, eq(employees.personId, persons.id))
-    .where(eq(employees.id, employeeId))
+    .where(and(eq(employees.id, employeeId), notDeleted(employees), notDeleted(persons)))
     .limit(1);
 
   if (!employee) throw new NotFoundError('Staff member not found');
@@ -279,6 +300,7 @@ export async function listExerciseTypes() {
   return db
     .select({ id: exerciseTypes.id, name: exerciseTypes.name })
     .from(exerciseTypes)
+    .where(notDeleted(exerciseTypes))
     .orderBy(asc(exerciseTypes.name));
 }
 
@@ -286,6 +308,7 @@ export async function listEmployeeTypes() {
   return db
     .select({ id: employeeTypes.id, roleName: employeeTypes.roleName })
     .from(employeeTypes)
+    .where(notDeleted(employeeTypes))
     .orderBy(asc(employeeTypes.roleName));
 }
 
@@ -300,7 +323,14 @@ export async function listLectureMembers(scheduleId: string) {
     .from(customerReservations)
     .innerJoin(customers, eq(customerReservations.customerId, customers.id))
     .innerJoin(persons, eq(customers.personId, persons.id))
-    .where(eq(customerReservations.scheduleId, scheduleId))
+    .where(
+      and(
+        eq(customerReservations.scheduleId, scheduleId),
+        notDeleted(customerReservations),
+        notDeleted(customers),
+        notDeleted(persons),
+      ),
+    )
     .orderBy(asc(persons.surname));
 
   return rows.map((r) => ({
