@@ -1,0 +1,119 @@
+/* Override shadcn dialog to match the site's dark theme */
+
+.add-schedule-dialog {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--radius) !important;
+  color: var(--c-text) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+.add-schedule-dialog .add-schedule-title {
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+/* Labels */
+.add-schedule-dialog [data-slot='form-label'] {
+  color: var(--c-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Inputs */
+.add-schedule-dialog input[type='date'],
+.add-schedule-dialog input[type='time'] {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: calc(var(--radius) * 0.6) !important;
+  color: var(--c-text) !important;
+  font-size: 14px;
+  height: 38px;
+}
+
+.add-schedule-dialog input[type='date']:focus,
+.add-schedule-dialog input[type='time']:focus {
+  border-color: var(--c-accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(170, 204, 0, 0.15) !important;
+}
+
+/* Select trigger (the closed button) */
+[data-slot='select-trigger'] {
+  background: var(--c-surface2) !important;
+  border-color: var(--c-border) !important;
+  color: var(--c-text) !important;
+}
+
+[data-slot='select-trigger']:focus,
+[data-slot='select-trigger'][data-state='open'] {
+  border-color: var(--c-accent) !important;
+  box-shadow: 0 0 0 2px rgba(170, 204, 0, 0.15) !important;
+}
+
+/* Select dropdown — portalled outside the dialog */
+[data-slot='select-content'] {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+}
+
+[data-slot='select-item'] {
+  color: var(--c-text) !important;
+}
+
+[data-slot='select-item'][data-highlighted] {
+  background: var(--c-accent) !important;
+  color: var(--c-accent) !important;
+}
+
+/* Validation error messages */
+.add-schedule-dialog [data-slot='form-message'] {
+  color: #f87171;
+  font-size: 12px;
+}
+
+/* Footer buttons */
+.add-schedule-dialog .dialog-btn-cancel {
+  background: transparent;
+  border: 1px solid var(--c-border);
+  color: var(--c-muted);
+  font-size: 14px;
+}
+
+.add-schedule-dialog .dialog-btn-cancel:hover {
+  background: var(--c-surface2);
+  color: var(--c-text);
+  border-color: var(--c-text);
+}
+
+.add-schedule-dialog .dialog-btn-save {
+  background: var(--c-accent);
+  color: #0d0d0d;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+}
+
+.add-schedule-dialog .dialog-btn-save:hover {
+  background: var(--c-accent-hover);
+}
+
+.add-schedule-dialog .dialog-btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dialog footer — override shadcn's light muted background */
+.add-schedule-dialog [data-slot='dialog-footer'] {
+  background: var(--c-surface2) !important;
+  border-top: 1px solid var(--c-border) !important;
+}
+
+/* Overlay */
+[data-slot='dialog-overlay'] {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
