@@ -37,51 +37,51 @@ export default function AdminStatisticsPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-8 md:px-8 md:py-12">
-        {isError ? (
-          <Alert variant="destructive">
-            <AlertTitle>Failed to load statistics</AlertTitle>
-            <AlertDescription>
-              {error instanceof Error
-                ? error.message
-                : 'Something went wrong. Please try again later.'}
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="flex flex-col gap-12">
-            <section>
-              <SectionHeader title="This month" />
-              <KpiSection overview={overview} isLoading={isLoading} />
-            </section>
+        <div className="flex flex-col gap-12">
+          {isError && (
+            <Alert variant="destructive">
+              <AlertTitle>Some statistics failed to load</AlertTitle>
+              <AlertDescription>
+                {error instanceof Error
+                  ? error.message
+                  : 'Something went wrong. Please try again later.'}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            <div className="bg-border h-px" />
+          <section>
+            <SectionHeader title="This month" />
+            <KpiSection overview={overview} isLoading={isLoading} />
+          </section>
 
-            <section>
-              <SectionHeader label="Revenue" title="Last 12 months" />
-              <RevenueChartCard data={revenue} isLoading={isLoading} />
-            </section>
+          <div className="bg-border h-px" />
 
-            <section className="grid gap-8 lg:grid-cols-2">
-              <div>
-                <SectionHeader label="Revenue mix" title="By subscription" />
-                <RevenueBySubscriptionList
-                  data={bySubscription}
-                  isLoading={isLoading}
-                />
-              </div>
-              <div>
-                <SectionHeader label="Popularity" title="Top lectures" />
-                <TopLecturesList data={topLectures} isLoading={isLoading} />
-              </div>
-            </section>
+          <section>
+            <SectionHeader label="Revenue" title="Last 12 months" />
+            <RevenueChartCard data={revenue} isLoading={isLoading} />
+          </section>
 
-            <div className="bg-border h-px" />
+          <section className="grid gap-8 lg:grid-cols-2">
+            <div>
+              <SectionHeader label="Revenue mix" title="By subscription" />
+              <RevenueBySubscriptionList
+                data={bySubscription}
+                isLoading={isLoading}
+              />
+            </div>
+            <div>
+              <SectionHeader label="Popularity" title="Top lectures" />
+              <TopLecturesList data={topLectures} isLoading={isLoading} />
+            </div>
+          </section>
 
-            <section>
-              <SectionHeader label="Efficiency" title="Average occupancy" />
-              <OccupancyList data={occupancy} isLoading={isLoading} />
-            </section>
-          </div>
-        )}
+          <div className="bg-border h-px" />
+
+          <section>
+            <SectionHeader label="Efficiency" title="Average occupancy" />
+            <OccupancyList data={occupancy} isLoading={isLoading} />
+          </section>
+        </div>
       </div>
     </div>
   );
