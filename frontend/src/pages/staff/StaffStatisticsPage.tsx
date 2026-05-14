@@ -2,7 +2,7 @@ import { Calendar, Users, TrendingUp, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
-import { StatCard } from '@/components/stats/StatCard';
+import StatCard from '@/components/common/StatCard';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   ChartContainer,

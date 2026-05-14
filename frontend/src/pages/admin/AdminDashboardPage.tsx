@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { StatCard } from '@/components/stats/StatCard';
+import StatCard from '@/components/common/StatCard';
 import { Button } from '@/components/ui/button';
 import { useApi } from '@/lib/api';
 import './AdminDashboardPage.css';
