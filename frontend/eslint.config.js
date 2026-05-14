@@ -28,7 +28,7 @@ const importOrderRule = [
 ];
 
 export default defineConfig([
-  globalIgnores(['dist', 'node_modules']),
+  globalIgnores(['dist', 'node_modules', 'src/routeTree.gen.ts']),
   {
     files: ['src/**/*.{ts,tsx}'],
     extends: [
