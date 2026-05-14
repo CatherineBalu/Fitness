@@ -1,149 +1,151 @@
-# NUE-54 — Foundation MR pre M3 refactor
+# NUE-54 — Foundation MR for the M3 refactor
 
-Cieľom NUE-54 nebol nový feature, ale **nastaviť konvencie a infra** tak, aby
-sa M3 dal robiť stránka po stránke bez toho, aby každý písal v inom štýle.
-Veľa toho bolo pôvodne ad-hoc.
+The goal of NUE-54 was not a new feature, but to **set up the conventions and
+infra** so that M3 can be done page by page without everyone writing in a
+different style. A lot of it was originally ad-hoc.
 
 ## Backend refactor
 
-- Errors zjednotené do `lib/errors.ts` — 5 typov: `NotFoundError`,
+- Errors unified into `lib/errors.ts` — 5 types: `NotFoundError`,
   `DomainValidationError`, `PermissionError`, `UnauthorizedError`,
-  `ConflictError`. `handleRoute(...)` wrapper preč, miesto neho globálny
-  `.onError` v `index.ts` mapuje na HTTP status. Route handlery už nemusia
-  robiť try/catch.
-- Soft-delete enforced — každý SELECT filtruje `isNull(deletedAt)`, DELETE
-  endpoint robí `UPDATE deletedAt = now()`. Helper `notDeleted(table)` v
-  `lib/`.
-- Drizzle schema: `tb_` prefix preč z JS exportov (`tbCustomer` →
-  `customers`, atď.). DB názvy stĺpcov nezmenené.
-- Route barrels (`routes/staff/index.ts`) zrušené, `.routes.ts` suffix
-  odstránený.
+  `ConflictError`. The `handleRoute(...)` wrapper is gone; instead a global
+  `.onError` in `index.ts` maps to HTTP status codes. Route handlers no longer
+  need try/catch.
+- Soft-delete enforced — every SELECT filters `isNull(deletedAt)`, DELETE
+  endpoints do `UPDATE deletedAt = now()`. Helper `notDeleted(table)` in `lib/`.
+- Drizzle schema: `tb_` prefix dropped from JS exports (`tbCustomer` →
+  `customers`, etc.). DB column names unchanged.
+- Route barrels (`routes/staff/index.ts`) removed, `.routes.ts` suffix dropped.
 
 ## Frontend infra
 
-- `lib/apiClient.ts` — fetch wrapper s Clerk auth tokenom, throw `ApiError`
-  pri non-2xx. **Žiadny raw `fetch` v komponentoch / hookoch.**
-- TanStack Query — `QueryClientProvider` v `main.tsx`, defaults
-  `staleTime: 60_000, retry: 1, refetchOnWindowFocus: false`. `useQuery` pre
-  čítanie, `useMutation` pre zápisy. Loading → shadcn `Skeleton`, error →
+- `lib/apiClient.ts` — fetch wrapper with a Clerk auth token, throws `ApiError`
+  on non-2xx. **No raw `fetch` in components / hooks.**
+- TanStack Query — `QueryClientProvider` in `main.tsx`, defaults
+  `staleTime: 60_000, retry: 1, refetchOnWindowFocus: false`. `useQuery` for
+  reads, `useMutation` for writes. Loading → shadcn `Skeleton`, error →
   `Alert variant="destructive"`, empty → `<EmptyState />`.
-- Dark mode — `ThemeProvider` + `ThemeToggle` v Navbar, `darkMode: 'class'`
-  v Tailwind, light/dark CSS tokeny v `index.css`. **Treba používať tokeny
-  (`bg-background`, `text-foreground`, `bg-muted`...), nie hardcoded farby
-  (`bg-white`, `text-black`).** Staré stránky zatiaľ hardcoded majú — to
-  opravíme v M3.
-- `@elysiajs/swagger` plugin → OpenAPI doc na `/swagger`.
-- Path alias `@/` aj v backende.
+- Dark mode — `ThemeProvider` + `ThemeToggle` in the Navbar, `darkMode: 'class'`
+  in Tailwind, light/dark CSS tokens in `index.css`. **Use the tokens
+  (`bg-background`, `text-foreground`, `bg-muted`...), not hardcoded colors
+  (`bg-white`, `text-black`).** The old pages still have hardcoded colors — that
+  gets fixed in M3.
+- `@elysiajs/swagger` plugin → OpenAPI doc at `/swagger`.
+- Path alias `@/` in the backend too.
+
+## File-based routing (TanStack)
+
+- Migrated from code-based `router.tsx` to TanStack **file-based routing**.
+  Route tree lives in `frontend/src/routes/` (`__root.tsx` + one file per URL
+  segment, `kebab-case.tsx`), `@tanstack/router-plugin` is wired into Vite and
+  generates `src/routeTree.gen.ts` (committed). `router.tsx` is deleted; the
+  router instance is created in `main.tsx`.
+- Route guards extracted to `lib/routeGuards.ts` (`requireAuth`,
+  `requirePermission`), wired via `beforeLoad`. Page components are unchanged —
+  only re-wired into route files.
 
 ## ESLint
 
-- Vynucuje 5 pravidiel z CLAUDE.md: `consistent-type-imports`,
-  `import-x/order`, `no-floating-promises`, `prefer-await-to-then`,
-  `react/forbid-dom-props` (zakazuje `style={{}}`).
-- Použili sme fork `eslint-plugin-import-x` — pôvodný `eslint-plugin-import`
-  je rozbitý na ESLint 9/10.
-- **Transitional override pre `pages/**` + `CustomerProfilePage.tsx`** — 3
-  z týchto pravidiel sú tam vypnuté, lebo staré stránky používajú raw
-  `fetch` + `.then()` + inline `style`. Marker `TODO(NUE-M3)`. M3 refactor
-  migruje stránky a override sa zmaže (search `TODO(NUE-M3)` v eslint
-  configu).
+- Enforces 5 rules from CLAUDE.md: `consistent-type-imports`, `import-x/order`,
+  `no-floating-promises`, `prefer-await-to-then`, `react/forbid-dom-props`
+  (forbids `style={{}}`).
+- We use the `eslint-plugin-import-x` fork — the original
+  `eslint-plugin-import` is broken on ESLint 9/10.
+- **Transitional override for `pages/**` + `CustomerProfilePage.tsx`** — 3 of
+  these rules are disabled there, because the old pages use raw `fetch` +
+  `.then()` + inline `style`. Marked with `TODO(NUE-M3)`. The M3 refactor
+  migrates the pages and the override gets deleted (search `TODO(NUE-M3)` in the
+  eslint config).
 
-## CLAUDE.md ako zdroj pravdy
+## CLAUDE.md as the source of truth
 
-CLAUDE.md je teraz jediný zdroj pravdy pre konvencie (file naming, folder
-structure, service layer, validácia v 3 vrstvách, async/errors,
-Tailwind-only, atď.). Lint + Prettier + `prettier-plugin-tailwindcss` riešia
-mechanickú časť. Architektúrne pravidlá (route ≤ 15 riadkov, no DB v
-routes, soft-delete filtre, použitie apiClient) chytá code review.
+CLAUDE.md is now the single source of truth for conventions (file naming,
+folder structure, service layer, 3-layer validation, async/errors,
+Tailwind-only, etc.). Lint + Prettier + `prettier-plugin-tailwindcss` handle the
+mechanical part. Architectural rules (route ≤ 15 lines, no DB in routes,
+soft-delete filters, use of apiClient) are caught in code review.
 
 ## Status
 
-- 114/114 BE testy zelené
-- Lint + format + build na oboch stranách OK
+- 114/114 BE tests green
+- Lint + format + build OK on both sides
 
-## Čo treba rozhodnúť pred MR
+## What to decide before MR
 
-1. **File-based routing migrácia (TanStack)** — máme zatiaľ `router.tsx`
-   (code-based, 9 routes definovaných cez `createRoute(...)`). CLAUDE.md
-   hovorí "migrating to file-based" — cieľ je `frontend/src/routes/__root.tsx`,
-   `routes/admin/dashboard.tsx`, atď., plus `@tanstack/router-plugin` vo
-   Vite. Page komponenty sa nemenia, len sa obalia v route súboroch.
-   **Otázka pre tím: chceme to spraviť pred MR (jeden commit navyše), alebo
-   to ide do M3?**
+1. **Dark mode `system` option** — we have 3 options (light/dark/system). I'm
+   considering keeping only light/dark and using `system` as the default before
+   the first click. **Deferred to M3** — it belongs with the Navbar/layout
+   polish that happens as part of the refactor. Speak up if you disagree.
 
-2. **Dark mode `system` option** — máme 3 možnosti (light/dark/system).
-   Uvažujem, či ponechať len light/dark a `system` použiť ako default pred
-   prvým klikom. **Odložené na M3** — patrí to k Navbar/layout polishu,
-   ktorý sa stane v rámci refactoru. Spomenite, ak máte iný názor.
+(File-based routing was an open question here — it's now resolved and done in
+NUE-54, see the section above.)
 
-## Čo pri review MR pozerať
+## What to look at when reviewing the MR
 
-- Či sa nezmenila funkcionalita (testy + smoke test v prehliadači)
-- Tokeny tém vs. hardcoded farby (ak narazíte v pages na nový kód —
-  flagnite)
-- Že nový kód mimo `pages/**` rešpektuje ESLint pravidlá bez disable
-  komentárov
-- CLAUDE.md či sedí s tým, čo skutočne robíme
+- Whether functionality changed (tests + smoke test in the browser)
+- Theme tokens vs. hardcoded colors (if you hit new code in `pages/` — flag it)
+- That new code outside `pages/**` respects the ESLint rules without disable
+  comments
+- Whether CLAUDE.md matches what we actually do
 
 ---
 
-## Diff voči reportu od cvičiaceho
+## Diff vs. the report from the lecturer
 
-Sekcia mimo NUE-54 scope-u: porovnanie bodov z reportu s tým, čo
-reálne odovzdávame. Cieľom je, aby tím vedel, čo je hotové, čo je
-**zámerne** odložené do M3, a čo sme **vôbec neadresovali** a treba
-o tom rozhodnúť.
+A section outside the NUE-54 scope: comparing the points from the report with
+what we are actually submitting. The goal is for the team to know what is done,
+what is **intentionally** deferred to M3, and what we **haven't addressed at
+all** and need to decide on.
 
-### Hotové v NUE-54
+### Done in NUE-54
 
-- Setup konvencií (`CLAUDE.md` ako single source of truth)
-- Update `CLAUDE.md`
-- ESLint pravidlá (5 pravidiel, viď vyššie)
-- Data fetching infra — `apiClient` + TanStack Query (async/await,
-  bez raw `fetch` v novom kóde)
+- Convention setup (`CLAUDE.md` as the single source of truth)
+- Update of `CLAUDE.md`
+- ESLint rules (5 rules, see above)
+- Data fetching infra — `apiClient` + TanStack Query (async/await, no raw
+  `fetch` in new code)
+- File-based routing migration (TanStack) + route guards in `lib/routeGuards.ts`
 - Service layer (Janko)
-- DB: `tb_` prefix preč, `id/createdAt/updatedAt/deletedAt` na
-  každej tabuľke (Janko)
-- Route dekompozícia (Janko)
-- Inline `style={{}}` zakázané ESLint pravidlom (`react/forbid-dom-props`)
+- DB: `tb_` prefix dropped, `id/createdAt/updatedAt/deletedAt` on every table
+  (Janko)
+- Route decomposition (Janko)
+- Inline `style={{}}` forbidden by an ESLint rule (`react/forbid-dom-props`)
 
-### Infra hotová, staré stránky zatiaľ nie — odložené na M3
+### Infra done, old pages not yet — deferred to M3
 
-Všetko nižšie pokrýva transitional override v `frontend/eslint.config.js`
-(`TODO(NUE-M3)`). Override sa zmaže keď M3 refactor migruje stránku.
+Everything below is covered by the transitional override in
+`frontend/eslint.config.js` (`TODO(NUE-M3)`). The override gets deleted when the
+M3 refactor migrates the page.
 
-- **Tailwind vs CSS mašuje** — 9 `.css` súborov stále existuje
-  (`App.css`, `CustomerProfilePage.css`, `SchedulePage.css`,
-  `CheckoutPage.css`, `stats.css`, 4× admin)
-- **Inline `style={{}}`** v 7 súboroch (`CheckoutPage`,
-  `AdminCalendarPage`, `MyProfilePage`, `HomePage`, `SchedulePage`,
-  `AddScheduleDialog`, `AdminDashboardPage`)
-- **Raw `fetch()`** v `HomePage`, `AddScheduleDialog`,
-  `AdminCalendarPage`, `CheckoutPage`
-- **`useEffect` na data fetching** vrátane `StaffStatisticsPage`
-  (cvičiaci ho spomenul menom)
-- **Veľké súbory bez dekompozície** — `AdminCalendarPage.tsx`
-  1038 r., `AdminStaffPage.tsx` 866 r., `SchedulePage.tsx` 586 r.,
-  `CheckoutPage.tsx` 545 r.
-- **Mašup shadcn / non-shadcn** primitív
-- **Naming notations** — napr. `CustomerProfilePage.tsx` žije v
-  `components/` namiesto `pages/`
+- **Tailwind vs CSS mess** — 9 `.css` files still exist (`App.css`,
+  `CustomerProfilePage.css`, `SchedulePage.css`, `CheckoutPage.css`,
+  `stats.css`, 4× admin)
+- **Inline `style={{}}`** in 7 files (`CheckoutPage`, `AdminCalendarPage`,
+  `MyProfilePage`, `HomePage`, `SchedulePage`, `AddScheduleDialog`,
+  `AdminDashboardPage`)
+- **Raw `fetch()`** in `HomePage`, `AddScheduleDialog`, `AdminCalendarPage`,
+  `CheckoutPage`
+- **`useEffect` for data fetching** including `StaffStatisticsPage` (the
+  lecturer mentioned it by name)
+- **Large files without decomposition** — `AdminCalendarPage.tsx` 1038 lines,
+  `AdminStaffPage.tsx` 866 lines, `SchedulePage.tsx` 586 lines,
+  `CheckoutPage.tsx` 545 lines
+- **Mix of shadcn / non-shadcn** primitives
+- **Naming conventions** — e.g. `CustomerProfilePage.tsx` lives in
+  `components/` instead of `pages/`
 
-### Vôbec neadresované — treba rozhodnúť
+### Not addressed at all — needs a decision
 
-1. **Kubb** — generátor TS klienta z OpenAPI. Máme
-   `@elysiajs/swagger` na `/swagger`, takže OpenAPI doc už existuje.
-   Návrh: **odložiť na M3/M4**, lebo dnes by sa generovalo proti
-   meniacej sa Elysia schéme a získali by sme málo (apiClient máme
-   napísaný ručne, je to ~80 riadkov). Zmysel to bude dávať keď
-   BE prestane meniť tvar response-ov.
-2. **Monorepository (npm/bun workspaces, shared FE↔BE)** —
-   aktuálne sú `frontend/` a `backend/` dva samostatné balíky
-   (jeden npm, druhý bun), bez workspaces, bez `shared/` priečinka.
-   Kandidáti na zdieľanie: validation Zod schemas, error type
-   names, permission enum (dnes žije len v FE
-   `frontend/src/lib/permissions.ts`, BE má len stringy).
-   Návrh: **odložiť za M3** — najprv chceme stabilizovať konvencie
-   page-by-page, potom extrahovať `shared/`. Ak chceme ešte
-   v M3, tak ako samostatný ticket pred page refactorom.
-3. **File-based routing (TanStack)** — viď otvorenú otázku vyššie.
+1. **Kubb** — TS client generator from OpenAPI. We have `@elysiajs/swagger` at
+   `/swagger`, so the OpenAPI doc already exists. Proposal: **defer to M3/M4**,
+   because today it would generate against a changing Elysia schema and we'd
+   gain little (the apiClient is written by hand, ~80 lines). It will make sense
+   once the BE stops changing the shape of responses.
+2. **Monorepository (npm/bun workspaces, shared FE↔BE)** — currently
+   `frontend/` and `backend/` are two standalone packages (one npm, one bun),
+   with no workspaces and no `shared/` folder. Candidates for sharing:
+   validation Zod schemas, error type names, the permission enum (today it lives
+   only in the FE `frontend/src/lib/permissions.ts`, the BE only has strings).
+   Proposal: **defer past M3** — first we want to stabilize the conventions
+   page-by-page, then extract `shared/`. If we want it still in M3, then as a
+   separate ticket before the page refactor.
