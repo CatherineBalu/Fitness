@@ -193,7 +193,7 @@ export default function CustomerProfilePage() {
                     Keep it
                   </button>
                   <button
-                    className="cursor-pointer rounded-lg bg-red-500 px-3.5 py-1.5 text-[0.8rem] font-bold text-[#0d0d0d] transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="cursor-pointer rounded-lg bg-red-500 px-3.5 py-1.5 text-[0.8rem] font-bold text-primary-foreground transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={handleCancelMembership}
                     disabled={cancelling}
                   >
@@ -244,7 +244,7 @@ export default function CustomerProfilePage() {
                           Keep
                         </button>
                         <button
-                          className="cursor-pointer rounded-lg bg-red-500 px-2.5 py-1 text-[0.75rem] font-bold text-[#0d0d0d] transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="cursor-pointer rounded-lg bg-red-500 px-2.5 py-1 text-[0.75rem] font-bold text-primary-foreground transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                           onClick={() => handleUnregister(r.scheduleId)}
                           disabled={unregistering}
                         >

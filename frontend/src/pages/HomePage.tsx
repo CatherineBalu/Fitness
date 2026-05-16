@@ -110,7 +110,7 @@ function BuyButton({
   const btnClass = cn(
     'w-full cursor-pointer rounded-[var(--radius)] border-none py-[13px] text-[15px] font-bold transition-colors',
     highlighted
-      ? 'bg-[#0d0d0d] text-white hover:bg-[#222]'
+      ? 'bg-background text-foreground hover:bg-secondary'
       : 'bg-primary text-primary-foreground hover:bg-primary/90',
   );
   const navigate = useNavigate();
@@ -200,7 +200,7 @@ export default function HomePage() {
       {/* ── Hero ── */}
       <section className="relative flex h-svh items-center justify-center overflow-hidden text-center">
         <img src={heroImg} alt="Gym" className="absolute inset-0 h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(13,13,13,0.55)] to-[rgba(13,13,13,0.75)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/55 to-background/75" />
         <div className="relative max-w-[760px] px-6">
           <p className="mb-4 text-[13px] font-semibold uppercase tracking-[3px] text-primary">
             Welcome to our gym
@@ -262,7 +262,7 @@ export default function HomePage() {
                   className={cn(
                     'flex flex-col rounded-2xl border px-8 py-9',
                     highlighted
-                      ? 'border-primary bg-primary text-[#0d0d0d] shadow-[0_20px_60px_rgba(170,204,0,0.25)] sm:-translate-y-2'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-[0_20px_60px_rgba(170,204,0,0.25)] sm:-translate-y-2'
                       : 'border-border bg-card',
                   )}
                 >
@@ -274,7 +274,7 @@ export default function HomePage() {
                     <span
                       className={cn(
                         'ml-0.5 text-[15px]',
-                        highlighted ? 'text-[rgba(13,13,13,0.55)]' : 'text-muted-foreground',
+                        highlighted ? 'text-primary-foreground/55' : 'text-muted-foreground',
                       )}
                     >
                       /month
@@ -283,26 +283,26 @@ export default function HomePage() {
                   <p
                     className={cn(
                       '-mt-4 mb-7 text-[13px]',
-                      highlighted ? 'text-[rgba(13,13,13,0.6)]' : 'text-muted-foreground',
+                      highlighted ? 'text-primary-foreground/60' : 'text-muted-foreground',
                     )}
                   >
                     {formatBillingNote(plan.price, plan.durationDays)}
                   </p>
                   <ul className="mb-8 flex flex-1 flex-col gap-3 list-none p-0">
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-[#0d0d0d]' : 'text-primary')}>✓</span>
+                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
                       Full gym access
                     </li>
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-[#0d0d0d]' : 'text-primary')}>✓</span>
+                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
                       Valid for {plan.durationDays} days
                     </li>
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-[#0d0d0d]' : 'text-primary')}>✓</span>
+                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
                       Access to group classes
                     </li>
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-[#0d0d0d]' : 'text-primary')}>✓</span>
+                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
                       Cancel anytime
                     </li>
                   </ul>

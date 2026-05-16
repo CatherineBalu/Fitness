@@ -82,7 +82,7 @@ export default function RootLayout() {
   const logoTarget = mode === 'public' ? '/' : '/admin';
 
   const mobileDropdown =
-    'absolute inset-x-0 top-[var(--nav-height)] z-50 flex flex-col gap-1 border-b border-border bg-[rgba(13,13,13,0.97)] px-6 pb-5 pt-4';
+    'absolute inset-x-0 top-[var(--nav-height)] z-50 flex flex-col gap-1 border-b border-border bg-background/[97%] px-6 pb-5 pt-4';
   const desktopLinks = 'sm:flex sm:items-center sm:gap-8';
 
   return (
