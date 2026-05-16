@@ -18,10 +18,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { useApi } from '@/lib/api';
 import './CheckoutPage.css';
-
-const API_URL = import.meta.env.VITE_API_URL as string;
 
 const STEPS = [
   'Contact details',
@@ -29,13 +28,6 @@ const STEPS = [
   'Payment',
   'Confirmation',
 ] as const;
-
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: string;
-  durationDays: number;
-}
 
 interface Profile {
   name: string;
@@ -108,9 +100,9 @@ export default function CheckoutPage() {
   const { user, isLoaded: userLoaded } = useUser();
   const { apiRequest } = useApi();
 
-  const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
+  const { data: plans, isError: plansLoadError } = useSubscriptions();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
 
   // Order state (accumulated across steps)
@@ -118,31 +110,30 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [payPending, setPayPending] = useState(false);
 
-  // Load plan + profile
   useEffect(() => {
-    if (!planId) {
-      setLoadError('No plan selected.');
-      return;
-    }
     let cancelled = false;
-    Promise.all([
-      fetch(`${API_URL}/subscriptions`).then((r) => r.json()),
-      apiRequest<Profile>('/auth/profile'),
-    ])
-      .then(([plans, prof]: [SubscriptionPlan[], Profile]) => {
-        if (cancelled) return;
-        const found = plans.find((p) => p.id === planId) ?? null;
-        if (!found) setLoadError('Plan not found.');
-        setPlan(found);
-        setProfile(prof);
+    apiRequest<Profile>('/auth/profile')
+      .then((prof) => {
+        if (!cancelled) setProfile(prof);
       })
       .catch((err: Error) => {
-        if (!cancelled) setLoadError(err.message);
+        if (!cancelled) setProfileLoadError(err.message);
       });
     return () => {
       cancelled = true;
     };
-  }, [planId, apiRequest]);
+  }, [apiRequest]);
+
+  const plan = plans?.find((p) => p.id === planId) ?? null;
+  const loadError = !planId
+    ? 'No plan selected.'
+    : plansLoadError
+      ? 'Failed to load subscription plans.'
+      : profileLoadError
+        ? profileLoadError
+        : plans !== undefined && !plan
+          ? 'Plan not found.'
+          : null;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

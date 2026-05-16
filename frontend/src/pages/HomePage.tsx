@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,18 +19,13 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { useApi } from '@/lib/api';
 
 import heroImg from '../assets/hero.png';
 
-const API_URL = import.meta.env.VITE_API_URL as string;
-
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: string;
-  durationDays: number;
-}
+import type { SubscriptionPlan } from '@/hooks/useSubscriptions';
 
 function formatPrice(price: string) {
   const num = Number(price);
@@ -153,24 +149,12 @@ export default function HomePage() {
   const { isSignedIn, isLoaded } = useAuth();
   const { apiRequest } = useApi();
 
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [plansError, setPlansError] = useState<string | null>(null);
+  const {
+    data: plans = [],
+    isLoading: plansLoading,
+    isError: plansError,
+  } = useSubscriptions();
   const [profileActive, setProfileActive] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${API_URL}/subscriptions`)
-      .then((res) => res.json())
-      .then((data: SubscriptionPlan[]) => {
-        if (!cancelled) setPlans(data);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setPlansError(err.message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -243,9 +227,17 @@ export default function HomePage() {
           <h2 className="section-title">Choose the Plan That Fits You Best</h2>
           <p className="section-sub">No contracts. Cancel anytime.</p>
           {plansError && (
-            <p style={{ color: 'var(--c-muted)', textAlign: 'center' }}>
-              Couldn't load plans. Please try again later.
-            </p>
+            <Alert variant="destructive" className="mx-auto max-w-md">
+              <AlertTitle>Couldn't load plans</AlertTitle>
+              <AlertDescription>Please try again later.</AlertDescription>
+            </Alert>
+          )}
+          {plansLoading && (
+            <div className="pricing-grid">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[28rem] rounded-xl" />
+              ))}
+            </div>
           )}
           <div className="pricing-grid">
             {plans.map((plan, idx) => {
