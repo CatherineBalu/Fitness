@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
@@ -18,8 +19,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 import { useApi } from '@/lib/api';
-import './CheckoutPage.css';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -81,20 +82,40 @@ function formatDate(date: Date) {
 
 function Stepper({ current }: { current: number }) {
   return (
-    <div className="checkout-stepper">
+    <div className="relative mb-12 flex items-start justify-between">
       {STEPS.map((label, i) => {
-        const state =
-          i < current ? 'done' : i === current ? 'active' : 'pending';
+        const isDone = i < current;
+        const isActive = i === current;
         return (
-          <div
-            key={label}
-            className={`checkout-step ${state === 'done' ? 'checkout-step--done' : ''} ${state === 'active' ? 'checkout-step--active' : ''}`}
-          >
-            <div className="checkout-step-dot">
-              {state === 'done' ? <CheckIcon size={16} /> : i + 1}
+          <div key={label} className="relative z-[1] flex flex-1 flex-col items-center gap-2.5">
+            <div
+              className={cn(
+                'flex size-9 items-center justify-center rounded-full border-2 text-sm font-bold',
+                isDone
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : isActive
+                    ? 'border-primary bg-card text-primary'
+                    : 'border-border bg-card text-muted-foreground',
+              )}
+            >
+              {isDone ? <CheckIcon size={16} /> : i + 1}
             </div>
-            <span className="checkout-step-label">{label}</span>
-            <div className="checkout-step-line" />
+            <span
+              className={cn(
+                'text-center text-[13px] sm:text-[11px]',
+                isDone || isActive ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {label}
+            </span>
+            {i < STEPS.length - 1 && (
+              <div
+                className={cn(
+                  'absolute left-[calc(50%+18px)] right-[calc(-50%+18px)] top-[17px] z-0 h-0.5',
+                  isDone ? 'bg-primary' : 'bg-border',
+                )}
+              />
+            )}
           </div>
         );
       })}
@@ -113,12 +134,10 @@ export default function CheckoutPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
 
-  // Order state (accumulated across steps)
   const [contact, setContact] = useState<ContactForm | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [payPending, setPayPending] = useState(false);
 
-  // Load plan + profile
   useEffect(() => {
     if (!planId) {
       setLoadError('No plan selected.');
@@ -155,7 +174,6 @@ export default function CheckoutPage() {
     return d;
   }, [plan]);
 
-  // ── Contact form (step 1) ─────────────────────────────────────────
   const contactForm = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
     values: {
@@ -194,12 +212,11 @@ export default function CheckoutPage() {
     }
   };
 
-  // ── Early exits ───────────────────────────────────────────────────
   if (!userLoaded) {
     return (
-      <div className="checkout-page">
-        <div className="checkout-inner">
-          <p style={{ color: 'var(--c-muted)' }}>Loading…</p>
+      <div className="min-h-svh bg-background px-8 pb-20 pt-[calc(var(--nav-height)+48px)] text-foreground">
+        <div className="mx-auto max-w-[960px]">
+          <p className="text-muted-foreground">Loading…</p>
         </div>
       </div>
     );
@@ -207,15 +224,15 @@ export default function CheckoutPage() {
 
   if (!user) {
     return (
-      <div className="checkout-page">
-        <div className="checkout-inner">
-          <h1 className="checkout-title">Please sign in</h1>
-          <p className="checkout-sub">
+      <div className="min-h-svh bg-background px-8 pb-20 pt-[calc(var(--nav-height)+48px)] text-foreground">
+        <div className="mx-auto max-w-[960px]">
+          <h1 className="mb-2 text-[32px] font-extrabold text-foreground">Please sign in</h1>
+          <p className="mb-8 text-muted-foreground">
             You need to be signed in to purchase a membership.
           </p>
-          <Link to="/" className="btn-primary">
-            Go home
-          </Link>
+          <Button asChild>
+            <Link to="/">Go home</Link>
+          </Button>
         </div>
       </div>
     );
@@ -223,13 +240,13 @@ export default function CheckoutPage() {
 
   if (loadError) {
     return (
-      <div className="checkout-page">
-        <div className="checkout-inner">
-          <h1 className="checkout-title">Oops</h1>
-          <p className="checkout-sub">{loadError}</p>
-          <Link to="/" className="btn-primary">
-            Go home
-          </Link>
+      <div className="min-h-svh bg-background px-8 pb-20 pt-[calc(var(--nav-height)+48px)] text-foreground">
+        <div className="mx-auto max-w-[960px]">
+          <h1 className="mb-2 text-[32px] font-extrabold text-foreground">Oops</h1>
+          <p className="mb-8 text-muted-foreground">{loadError}</p>
+          <Button asChild>
+            <Link to="/">Go home</Link>
+          </Button>
         </div>
       </div>
     );
@@ -237,9 +254,9 @@ export default function CheckoutPage() {
 
   if (!plan || !profile) {
     return (
-      <div className="checkout-page">
-        <div className="checkout-inner">
-          <p style={{ color: 'var(--c-muted)' }}>Loading plan…</p>
+      <div className="min-h-svh bg-background px-8 pb-20 pt-[calc(var(--nav-height)+48px)] text-foreground">
+        <div className="mx-auto max-w-[960px]">
+          <p className="text-muted-foreground">Loading plan…</p>
         </div>
       </div>
     );
@@ -247,62 +264,60 @@ export default function CheckoutPage() {
 
   if (profile.hasActiveMembership && step < 3) {
     return (
-      <div className="checkout-page">
-        <div className="checkout-inner">
-          <h1 className="checkout-title">You already have a membership</h1>
-          <p className="checkout-sub">
+      <div className="min-h-svh bg-background px-8 pb-20 pt-[calc(var(--nav-height)+48px)] text-foreground">
+        <div className="mx-auto max-w-[960px]">
+          <h1 className="mb-2 text-[32px] font-extrabold text-foreground">
+            You already have a membership
+          </h1>
+          <p className="mb-8 text-muted-foreground">
             You can buy a new membership once your current one expires.
           </p>
-          <Link to="/" className="btn-primary">
-            Go home
-          </Link>
+          <Button asChild>
+            <Link to="/">Go home</Link>
+          </Button>
         </div>
       </div>
     );
   }
 
-  // ── Step panels ────────────────────────────────────────────────────
-
   const SummaryBlock = (
-    <div className="checkout-summary">
-      <span className="checkout-summary-label">Plan:</span>
-      <span className="checkout-summary-value">{plan.name}</span>
-      <span className="checkout-summary-label">Price:</span>
-      <span className="checkout-summary-value">{formatPrice(plan.price)}</span>
-      <span className="checkout-summary-label">Duration:</span>
-      <span className="checkout-summary-value">{plan.durationDays} days</span>
+    <div className="mb-6 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 rounded-xl border border-border bg-secondary px-5 py-4">
+      <span className="text-sm text-muted-foreground">Plan:</span>
+      <span className="text-sm font-semibold text-foreground">{plan.name}</span>
+      <span className="text-sm text-muted-foreground">Price:</span>
+      <span className="text-sm font-semibold text-foreground">{formatPrice(plan.price)}</span>
+      <span className="text-sm text-muted-foreground">Duration:</span>
+      <span className="text-sm font-semibold text-foreground">{plan.durationDays} days</span>
       {validUntil && (
         <>
-          <span className="checkout-summary-label">Valid until:</span>
-          <span className="checkout-summary-value">
-            {formatDate(validUntil)}
-          </span>
+          <span className="text-sm text-muted-foreground">Valid until:</span>
+          <span className="text-sm font-semibold text-foreground">{formatDate(validUntil)}</span>
         </>
       )}
     </div>
   );
 
   return (
-    <div className="checkout-page">
-      <div className="checkout-inner">
-        <h1 className="checkout-title">Buy a membership</h1>
-        <p className="checkout-sub">
+    <div className="min-h-svh bg-background px-8 pb-20 pt-[calc(var(--nav-height)+48px)] text-foreground">
+      <div className="mx-auto max-w-[960px]">
+        <h1 className="mb-2 text-[32px] font-extrabold text-foreground">Buy a membership</h1>
+        <p className="mb-8 text-muted-foreground">
           Complete the steps below to activate your plan.
         </p>
 
         <Stepper current={step} />
 
-        <div className="checkout-panel">
+        <div className="rounded-2xl border border-border bg-card p-8">
           {step === 0 && (
             <>
-              <h2 className="checkout-panel-title">Your details</h2>
-              <p className="checkout-panel-sub">
+              <h2 className="mb-1 text-[22px] font-bold text-foreground">Your details</h2>
+              <p className="mb-6 text-sm text-muted-foreground">
                 Review your contact info and accept the required agreements.
               </p>
               {SummaryBlock}
               <Form {...contactForm}>
                 <form onSubmit={contactForm.handleSubmit(onSubmitContact)}>
-                  <div className="checkout-fields">
+                  <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-1">
                     <FormField
                       control={contactForm.control}
                       name="firstName"
@@ -310,7 +325,7 @@ export default function CheckoutPage() {
                         <FormItem>
                           <FormLabel>
                             First name{' '}
-                            <span className="checkout-required">*</span>
+                            <span className="ml-0.5 text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input {...field} />
@@ -326,7 +341,7 @@ export default function CheckoutPage() {
                         <FormItem>
                           <FormLabel>
                             Last name{' '}
-                            <span className="checkout-required">*</span>
+                            <span className="ml-0.5 text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input {...field} />
@@ -339,9 +354,9 @@ export default function CheckoutPage() {
                       control={contactForm.control}
                       name="email"
                       render={({ field }) => (
-                        <FormItem className="checkout-fields-full">
+                        <FormItem className="col-span-full">
                           <FormLabel>
-                            Email <span className="checkout-required">*</span>
+                            Email <span className="ml-0.5 text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input {...field} readOnly />
@@ -352,16 +367,10 @@ export default function CheckoutPage() {
                     />
                   </div>
 
-                  <h3
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 700,
-                      margin: '8px 0 16px',
-                    }}
-                  >
+                  <h3 className="mb-4 mt-2 text-[18px] font-bold text-foreground">
                     Agreements & consent
                   </h3>
-                  <div className="checkout-consents">
+                  <div className="mb-6 flex flex-col gap-3.5">
                     <ConsentField
                       form={contactForm}
                       name="agreeSms"
@@ -392,17 +401,21 @@ export default function CheckoutPage() {
                     />
                   </div>
 
-                  <div className="checkout-nav">
-                    <button
+                  <div className="mt-2 flex justify-between gap-3">
+                    <Button
                       type="button"
-                      className="btn-dark btn-nav"
+                      variant="outline"
+                      className="min-w-[110px] border-border text-foreground"
                       onClick={() => navigate({ to: '/' })}
                     >
                       Cancel
-                    </button>
-                    <button type="submit" className="btn-primary btn-nav">
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="min-w-[110px] bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                    >
                       Next
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </Form>
@@ -411,95 +424,99 @@ export default function CheckoutPage() {
 
           {step === 1 && contact && (
             <>
-              <h2 className="checkout-panel-title">Order summary</h2>
-              <p className="checkout-panel-sub">
+              <h2 className="mb-1 text-[22px] font-bold text-foreground">Order summary</h2>
+              <p className="mb-6 text-sm text-muted-foreground">
                 Review the details before continuing to payment.
               </p>
               {SummaryBlock}
-              <div className="checkout-summary">
-                <span className="checkout-summary-label">Email:</span>
-                <span className="checkout-summary-value">{contact.email}</span>
-                <span className="checkout-summary-label">First name:</span>
-                <span className="checkout-summary-value">
-                  {contact.firstName}
-                </span>
-                <span className="checkout-summary-label">Last name:</span>
-                <span className="checkout-summary-value">
-                  {contact.lastName}
-                </span>
+              <div className="mb-6 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 rounded-xl border border-border bg-secondary px-5 py-4">
+                <span className="text-sm text-muted-foreground">Email:</span>
+                <span className="text-sm font-semibold text-foreground">{contact.email}</span>
+                <span className="text-sm text-muted-foreground">First name:</span>
+                <span className="text-sm font-semibold text-foreground">{contact.firstName}</span>
+                <span className="text-sm text-muted-foreground">Last name:</span>
+                <span className="text-sm font-semibold text-foreground">{contact.lastName}</span>
               </div>
-              <div className="checkout-nav">
-                <button
+              <div className="mt-2 flex justify-between gap-3">
+                <Button
                   type="button"
-                  className="btn-dark btn-nav"
+                  variant="outline"
+                  className="min-w-[110px] border-border text-foreground"
                   onClick={() => setStep(0)}
                 >
                   Previous
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="btn-primary btn-nav"
+                  className="min-w-[110px] bg-primary font-bold text-primary-foreground hover:bg-primary/90"
                   onClick={() => setStep(2)}
                 >
                   Proceed to payment
-                </button>
+                </Button>
               </div>
             </>
           )}
 
           {step === 2 && (
             <>
-              <h2 className="checkout-panel-title">Choose payment method</h2>
+              <h2 className="mb-1 text-[22px] font-bold text-foreground">Choose payment method</h2>
               {SummaryBlock}
               <RadioGroup
                 value={paymentMethod}
                 onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-                className="checkout-payment-options"
+                className="mb-6 flex flex-col gap-3.5"
               >
-                <label htmlFor="pm-card" className="checkout-payment-option">
+                <label
+                  htmlFor="pm-card"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary px-[18px] py-3.5 transition-colors hover:border-primary"
+                >
                   <RadioGroupItem value="card" id="pm-card" />
                   <span>Credit / Debit card</span>
                 </label>
-                <label htmlFor="pm-bank" className="checkout-payment-option">
+                <label
+                  htmlFor="pm-bank"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary px-[18px] py-3.5 transition-colors hover:border-primary"
+                >
                   <RadioGroupItem value="bank" id="pm-bank" />
                   <span>One-time bank transfer</span>
                 </label>
               </RadioGroup>
-              <div className="checkout-nav">
-                <button
+              <div className="mt-2 flex justify-between gap-3">
+                <Button
                   type="button"
-                  className="btn-dark btn-nav"
+                  variant="outline"
+                  className="min-w-[110px] border-border text-foreground"
                   onClick={() => setStep(1)}
                 >
                   Previous
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="btn-primary btn-nav"
+                  className="min-w-[110px] bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={handlePay}
                   disabled={payPending}
                 >
-                  {payPending
-                    ? 'Processing…'
-                    : `Pay ${formatPrice(plan.price)}`}
-                </button>
+                  {payPending ? 'Processing…' : `Pay ${formatPrice(plan.price)}`}
+                </Button>
               </div>
             </>
           )}
 
           {step === 3 && (
-            <div className="checkout-success">
-              <div className="checkout-success-icon">
+            <div className="px-4 pb-2 pt-6 text-center">
+              <div className="mb-5 inline-flex size-[72px] items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <CheckIcon size={36} />
               </div>
-              <h3>Payment successful!</h3>
-              <p>
+              <h3 className="mb-2 text-[28px] font-extrabold text-foreground">
+                Payment successful!
+              </h3>
+              <p className="mb-6 text-muted-foreground">
                 Your {plan.name} membership is active
                 {validUntil ? ` until ${formatDate(validUntil)}` : ''}.
               </p>
-              <Link to="/" className="btn-primary">
-                Go to home page
-              </Link>
+              <Button asChild className="bg-primary font-bold text-primary-foreground hover:bg-primary/90">
+                <Link to="/">Go to home page</Link>
+              </Button>
             </div>
           )}
         </div>
@@ -525,7 +542,7 @@ function ConsentField({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <div className="checkout-consent-row">
+          <div className="flex items-start gap-2.5 text-sm leading-[1.4] text-foreground">
             <FormControl>
               <Checkbox
                 checked={field.value as boolean}
@@ -534,7 +551,7 @@ function ConsentField({
             </FormControl>
             <span>
               {label}
-              {required && <span className="checkout-required">*</span>}
+              {required && <span className="ml-1 text-red-500">*</span>}
             </span>
           </div>
           <FormMessage />
