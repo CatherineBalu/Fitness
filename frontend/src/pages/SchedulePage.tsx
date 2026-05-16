@@ -15,8 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { useApi } from '@/lib/api';
-import './SchedulePage.css';
 
 const ALL_LECTURES = 'All lectures';
 type Category = string;
@@ -157,7 +157,7 @@ function ActivityCard({
         <Button
           size="sm"
           variant="outline"
-          className="cal-unregister-btn"
+          className="mt-1 w-full border-border bg-transparent text-[12px] font-semibold uppercase text-muted-foreground hover:border-foreground hover:text-foreground disabled:opacity-50"
           disabled={busy}
           onClick={() => onUnregisterClick(activity)}
         >
@@ -169,7 +169,10 @@ function ActivityCard({
     if (!isSignedIn) {
       return (
         <SignInButton mode="modal">
-          <Button size="sm" className="cal-register-btn">
+          <Button
+            size="sm"
+            className="mt-1 w-full bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90"
+          >
             Register
           </Button>
         </SignInButton>
@@ -178,7 +181,11 @@ function ActivityCard({
 
     if (isFull) {
       return (
-        <Button size="sm" className="cal-register-btn" disabled>
+        <Button
+          size="sm"
+          className="mt-1 w-full bg-primary text-[12px] font-bold uppercase text-primary-foreground disabled:bg-card disabled:text-muted-foreground disabled:opacity-70"
+          disabled
+        >
           Full
         </Button>
       );
@@ -187,7 +194,7 @@ function ActivityCard({
     return (
       <Button
         size="sm"
-        className="cal-register-btn"
+        className="mt-1 w-full bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90 disabled:bg-card disabled:text-muted-foreground disabled:opacity-70"
         disabled={busy}
         onClick={() => onRegisterClick(activity)}
       >
@@ -197,27 +204,35 @@ function ActivityCard({
   };
 
   return (
-    <Card className="cal-activity-card">
-      <CardContent className="cal-activity-content">
-        <div className="cal-activity-top">
-          <span className="cal-activity-time">{activity.time}</span>
-          <div className="cal-activity-top-right">
+    <Card className="border-border bg-secondary shadow-none ring-0">
+      <CardContent className="flex flex-col gap-1.5 p-2.5">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-xs text-muted-foreground">{activity.time}</span>
+          <div className="flex flex-wrap items-center justify-end gap-1">
             {activity.forMembers && (
-              <Badge variant="outline" className="cal-badge-members-only">
+              <Badge
+                variant="outline"
+                className="inline-flex h-[18px] items-center gap-[3px] border-primary px-1.5 text-[10px] text-primary"
+              >
                 <Lock size={10} /> Members
               </Badge>
             )}
-            <Badge variant="outline" className="cal-badge-members">
+            <Badge
+              variant="outline"
+              className="h-[18px] border-border px-1.5 text-[10px] text-muted-foreground"
+            >
               {activity.category}
             </Badge>
           </div>
         </div>
-        <h4 className="cal-activity-name">{activity.name}</h4>
-        <div className="cal-activity-details">
+        <h4 className="m-0 text-[15px] font-semibold leading-[1.2] text-foreground">
+          {activity.name}
+        </h4>
+        <div className="flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
           <span>
             {activity.room} | Trainer: {activity.trainer}
           </span>
-          <span className="cal-activity-capacity">
+          <span className="whitespace-nowrap">
             {activity.registered}/{activity.capacity}
           </span>
         </div>
@@ -421,19 +436,18 @@ export default function SchedulePage() {
   const hasActiveMembership = profile?.hasActiveMembership ?? false;
 
   return (
-    <div className="schedule-page-content">
-      <div className="cal-root">
-        <div className="cal-categories">
+    <div className="min-h-[calc(100svh-var(--nav-height))] bg-background pt-[var(--nav-height)] text-foreground">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center gap-6 px-4 pb-10 pt-6 sm:gap-10 sm:px-6 sm:pb-[60px] sm:pt-10">
+        <div className="flex flex-wrap justify-center gap-2.5">
           {categories.map((cat) => (
             <Button
               key={cat}
               variant={activeCategories.has(cat) ? 'default' : 'outline'}
               size="sm"
-              className={
-                activeCategories.has(cat)
-                  ? 'cal-cat-btn cal-cat-btn--active'
-                  : 'cal-cat-btn'
-              }
+              className={cn(
+                'text-xs uppercase tracking-[0.5px]',
+                !activeCategories.has(cat) && 'border-border text-muted-foreground hover:text-foreground',
+              )}
               onClick={() => toggleCategory(cat)}
             >
               {cat}
@@ -441,16 +455,16 @@ export default function SchedulePage() {
           ))}
         </div>
 
-        <div className="cal-week-nav">
+        <div className="flex items-center gap-6 sm:gap-12">
           <Button
             variant="ghost"
             size="icon"
             onClick={goPrev}
-            className="cal-nav-arrow"
+            className="text-foreground hover:bg-card hover:text-primary"
           >
             <ChevronLeft />
           </Button>
-          <span className="cal-date-range">
+          <span className="whitespace-nowrap tracking-[0.5px] text-foreground text-lg sm:text-[22px]">
             {isMobile
               ? `${weekDays[selectedDayIndex].name} ${formatDate(weekDays[selectedDayIndex].date)} ${weekDays[selectedDayIndex].date.getFullYear()}`
               : formatDateRange(weekStart)}
@@ -459,16 +473,17 @@ export default function SchedulePage() {
             variant="ghost"
             size="icon"
             onClick={goNext}
-            className="cal-nav-arrow"
+            className="text-foreground hover:bg-card hover:text-primary"
           >
             <ChevronRight />
           </Button>
         </div>
 
         {loading && (
-          <p style={{ color: 'var(--c-muted)' }}>Loading schedule...</p>
+          <p className="text-muted-foreground">Loading schedule...</p>
         )}
-        <div className="cal-week-grid">
+
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:grid-cols-7">
           {(isMobile
             ? weekDays.filter((d) => d.dayIndex === selectedDayIndex)
             : weekDays
@@ -481,13 +496,16 @@ export default function SchedulePage() {
             return (
               <div
                 key={day.dayIndex}
-                className={`cal-day-column ${today ? 'cal-day-column--today' : ''}`}
+                className={cn(
+                  'flex min-w-0 flex-col gap-3 rounded-[var(--radius)] px-1 py-2.5',
+                  today && 'sm:border-t-[3px] sm:border-t-primary sm:bg-card',
+                )}
               >
-                <div className="cal-day-header">
-                  <span className="cal-day-name">{day.name}</span>
-                  <span className="cal-day-date">{formatDate(day.date)}</span>
+                <div className="hidden flex-col items-center gap-2 pb-2 sm:flex">
+                  <span className="text-[18px] font-normal text-foreground">{day.name}</span>
+                  <span className="text-[18px] font-normal text-foreground">{formatDate(day.date)}</span>
                 </div>
-                <div className="cal-day-activities">
+                <div className="flex flex-col gap-3">
                   {dayActivities.map((activity) => (
                     <ActivityCard
                       key={activity.id}
@@ -519,7 +537,7 @@ export default function SchedulePage() {
         open={dialog.type !== 'none'}
         onOpenChange={(open) => !open && closeDialog()}
       >
-        <DialogContent className="cal-dialog">
+        <DialogContent className="border-border bg-card text-foreground">
           {dialog.type === 'confirm-register' && (
             <>
               <DialogHeader>
@@ -530,8 +548,11 @@ export default function SchedulePage() {
                   {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="cal-dialog-footer">
-                <Button className="cal-register-btn" onClick={confirmRegister}>
+              <DialogFooter className="border-t border-border bg-transparent">
+                <Button
+                  className="bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90"
+                  onClick={confirmRegister}
+                >
                   Register
                 </Button>
               </DialogFooter>
@@ -548,9 +569,9 @@ export default function SchedulePage() {
                   {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="cal-dialog-footer">
+              <DialogFooter className="border-t border-border bg-transparent">
                 <Button
-                  className="cal-unregister-confirm-btn"
+                  className="bg-red-700 font-bold text-white hover:bg-red-800"
                   onClick={confirmUnregister}
                 >
                   Unregister
@@ -569,9 +590,9 @@ export default function SchedulePage() {
                   a member?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="cal-dialog-footer">
+              <DialogFooter className="border-t border-border bg-transparent">
                 <Button
-                  className="cal-register-btn"
+                  className="bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90"
                   onClick={handleBuyMembership}
                 >
                   Buy membership
