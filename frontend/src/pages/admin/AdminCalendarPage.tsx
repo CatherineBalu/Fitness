@@ -9,7 +9,8 @@ import {
   Pencil,
   AlertTriangle,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import {
   AlertDialog,
@@ -38,12 +39,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import {
+  useAddLectureMember,
+  useLectureMembers,
+  useRemoveLectureMember,
+  useRooms,
+  useSchedule,
+  useUpdateAttendance,
+  useUpdateSchedule,
+} from '@/hooks/useCalendar';
 
 import AddScheduleDialog from './AddScheduleDialog';
 import './AdminCalendarPage.css';
 
-const API_URL = import.meta.env.VITE_API_URL as string;
+import type { RoomOption, ScheduleItem } from '@/hooks/useCalendar';
 
 type Filter = 'all' | 'today' | 'this-week' | 'upcoming' | 'history';
 
@@ -56,29 +67,6 @@ interface Lecture {
   capacity: number;
   registered: number;
   dayOffset: number; // 0 = today, positive = future, negative = past
-}
-
-interface ScheduleItem {
-  id: string;
-  startTime: string;
-  endTime: string;
-  lectureName: string;
-  roomName: string;
-  roomCapacity: number;
-  registered: number;
-}
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  attended?: boolean;
-}
-
-interface RoomOption {
-  id: string;
-  name: string;
-  capacity: number;
 }
 
 // --- HELPER FUNCTIONS ---
@@ -245,30 +233,75 @@ const FILTERS: { label: string; value: Filter }[] = [
   { label: 'History', value: 'history' },
 ];
 
+function rangeForFilter(
+  filter: Filter,
+  historyFrom: string,
+  historyTo: string,
+): { from: string; to: string } {
+  const today = new Date();
+  const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+  const todayStr = fmtISO(today);
+
+  if (filter === 'all') return { from: '2000-01-01', to: '2100-01-01' };
+  if (filter === 'today') return { from: todayStr, to: todayStr };
+  if (filter === 'this-week') {
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    return { from: todayStr, to: fmtISO(nextWeek) };
+  }
+  if (filter === 'upcoming') {
+    const nextMonth = new Date(today);
+    nextMonth.setDate(nextMonth.getDate() + 30);
+    return { from: todayStr, to: fmtISO(nextMonth) };
+  }
+  return { from: historyFrom, to: historyTo };
+}
+
 export default function AdminCalendarPage() {
   const [filter, setFilter] = useState<Filter>('upcoming');
-  const [lectures, setLectures] = useState<Lecture[]>([]);
-  const [rooms, setRooms] = useState<RoomOption[]>([]);
-  const [loading, setLoading] = useState(true);
-
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // --- HISTORY DATE PICKER STATE ---
   const [historyFrom, setHistoryFrom] = useState(getDaysAgoStr(3));
   const [historyTo, setHistoryTo] = useState(getDaysAgoStr(1));
 
+  const [range, setRange] = useState(() =>
+    rangeForFilter('upcoming', getDaysAgoStr(3), getDaysAgoStr(1)),
+  );
+
+  const { data: scheduleItems = [], isLoading: loadingSchedule } = useSchedule(
+    range.from,
+    range.to,
+  );
+  const { data: rooms = [] } = useRooms();
+
+  const lectures = useMemo(() => {
+    const baseDate = toUTCDateOnly(new Date());
+    return [...scheduleItems]
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      )
+      .map((item) => scheduleItemToLecture(item, baseDate));
+  }, [scheduleItems]);
+
   // --- MEMBERS DIALOG STATE ---
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
-  const [membersError, setMembersError] = useState('');
+
+  const selectedLectureId = selectedLecture?.id ?? null;
+  const {
+    data: members = [],
+    isLoading: loadingMembers,
+    isError: membersError,
+  } = useLectureMembers(selectedLectureId);
+
+  const addMember = useAddLectureMember(selectedLectureId ?? '');
+  const removeMember = useRemoveLectureMember(selectedLectureId ?? '');
+  const updateSchedule = useUpdateSchedule(selectedLectureId ?? '');
+  const updateAttendance = useUpdateAttendance(selectedLectureId ?? '');
 
   const [searchEmail, setSearchEmail] = useState('');
-  const [searchStatus, setSearchStatus] = useState<'success' | 'error' | null>(
-    null,
-  );
-  const [searchErrorMsg, setSearchErrorMsg] = useState('');
 
   // --- EDIT LECTURE STATE ---
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -292,175 +325,62 @@ export default function AdminCalendarPage() {
 
   // --- ATTENDANCE STATE ---
   const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
-  const [attendanceStatus, setAttendanceStatus] = useState<
+  const [attendanceOverrides, setAttendanceOverrides] = useState<
     Record<string, boolean>
   >({});
-  const [isSavingAttendance, setIsSavingAttendance] = useState(false);
 
-  // ==========================================
-  // DATA FETCHING ROUTER
-  // ==========================================
+  // Derive attendance from members + user overrides (no effect+setState cascade).
+  const attendanceStatus = useMemo(() => {
+    const result: Record<string, boolean> = {};
+    members.forEach((m) => {
+      result[m.id] = attendanceOverrides[m.id] ?? m.attended ?? false;
+    });
+    return result;
+  }, [members, attendanceOverrides]);
 
-  const loadSchedule = useCallback(
-    async (fromDateStr: string, toDateStr: string) => {
-      setLoading(true);
-      const baseDate = toUTCDateOnly(new Date());
-
-      try {
-        const [scheduleRes, roomsRes] = await Promise.all([
-          fetch(`${API_URL}/schedule?from=${fromDateStr}&to=${toDateStr}`),
-          fetch(`${API_URL}/calendar/rooms`),
-        ]);
-        const scheduleData = await scheduleRes.json();
-        const roomsData = await roomsRes.json();
-
-        setLectures(
-          scheduleData
-            .sort(
-              (a: ScheduleItem, b: ScheduleItem) =>
-                new Date(a.startTime).getTime() -
-                new Date(b.startTime).getTime(),
-            )
-            .map((item: ScheduleItem) => scheduleItemToLecture(item, baseDate)),
-        );
-        setRooms(roomsData);
-      } catch (err) {
-        console.error('Failed to fetch schedule:', err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  function handleAttendanceDialogChange(open: boolean) {
+    setAttendanceDialogOpen(open);
+    if (!open) setAttendanceOverrides({});
+  }
 
   const handleFilterChange = (newFilter: Filter) => {
     setFilter(newFilter);
-    const today = new Date();
-    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
-    const todayStr = fmtISO(today);
-
-    if (newFilter === 'all') {
-      loadSchedule('2000-01-01', '2100-01-01');
-    } else if (newFilter === 'today') {
-      loadSchedule(todayStr, todayStr);
-    } else if (newFilter === 'this-week') {
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      loadSchedule(todayStr, fmtISO(nextWeek));
-    } else if (newFilter === 'upcoming') {
-      const nextMonth = new Date(today);
-      nextMonth.setDate(nextMonth.getDate() + 30);
-      loadSchedule(todayStr, fmtISO(nextMonth));
-    } else if (newFilter === 'history') {
-      // Automatically load the last 3 days
+    if (newFilter === 'history') {
       const defaultFrom = getDaysAgoStr(3);
       const defaultTo = getDaysAgoStr(1);
       setHistoryFrom(defaultFrom);
       setHistoryTo(defaultTo);
-      loadSchedule(defaultFrom, defaultTo);
+      setRange({ from: defaultFrom, to: defaultTo });
+    } else {
+      setRange(rangeForFilter(newFilter, historyFrom, historyTo));
     }
   };
-
-  useEffect(() => {
-    handleFilterChange('upcoming');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function fetchMembersForLecture(lectureId: string) {
-    const res = await fetch(`${API_URL}/calendar/${lectureId}/members`);
-    if (!res.ok) throw new Error('Failed to fetch members');
-    return await res.json();
-  }
 
   // ==========================================
   // HANDLERS: MEMBERS
   // ==========================================
 
-  async function handleViewMembers(lecture: Lecture) {
+  function handleViewMembers(lecture: Lecture) {
     setSelectedLecture(lecture);
-    setSearchStatus(null);
     setSearchEmail('');
     setMembersDialogOpen(true);
-    setLoadingMembers(true);
-    setMembersError('');
-    setMembers([]);
-
-    try {
-      const data = await fetchMembersForLecture(lecture.id);
-      setMembers(data);
-    } catch (error) {
-      console.error(error);
-      setMembersError('Failed to load registered members. Please try again.');
-    } finally {
-      setLoadingMembers(false);
-    }
   }
 
-  async function handleAddMember() {
+  function handleAddMember() {
     if (!searchEmail.includes('@') || !selectedLecture) {
-      setSearchStatus('error');
-      setSearchErrorMsg('Invalid email address');
+      toast.error('Invalid email address');
       return;
     }
-
-    try {
-      const res = await fetch(
-        `${API_URL}/calendar/${selectedLecture.id}/members`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: searchEmail }),
-        },
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to add member');
-      }
-
-      setMembers((prev) => [data, ...prev]);
-      setSearchStatus('success');
-      setSearchErrorMsg('Member successfully added');
-      setSearchEmail('');
-
-      if (filter !== 'history') {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      setSearchStatus('error');
-      if (error instanceof Error) {
-        setSearchErrorMsg(error.message);
-      } else {
-        setSearchErrorMsg('An unknown error occurred');
-      }
-    }
+    addMember.mutate(searchEmail, {
+      onSuccess: () => {
+        setSearchEmail('');
+      },
+    });
   }
 
-  async function handleRemoveMember(memberId: string) {
+  function handleRemoveMember(memberId: string) {
     if (!selectedLecture) return;
-
-    const previousMembers = [...members];
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
-
-    try {
-      const res = await fetch(
-        `${API_URL}/calendar/${selectedLecture.id}/members/${memberId}`,
-        {
-          method: 'DELETE',
-        },
-      );
-
-      if (!res.ok) throw new Error('Failed to remove member');
-
-      if (filter !== 'history') {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      console.error(error);
-      setMembers(previousMembers);
-      alert('Failed to remove member. Please try again.');
-    }
+    removeMember.mutate(memberId);
   }
 
   // ==========================================
@@ -503,105 +423,49 @@ export default function AdminCalendarPage() {
     executeSaveEdit();
   }
 
-  async function executeSaveEdit() {
+  function executeSaveEdit() {
     if (!selectedLecture) return;
-
-    try {
-      const res = await fetch(`${API_URL}/calendar/${selectedLecture.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: editLectureData.roomId,
-          startTime: editLectureData.startTime,
-          endTime: editLectureData.endTime,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to update schedule');
-
-      setCapacityWarningOpen(false);
-      setEditDialogOpen(false);
-
-      if (filter === 'history') {
-        loadSchedule(historyFrom, historyTo);
-      } else {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Failed to update lecture. Please try again.');
-    }
+    updateSchedule.mutate(
+      {
+        roomId: editLectureData.roomId,
+        startTime: editLectureData.startTime,
+        endTime: editLectureData.endTime,
+      },
+      {
+        onSuccess: () => {
+          setCapacityWarningOpen(false);
+          setEditDialogOpen(false);
+        },
+      },
+    );
   }
 
   // ==========================================
   // HANDLERS: ATTENDANCE
   // ==========================================
 
-  async function handleMarkAttendance(lecture: Lecture) {
+  function handleMarkAttendance(lecture: Lecture) {
     setSelectedLecture(lecture);
-    setMembers([]);
-    setAttendanceStatus({});
     setAttendanceDialogOpen(true);
-    setLoadingMembers(true);
-
-    try {
-      const data = await fetchMembersForLecture(lecture.id);
-      setMembers(data);
-
-      const initialStatus: Record<string, boolean> = {};
-      data.forEach((m: Member) => {
-        initialStatus[m.id] = m.attended || false;
-      });
-      setAttendanceStatus(initialStatus);
-    } catch (error) {
-      console.error(error);
-      alert('Failed to load members for attendance.');
-    } finally {
-      setLoadingMembers(false);
-    }
   }
 
   function toggleAttendance(memberId: string, isPresent: boolean) {
-    setAttendanceStatus((prev) => ({ ...prev, [memberId]: isPresent }));
+    setAttendanceOverrides((prev) => ({ ...prev, [memberId]: isPresent }));
   }
 
-  async function handleSaveAttendance() {
+  function handleSaveAttendance() {
     if (!selectedLecture) return;
-    setIsSavingAttendance(true);
-
     const attendanceRecords = Object.entries(attendanceStatus).map(
-      ([personId, attended]) => ({
-        personId,
-        attended,
-      }),
+      ([personId, attended]) => ({ personId, attended }),
     );
-
-    try {
-      const res = await fetch(
-        `${API_URL}/calendar/${selectedLecture.id}/attendance`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ attendanceRecords }),
+    updateAttendance.mutate(
+      { attendanceRecords },
+      {
+        onSuccess: () => {
+          handleAttendanceDialogChange(false);
         },
-      );
-
-      if (!res.ok) throw new Error('Failed to save attendance');
-
-      setAttendanceDialogOpen(false);
-      setMembers([]);
-      setAttendanceStatus({});
-      if (filter === 'history') {
-        loadSchedule(historyFrom, historyTo);
-      } else {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Failed to save attendance records. Please try again.');
-    } finally {
-      setIsSavingAttendance(false);
-    }
+      },
+    );
   }
 
   const filtered = filterLectures(lectures, filter);
@@ -664,13 +528,15 @@ export default function AdminCalendarPage() {
               />
             </div>
             <Button
-              onClick={() => loadSchedule(historyFrom, historyTo)}
+              onClick={() => setRange({ from: historyFrom, to: historyTo })}
               className="w-full bg-[#aacc00] text-black hover:bg-[#bbdd11] sm:w-auto"
             >
               Load Range
             </Button>
             <Button
-              onClick={() => loadSchedule('2000-01-01', maxHistoryDateStr)}
+              onClick={() =>
+                setRange({ from: '2000-01-01', to: maxHistoryDateStr })
+              }
               variant="outline"
               className="w-full border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-slate-200 sm:w-auto"
             >
@@ -694,26 +560,32 @@ export default function AdminCalendarPage() {
           </span>
         </div>
 
-        {loading && (
-          <p style={{ color: 'var(--c-muted)' }}>Loading schedule...</p>
+        {loadingSchedule && (
+          <div className="admin-cal-grid">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-56 rounded-xl" />
+            ))}
+          </div>
         )}
 
-        <div className="admin-cal-grid">
-          {filtered.map((lecture) => (
-            <LectureCard
-              key={lecture.id}
-              lecture={lecture}
-              onViewMembers={handleViewMembers}
-              onEditLecture={handleEditLecture}
-              onMarkAttendance={handleMarkAttendance}
-            />
-          ))}
-          {!loading && filtered.length === 0 && (
-            <p className="col-span-full py-8 text-center text-slate-500">
-              No lectures found for this filter.
-            </p>
-          )}
-        </div>
+        {!loadingSchedule && (
+          <div className="admin-cal-grid">
+            {filtered.map((lecture) => (
+              <LectureCard
+                key={lecture.id}
+                lecture={lecture}
+                onViewMembers={handleViewMembers}
+                onEditLecture={handleEditLecture}
+                onMarkAttendance={handleMarkAttendance}
+              />
+            ))}
+            {filtered.length === 0 && (
+              <p className="col-span-full py-8 text-center text-slate-500">
+                No lectures found for this filter.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <AddScheduleDialog
@@ -749,17 +621,12 @@ export default function AdminCalendarPage() {
               />
               <Button
                 onClick={handleAddMember}
+                disabled={addMember.isPending}
                 className="bg-[#aacc00] text-black hover:bg-[#bbdd11]"
               >
-                Add
+                {addMember.isPending ? 'Adding…' : 'Add'}
               </Button>
             </div>
-            {searchStatus === 'success' && (
-              <p className="text-sm text-green-500">{searchErrorMsg}</p>
-            )}
-            {searchStatus === 'error' && (
-              <p className="text-sm text-red-500">{searchErrorMsg}</p>
-            )}
           </div>
 
           <div className="mt-2 flex max-h-[300px] flex-col gap-2 overflow-y-auto pr-2">
@@ -770,7 +637,7 @@ export default function AdminCalendarPage() {
             )}
             {membersError && (
               <p className="py-4 text-center text-sm text-red-400">
-                {membersError}
+                Failed to load registered members.
               </p>
             )}
 
@@ -959,7 +826,7 @@ export default function AdminCalendarPage() {
       ========================================== */}
       <Dialog
         open={attendanceDialogOpen}
-        onOpenChange={setAttendanceDialogOpen}
+        onOpenChange={handleAttendanceDialogChange}
       >
         <DialogContent className="add-schedule-dialog max-w-md">
           <DialogHeader>
@@ -1017,17 +884,17 @@ export default function AdminCalendarPage() {
           <DialogFooter className="mt-4">
             <Button
               variant="ghost"
-              onClick={() => setAttendanceDialogOpen(false)}
+              onClick={() => handleAttendanceDialogChange(false)}
             >
               Cancel
             </Button>
             {members.length > 0 && (
               <Button
                 onClick={handleSaveAttendance}
-                disabled={isSavingAttendance}
+                disabled={updateAttendance.isPending}
                 className="border-0 bg-[#aacc00] text-black hover:bg-[#bbdd11]"
               >
-                {isSavingAttendance ? 'Saving...' : 'Save Attendance'}
+                {updateAttendance.isPending ? 'Saving...' : 'Save Attendance'}
               </Button>
             )}
           </DialogFooter>
