@@ -1,4 +1,4 @@
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -9,7 +9,6 @@ import type { Theme } from './themeContext';
 const OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
   { value: 'light', label: 'Light', Icon: Sun },
   { value: 'dark', label: 'Dark', Icon: Moon },
-  { value: 'system', label: 'System', Icon: Monitor },
 ];
 
 export default function ThemeToggle({ className }: { className?: string }) {
