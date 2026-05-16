@@ -11,6 +11,8 @@ import { useApi } from '@/lib/api';
 import { can } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
+import logoImg from '../assets/logo.png';
+
 const SocialIcon = ({ d }: { d: string }) => (
   <svg
     width="18"
@@ -92,14 +94,18 @@ export default function RootLayout() {
         <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-3 sm:px-4">
           <Link
             to={logoTarget}
+            data-testid="navbar-logo"
             className="flex items-center gap-1 text-inherit no-underline"
           >
             <img
-              src="/src/assets/logo.png"
+              src={logoImg}
               alt="Logo"
               className="block h-12 w-auto sm:h-16"
             />
-            <span className="text-sm font-extrabold tracking-[1px] text-white sm:text-base sm:tracking-[1.5px]">
+            <span
+              data-testid="logo-text"
+              className="text-sm font-extrabold tracking-[1px] text-white sm:text-base sm:tracking-[1.5px]"
+            >
               FITNESS
             </span>
           </Link>
@@ -253,6 +259,7 @@ export default function RootLayout() {
 
       {/* ── Footer ── */}
       <footer
+        data-testid="footer"
         className="border-border bg-background border-t px-8 pt-[60px]"
         id="contact"
       >

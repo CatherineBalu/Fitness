@@ -170,6 +170,7 @@ function ActivityCard({
       return (
         <SignInButton mode="modal">
           <Button
+            data-testid="cal-register-btn"
             size="sm"
             className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 w-full text-[12px] font-bold uppercase"
           >
@@ -193,6 +194,7 @@ function ActivityCard({
 
     return (
       <Button
+        data-testid="cal-register-btn"
         size="sm"
         className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-card disabled:text-muted-foreground mt-1 w-full text-[12px] font-bold uppercase disabled:opacity-70"
         disabled={busy}
@@ -436,12 +438,14 @@ export default function SchedulePage() {
   const hasActiveMembership = profile?.hasActiveMembership ?? false;
 
   return (
-    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+    <div data-testid="cal-root" className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
       <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center gap-6 px-4 pt-6 pb-10 sm:gap-10 sm:px-6 sm:pt-10 sm:pb-[60px]">
         <div className="flex flex-wrap justify-center gap-2.5">
           {categories.map((cat) => (
             <Button
               key={cat}
+              data-testid="cal-cat-btn"
+              data-active={activeCategories.has(cat) ? 'true' : 'false'}
               variant={activeCategories.has(cat) ? 'default' : 'outline'}
               size="sm"
               className={cn(
@@ -458,6 +462,7 @@ export default function SchedulePage() {
 
         <div className="flex items-center gap-6 sm:gap-12">
           <Button
+            data-testid="cal-nav-arrow"
             variant="ghost"
             size="icon"
             onClick={goPrev}
@@ -465,12 +470,13 @@ export default function SchedulePage() {
           >
             <ChevronLeft />
           </Button>
-          <span className="text-foreground text-lg tracking-[0.5px] whitespace-nowrap sm:text-[22px]">
+          <span data-testid="cal-date-range" className="text-foreground text-lg tracking-[0.5px] whitespace-nowrap sm:text-[22px]">
             {isMobile
               ? `${weekDays[selectedDayIndex].name} ${formatDate(weekDays[selectedDayIndex].date)} ${weekDays[selectedDayIndex].date.getFullYear()}`
               : formatDateRange(weekStart)}
           </span>
           <Button
+            data-testid="cal-nav-arrow"
             variant="ghost"
             size="icon"
             onClick={goNext}
@@ -484,7 +490,7 @@ export default function SchedulePage() {
           <p className="text-muted-foreground">Loading schedule...</p>
         )}
 
-        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        <div data-testid="cal-week-grid" className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:grid-cols-7">
           {(isMobile
             ? weekDays.filter((d) => d.dayIndex === selectedDayIndex)
             : weekDays
