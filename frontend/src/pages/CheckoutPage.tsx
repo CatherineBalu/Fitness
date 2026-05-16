@@ -105,7 +105,7 @@ function Stepper({ current }: { current: number }) {
             </div>
             <span
               className={cn(
-                'text-center text-[13px] sm:text-[11px]',
+                'text-xs-plus text-center sm:text-[11px]',
                 isDone || isActive
                   ? 'text-foreground'
                   : 'text-muted-foreground',
@@ -344,7 +344,7 @@ export default function CheckoutPage() {
                         <FormItem>
                           <FormLabel>
                             First name{' '}
-                            <span className="ml-0.5 text-red-500">*</span>
+                            <span className="text-destructive ml-0.5">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input {...field} />
@@ -360,7 +360,7 @@ export default function CheckoutPage() {
                         <FormItem>
                           <FormLabel>
                             Last name{' '}
-                            <span className="ml-0.5 text-red-500">*</span>
+                            <span className="text-destructive ml-0.5">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input {...field} />
@@ -375,7 +375,8 @@ export default function CheckoutPage() {
                       render={({ field }) => (
                         <FormItem className="col-span-full">
                           <FormLabel>
-                            Email <span className="ml-0.5 text-red-500">*</span>
+                            Email{' '}
+                            <span className="text-destructive ml-0.5">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input {...field} readOnly />
@@ -589,7 +590,7 @@ function ConsentField({
             </FormControl>
             <span>
               {label}
-              {required && <span className="ml-1 text-red-500">*</span>}
+              {required && <span className="text-destructive ml-1">*</span>}
             </span>
           </div>
           <FormMessage />

@@ -202,13 +202,13 @@ export default function CustomerProfilePage() {
 
             {!confirmCancel ? (
               <button
-                className="inline-flex cursor-pointer items-center gap-1.5 self-start rounded-lg border border-red-500/25 bg-red-500/[8%] px-3.5 py-1.5 text-[0.8rem] font-semibold text-red-500 transition-colors hover:border-red-500/50 hover:bg-red-500/15"
+                className="border-destructive/25 bg-destructive/10 text-destructive hover:border-destructive/50 hover:bg-destructive/15 inline-flex cursor-pointer items-center gap-1.5 self-start rounded-lg border px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors"
                 onClick={() => setConfirmCancel(true)}
               >
                 Cancel membership
               </button>
             ) : (
-              <div className="flex flex-col gap-2.5 rounded-[10px] border border-red-500/20 bg-red-500/[6%] px-4 py-3.5">
+              <div className="border-destructive/20 bg-destructive/[6%] flex flex-col gap-2.5 rounded-[10px] border px-4 py-3.5">
                 <p className="text-muted-foreground text-[0.82rem] leading-[1.5]">
                   Your membership will be cancelled immediately. You'll lose
                   access to members-only classes.
@@ -221,7 +221,7 @@ export default function CustomerProfilePage() {
                     Keep it
                   </button>
                   <button
-                    className="text-primary-foreground cursor-pointer rounded-lg bg-red-500 px-3.5 py-1.5 text-[0.8rem] font-bold transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="text-destructive-foreground bg-destructive hover:bg-destructive/90 cursor-pointer rounded-lg px-3.5 py-1.5 text-[0.8rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={handleCancelMembership}
                     disabled={cancelling}
                   >
@@ -284,7 +284,7 @@ export default function CustomerProfilePage() {
                           Keep
                         </button>
                         <button
-                          className="text-primary-foreground cursor-pointer rounded-lg bg-red-500 px-2.5 py-1 text-[0.75rem] font-bold transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="text-destructive-foreground bg-destructive hover:bg-destructive/90 cursor-pointer rounded-lg px-2.5 py-1 text-[0.75rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                           onClick={() => handleUnregister(r.scheduleId)}
                           disabled={unregistering}
                         >
@@ -293,7 +293,7 @@ export default function CustomerProfilePage() {
                       </div>
                     ) : (
                       <button
-                        className="shrink-0 cursor-pointer rounded-[7px] border border-red-500/25 bg-red-500/[8%] px-3 py-1 text-[0.75rem] font-semibold text-red-500 transition-colors hover:border-red-500/50 hover:bg-red-500/15"
+                        className="border-destructive/25 bg-destructive/10 text-destructive hover:border-destructive/50 hover:bg-destructive/15 shrink-0 cursor-pointer rounded-[7px] border px-3 py-1 text-[0.75rem] font-semibold transition-colors"
                         onClick={() => setConfirmUnregister(r.scheduleId)}
                       >
                         Unregister

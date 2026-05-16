@@ -35,7 +35,7 @@ const TIKTOK_PATH =
   'M19.6 6.32a5.6 5.6 0 01-3.36-1.12 5.6 5.5 0 01-2.24-3.2H10.4v13.12a2.56 2.56 0 11-2.56-2.56c.28 0 .55.05.8.13V9.36a6 6 0 00-.8-.06 5.92 5.92 0 105.92 5.92V9.6a8 8 0 005.84 2.24V8.4a5.4 5.4 0 01-1.6-.16 5.6 5.6 0 01-1.4-.92z';
 
 const navLinkClass =
-  'border-b border-border py-2 text-[13px] text-muted-foreground no-underline transition-colors hover:text-foreground sm:border-none sm:py-0 sm:text-[15px]';
+  'border-b border-border py-2 text-xs-plus text-muted-foreground no-underline transition-colors hover:text-foreground sm:border-none sm:py-0 sm:text-[15px]';
 
 export default function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,13 +84,13 @@ export default function RootLayout() {
   const logoTarget = mode === 'public' ? '/' : '/admin';
 
   const mobileDropdown =
-    'absolute inset-x-0 top-[var(--nav-height)] z-50 flex flex-col gap-1 border-b border-border bg-background/[97%] px-6 pb-5 pt-4';
+    'absolute inset-x-0 top-[var(--nav-height)] z-50 flex flex-col gap-1 border-b border-border bg-background/95 px-6 pb-5 pt-4';
   const desktopLinks = 'sm:flex sm:items-center sm:gap-8';
 
   return (
     <div className="bg-background text-foreground min-h-svh">
       {/* ── Navbar ── */}
-      <nav className="border-border bg-background/[92%] fixed inset-x-0 top-0 isolate z-[100] h-[var(--nav-height)] border-b backdrop-blur-[10px]">
+      <nav className="border-border bg-background/90 fixed inset-x-0 top-0 isolate z-[100] h-[var(--nav-height)] border-b backdrop-blur-[10px]">
         <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-3 sm:px-4">
           <Link
             to={logoTarget}
@@ -104,7 +104,7 @@ export default function RootLayout() {
             />
             <span
               data-testid="logo-text"
-              className="text-sm font-extrabold tracking-[1px] text-white sm:text-base sm:tracking-[1.5px]"
+              className="tracking-px text-foreground text-sm font-extrabold sm:text-base sm:tracking-[1.5px]"
             >
               FITNESS
             </span>
@@ -265,10 +265,10 @@ export default function RootLayout() {
       >
         <div className="border-border mx-auto grid max-w-[1200px] grid-cols-1 gap-10 border-b pb-12 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.5fr]">
           <div className="flex flex-col gap-3">
-            <h4 className="mb-1 text-[13px] font-bold tracking-[1px] text-white uppercase">
+            <h4 className="text-xs-plus tracking-px text-foreground mb-1 font-bold uppercase">
               Address
             </h4>
-            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+            <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
               <MapPin size={15} className="text-primary mt-0.5 shrink-0" />
               <span>
                 Fitness Centrum XY
@@ -279,29 +279,29 @@ export default function RootLayout() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <h4 className="mb-1 text-[13px] font-bold tracking-[1px] text-white uppercase">
+            <h4 className="text-xs-plus tracking-px text-foreground mb-1 font-bold uppercase">
               Contact
             </h4>
-            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+            <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
               <Phone size={15} className="text-primary mt-0.5 shrink-0" />
               <span>+420 000 111 222</span>
             </div>
-            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+            <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
               <Mail size={15} className="text-primary mt-0.5 shrink-0" />
               <span>info@fitnessxy.cz</span>
             </div>
-            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
-              <span className="text-muted-foreground text-[13px]">
+            <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
+              <span className="text-muted-foreground text-xs-plus">
                 Manager: Janko Mrkvička
               </span>
             </div>
           </div>
 
           <div className="flex flex-col gap-3">
-            <h4 className="mb-1 text-[13px] font-bold tracking-[1px] text-white uppercase">
+            <h4 className="text-xs-plus tracking-px text-foreground mb-1 font-bold uppercase">
               Opening Hours
             </h4>
-            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+            <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
               <Clock size={15} className="text-primary mt-0.5 shrink-0" />
               <span>
                 Mon – Fri: 6:00 – 22:00

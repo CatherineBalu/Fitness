@@ -64,14 +64,14 @@ function UpcomingClassRow({ item }: { item: Lecture }) {
           {formatLectureTime(item.startTime, item.endTime)} · {item.room}
         </span>
       </div>
-      <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-[13px] font-semibold whitespace-nowrap">
+      <span className="border-border bg-secondary text-muted-foreground text-xs-plus rounded-full border px-3 py-0.5 font-semibold whitespace-nowrap">
         {item.registered}/{item.capacity}
       </span>
       <Link to="/admin/calendar">
         <Button
           size="sm"
           variant="outline"
-          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground shrink-0 bg-transparent text-[13px] md:w-full"
+          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground text-xs-plus shrink-0 bg-transparent md:w-full"
         >
           Manage
         </Button>

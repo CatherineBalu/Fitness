@@ -295,7 +295,7 @@ export default function AddScheduleDialog({
             />
 
             {submitError && (
-              <p className="text-xs text-red-400">{submitError}</p>
+              <p className="text-destructive text-xs">{submitError}</p>
             )}
 
             <DialogFooter>

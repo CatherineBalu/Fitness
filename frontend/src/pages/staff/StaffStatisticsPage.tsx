@@ -82,7 +82,7 @@ export default function StaffStatisticsPage() {
 
       <div className="mx-auto max-w-[1200px] px-8 py-12 md:px-5 md:py-8">
         {error && (
-          <div className="bg-card mb-6 rounded-md border border-red-800 px-4 py-3 text-xs text-red-400">
+          <div className="bg-card border-destructive/70 text-destructive mb-6 rounded-md border px-4 py-3 text-xs">
             Failed to load: {error}
           </div>
         )}

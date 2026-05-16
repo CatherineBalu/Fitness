@@ -61,9 +61,9 @@ interface EmployeeType {
 const RECEPTION_FILTER = 'Reception';
 
 const STATUS_DOT_CLASSES: Record<string, string> = {
-  available: 'bg-green-400',
-  'almost-full': 'bg-orange-400',
-  full: 'bg-red-400',
+  available: 'bg-success',
+  'almost-full': 'bg-warning',
+  full: 'bg-destructive',
 };
 
 interface Member {
@@ -273,7 +273,7 @@ function ViewClassesDialog({
             </DialogTitle>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="text-muted-foreground mb-5 flex gap-5 text-[13px]">
+            <div className="text-muted-foreground text-xs-plus mb-5 flex gap-5">
               <span className="flex items-center gap-1.5">
                 <span
                   className={cn(
@@ -444,12 +444,12 @@ function AddMemberDialog({
         ) : (
           <form className="mt-2 flex flex-col gap-4" onSubmit={handleSubmit}>
             {error && (
-              <p className="rounded-md border border-red-800/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-400">
+              <p className="border-destructive/30 bg-destructive/10 text-xs-plus text-destructive rounded-md border px-3 py-2">
                 {error}
               </p>
             )}
             <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-[13px] font-semibold">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
                 First name
               </label>
               <Input
@@ -462,7 +462,7 @@ function AddMemberDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-[13px] font-semibold">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
                 Last name
               </label>
               <Input
@@ -475,7 +475,7 @@ function AddMemberDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-[13px] font-semibold">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
                 Email
               </label>
               <Input
@@ -489,7 +489,7 @@ function AddMemberDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-[13px] font-semibold">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
                 Role
               </label>
               <Select
@@ -513,7 +513,7 @@ function AddMemberDialog({
             </div>
             {form.role === 'Instructor' && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-muted-foreground text-[13px] font-semibold">
+                <label className="text-muted-foreground text-xs-plus font-semibold">
                   Specializations
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -633,12 +633,12 @@ function EditStaffDialog({
         </DialogHeader>
         <form className="mt-2 flex flex-col gap-4" onSubmit={handleSubmit}>
           {error && (
-            <p className="rounded-md border border-red-800/30 bg-red-400/10 px-3 py-2 text-[13px] text-red-400">
+            <p className="border-destructive/30 bg-destructive/10 text-xs-plus text-destructive rounded-md border px-3 py-2">
               {error}
             </p>
           )}
           <div className="flex flex-col gap-1.5">
-            <label className="text-muted-foreground text-[13px] font-semibold">
+            <label className="text-muted-foreground text-xs-plus font-semibold">
               First name
             </label>
             <Input
@@ -649,7 +649,7 @@ function EditStaffDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-muted-foreground text-[13px] font-semibold">
+            <label className="text-muted-foreground text-xs-plus font-semibold">
               Last name
             </label>
             <Input
@@ -661,7 +661,7 @@ function EditStaffDialog({
           </div>
           {staff?.role === 'Instructor' && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-[13px] font-semibold">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
                 Specializations
               </label>
               <div className="flex flex-wrap gap-2">
@@ -832,7 +832,7 @@ export default function AdminStaffPage() {
           ))}
         </div>
 
-        <div className="border-border bg-card text-muted-foreground mb-6 inline-block rounded-full border px-3.5 py-1 text-[13px]">
+        <div className="border-border bg-card text-muted-foreground text-xs-plus mb-6 inline-block rounded-full border px-3.5 py-1">
           Employee counter: {filtered.length}
         </div>
 
@@ -874,14 +874,14 @@ export default function AdminStaffPage() {
                     </span>
                   )}
                 </div>
-                <span className="text-muted-foreground text-[13px] whitespace-nowrap">
+                <span className="text-muted-foreground text-xs-plus whitespace-nowrap">
                   {staff.since}
                 </span>
                 <div className="flex w-full justify-end gap-2 md:ml-auto md:w-auto md:shrink-0">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-border text-foreground hover:border-primary hover:bg-secondary bg-transparent text-[13px]"
+                    className="border-border text-foreground hover:border-primary hover:bg-secondary text-xs-plus bg-transparent"
                     onClick={() => handleView(staff)}
                   >
                     View
@@ -901,7 +901,7 @@ export default function AdminStaffPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    className="text-[13px]"
+                    className="text-xs-plus"
                     onClick={() => setDeleteTarget(staff)}
                   >
                     Delete

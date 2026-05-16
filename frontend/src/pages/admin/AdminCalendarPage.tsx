@@ -251,9 +251,9 @@ function LectureCard({
 }
 
 const STATUS_DOT_CLASSES: Record<string, string> = {
-  available: 'bg-green-400',
-  'almost-full': 'bg-orange-400',
-  unavailable: 'bg-red-400',
+  available: 'bg-success',
+  'almost-full': 'bg-warning',
+  unavailable: 'bg-destructive',
 };
 
 // --- CONSTANTS ---
@@ -701,15 +701,15 @@ export default function AdminCalendarPage() {
 
         <div className="text-muted-foreground mb-8 flex gap-5 text-xs">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-green-400" />
+            <span className="bg-success inline-block h-2.5 w-2.5 shrink-0 rounded-full" />
             Available
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-orange-400" />
+            <span className="bg-warning inline-block h-2.5 w-2.5 shrink-0 rounded-full" />
             Almost full
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-red-400" />
+            <span className="bg-destructive inline-block h-2.5 w-2.5 shrink-0 rounded-full" />
             Unavailable
           </span>
         </div>
@@ -775,10 +775,10 @@ export default function AdminCalendarPage() {
               </Button>
             </div>
             {searchStatus === 'success' && (
-              <p className="text-sm text-green-500">{searchErrorMsg}</p>
+              <p className="text-success text-sm">{searchErrorMsg}</p>
             )}
             {searchStatus === 'error' && (
-              <p className="text-sm text-red-500">{searchErrorMsg}</p>
+              <p className="text-destructive text-sm">{searchErrorMsg}</p>
             )}
           </div>
 
@@ -789,7 +789,7 @@ export default function AdminCalendarPage() {
               </p>
             )}
             {membersError && (
-              <p className="py-4 text-center text-sm text-red-400">
+              <p className="text-destructive py-4 text-center text-sm">
                 {membersError}
               </p>
             )}
@@ -803,7 +803,7 @@ export default function AdminCalendarPage() {
                 >
                   <button
                     onClick={() => handleRemoveMember(member.id)}
-                    className="text-muted-foreground mr-3 transition-colors hover:text-red-500"
+                    className="text-muted-foreground hover:text-destructive mr-3 transition-colors"
                     title="Remove member"
                   >
                     <X size={18} />
@@ -905,7 +905,7 @@ export default function AdminCalendarPage() {
               </div>
             </div>
             {editTimeError && (
-              <p className="text-xs text-red-400">{editTimeError}</p>
+              <p className="text-destructive text-xs">{editTimeError}</p>
             )}
           </div>
 
@@ -936,7 +936,7 @@ export default function AdminCalendarPage() {
       >
         <AlertDialogContent className="border-border bg-background z-[70] border shadow-2xl sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-xl font-semibold text-red-500">
+            <AlertDialogTitle className="text-destructive flex items-center gap-2 text-xl font-semibold">
               <AlertTriangle size={22} />
               Capacity Warning
             </AlertDialogTitle>
@@ -946,7 +946,7 @@ export default function AdminCalendarPage() {
                 {pendingEditRoom?.name}
               </strong>
               , which has a capacity of only{' '}
-              <strong className="text-red-500">
+              <strong className="text-destructive">
                 {pendingEditRoom?.capacity}
               </strong>{' '}
               people.
@@ -967,7 +967,7 @@ export default function AdminCalendarPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={executeSaveEdit}
-              className="bg-destructive hover:bg-destructive/90 border-0 text-white shadow-md"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0 shadow-md"
             >
               Yes, Overbook Room
             </AlertDialogAction>

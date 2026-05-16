@@ -198,7 +198,10 @@ export default function HomePage() {
   return (
     <>
       {/* ── Hero ── */}
-      <section data-testid="hero-section" className="relative flex h-svh items-center justify-center overflow-hidden text-center">
+      <section
+        data-testid="hero-section"
+        className="relative flex h-svh items-center justify-center overflow-hidden text-center"
+      >
         <img
           src={heroImg}
           alt="Gym"
@@ -206,14 +209,14 @@ export default function HomePage() {
         />
         <div className="from-background/55 to-background/75 absolute inset-0 bg-gradient-to-b" />
         <div className="relative max-w-[760px] px-6">
-          <p className="text-primary mb-4 text-[13px] font-semibold tracking-[3px] uppercase">
+          <p className="text-primary text-xs-plus mb-4 font-semibold tracking-[3px] uppercase">
             Welcome to our gym
           </p>
-          <h1 className="mb-5 text-[clamp(36px,6vw,68px)] leading-[1.1] font-extrabold text-white">
+          <h1 className="text-hero text-foreground mb-5 leading-[1.1] font-extrabold">
             Pursue Outdoor,&nbsp;
             <span className="text-primary">Fitness Performance</span>
           </h1>
-          <p className="mx-auto mb-8 max-w-[520px] text-center text-[17px] leading-[1.6] text-white/70">
+          <p className="text-foreground/70 mx-auto mb-8 max-w-[520px] text-center text-[17px] leading-[1.6]">
             Join our world-class fitness facility and transform your body.
             Expert trainers, modern equipment, and flexible membership plans.
           </p>
@@ -248,7 +251,7 @@ export default function HomePage() {
               <span className="text-primary text-[38px] leading-none font-extrabold">
                 {s.value}
               </span>
-              <span className="text-muted-foreground text-[14px] tracking-[1px] uppercase">
+              <span className="text-muted-foreground tracking-px text-[14px] uppercase">
                 {s.label}
               </span>
             </div>
@@ -257,9 +260,13 @@ export default function HomePage() {
       </section>
 
       {/* ── Pricing ── */}
-      <section data-testid="pricing-section" className="bg-background px-8 py-20" id="pricing">
+      <section
+        data-testid="pricing-section"
+        className="bg-background px-8 py-20"
+        id="pricing"
+      >
         <div className="mx-auto max-w-[1200px]">
-          <h2 className="mb-4 text-center text-[clamp(26px,3.5vw,38px)] font-extrabold text-white">
+          <h2 className="text-section text-foreground mb-4 text-center font-extrabold">
             Choose the Plan That Fits You Best
           </h2>
           <p className="text-muted-foreground mb-14 text-center text-[15px]">
@@ -302,7 +309,7 @@ export default function HomePage() {
                   </div>
                   <p
                     className={cn(
-                      '-mt-4 mb-7 text-[13px]',
+                      'text-xs-plus -mt-4 mb-7',
                       highlighted
                         ? 'text-primary-foreground/60'
                         : 'text-muted-foreground',
@@ -385,7 +392,7 @@ export default function HomePage() {
         id="trainers"
       >
         <div className="mx-auto max-w-[1200px]">
-          <h2 className="mb-4 text-center text-[clamp(26px,3.5vw,38px)] font-extrabold text-white">
+          <h2 className="text-section text-foreground mb-4 text-center font-extrabold">
             Train with the Elite
           </h2>
           <p className="text-muted-foreground mb-14 text-center text-[15px]">
@@ -401,7 +408,10 @@ export default function HomePage() {
                     key={trainer.id}
                     className="md:basis-1/2 lg:basis-1/3"
                   >
-                    <Card data-testid="trainer-card" className="border-border bg-background text-foreground hover:border-primary flex h-full flex-col rounded-2xl border transition-colors">
+                    <Card
+                      data-testid="trainer-card"
+                      className="border-border bg-background text-foreground hover:border-primary flex h-full flex-col rounded-2xl border transition-colors"
+                    >
                       <CardHeader className="flex justify-center pt-7">
                         <img
                           src={trainer.img}
@@ -410,10 +420,16 @@ export default function HomePage() {
                         />
                       </CardHeader>
                       <CardContent className="flex-1 px-6 pt-4 pb-2">
-                        <h3 data-testid="trainer-name" className="mb-1 text-center text-[20px] font-bold text-white">
+                        <h3
+                          data-testid="trainer-name"
+                          className="text-foreground mb-1 text-center text-[20px] font-bold"
+                        >
                           {trainer.name}
                         </h3>
-                        <p data-testid="trainer-speciality" className="text-primary mb-3.5 text-center text-[13px] font-semibold tracking-[0.5px] uppercase">
+                        <p
+                          data-testid="trainer-speciality"
+                          className="text-primary text-xs-plus mb-3.5 text-center font-semibold tracking-[0.5px] uppercase"
+                        >
                           {trainer.speciality}
                         </p>
                         <p className="text-muted-foreground mb-4 text-center text-[14px] leading-[1.65]">
@@ -440,8 +456,14 @@ export default function HomePage() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious data-testid="carousel-prev" className="border-border bg-card hover:border-primary hover:bg-secondary border text-white" />
-              <CarouselNext data-testid="carousel-next" className="border-border bg-card hover:border-primary hover:bg-secondary border text-white" />
+              <CarouselPrevious
+                data-testid="carousel-prev"
+                className="border-border bg-card hover:border-primary hover:bg-secondary text-foreground border"
+              />
+              <CarouselNext
+                data-testid="carousel-next"
+                className="border-border bg-card hover:border-primary hover:bg-secondary text-foreground border"
+              />
             </Carousel>
           </div>
         </div>
