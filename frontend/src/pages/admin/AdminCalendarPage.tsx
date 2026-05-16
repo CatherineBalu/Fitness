@@ -166,7 +166,7 @@ function LectureCard({
   return (
     <Card
       className={cn(
-        'relative border border-border bg-card transition-colors hover:border-primary',
+        'border-border bg-card hover:border-primary relative border transition-colors',
         isPast && 'opacity-70 grayscale-[0.3]',
       )}
     >
@@ -181,20 +181,20 @@ function LectureCard({
             />
           )}
           {isPast && (
-            <span className="ml-auto text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+            <span className="text-muted-foreground ml-auto text-[10px] font-bold tracking-wider uppercase">
               Past
             </span>
           )}
         </div>
 
         <div className="mb-2 flex items-center gap-2">
-          <h3 className="m-0 pr-0 text-[0.95rem] font-semibold leading-snug text-foreground">
+          <h3 className="text-foreground m-0 pr-0 text-[0.95rem] leading-snug font-semibold">
             {lecture.name}
           </h3>
           {!isPast && (
             <button
               onClick={() => onEditLecture(lecture)}
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground transition-colors"
               title="Edit Lecture"
             >
               <Pencil size={14} />
@@ -203,19 +203,19 @@ function LectureCard({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
             <CalendarDays size={13} />
             <span>{lecture.date}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
             <Clock size={13} />
             <span>{lecture.time}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
             <MapPin size={13} />
             <span>{lecture.room}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
             <Users size={13} />
             <span>
               Capacity {lecture.registered}/{lecture.capacity}
@@ -228,7 +228,7 @@ function LectureCard({
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 border-border bg-transparent text-xs text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground"
+              className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground flex-1 bg-transparent text-xs"
               onClick={() => onViewMembers(lecture)}
             >
               Members
@@ -237,7 +237,7 @@ function LectureCard({
           <Button
             size="sm"
             className={cn(
-              'bg-primary text-xs text-primary-foreground hover:bg-primary/90',
+              'bg-primary text-primary-foreground hover:bg-primary/90 text-xs',
               isPast ? 'w-full' : 'flex-1',
             )}
             onClick={() => onMarkAttendance(lecture)}
@@ -629,13 +629,15 @@ export default function AdminCalendarPage() {
   const maxHistoryDateStr = getDaysAgoStr(1); // Cannot select future dates in history
 
   return (
-    <div className="min-h-[calc(100svh-var(--nav-height))] bg-background pt-[var(--nav-height)] text-foreground">
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
       <div className="mx-auto max-w-[1200px] px-8 py-10 md:px-4 md:py-6">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-extrabold text-foreground">My lectures</h1>
+          <h1 className="text-foreground text-3xl font-extrabold">
+            My lectures
+          </h1>
           <Button
             variant="outline"
-            className="gap-1.5 bg-muted hover:border-primary hover:bg-primary hover:text-primary-foreground"
+            className="bg-muted hover:border-primary hover:bg-primary hover:text-primary-foreground gap-1.5"
             onClick={() => setDialogOpen(true)}
           >
             <Plus size={15} />
@@ -660,9 +662,9 @@ export default function AdminCalendarPage() {
 
         {/* History Date Range Picker */}
         {filter === 'history' && (
-          <div className="mt-4 mb-2 flex flex-col items-end gap-4 rounded-lg border border-border bg-card/50 p-4 sm:flex-row">
+          <div className="border-border bg-card/50 mt-4 mb-2 flex flex-col items-end gap-4 rounded-lg border p-4 sm:flex-row">
             <div className="flex w-full flex-col gap-1 sm:w-auto">
-              <label className="text-xs text-muted-foreground">From Date</label>
+              <label className="text-muted-foreground text-xs">From Date</label>
               <Input
                 type="date"
                 value={historyFrom}
@@ -672,7 +674,7 @@ export default function AdminCalendarPage() {
               />
             </div>
             <div className="flex w-full flex-col gap-1 sm:w-auto">
-              <label className="text-xs text-muted-foreground">To Date</label>
+              <label className="text-muted-foreground text-xs">To Date</label>
               <Input
                 type="date"
                 value={historyTo}
@@ -683,21 +685,21 @@ export default function AdminCalendarPage() {
             </div>
             <Button
               onClick={() => loadSchedule(historyFrom, historyTo)}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
             >
               Load Range
             </Button>
             <Button
               onClick={() => loadSchedule('2000-01-01', maxHistoryDateStr)}
               variant="outline"
-              className="w-full border-border bg-card text-foreground hover:bg-secondary sm:w-auto"
+              className="border-border bg-card text-foreground hover:bg-secondary w-full sm:w-auto"
             >
               Load All History
             </Button>
           </div>
         )}
 
-        <div className="mb-8 flex gap-5 text-xs text-muted-foreground">
+        <div className="text-muted-foreground mb-8 flex gap-5 text-xs">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-green-400" />
             Available
@@ -727,7 +729,7 @@ export default function AdminCalendarPage() {
             />
           ))}
           {!loading && filtered.length === 0 && (
-            <p className="col-span-full py-8 text-center text-muted-foreground">
+            <p className="text-muted-foreground col-span-full py-8 text-center">
               No lectures found for this filter.
             </p>
           )}
@@ -744,12 +746,12 @@ export default function AdminCalendarPage() {
           DIALOG: MEMBERS (Add / Remove)
       ========================================== */}
       <Dialog open={membersDialogOpen} onOpenChange={setMembersDialogOpen}>
-        <DialogContent className="max-w-md bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex flex-col gap-1 text-lg font-bold text-foreground">
+            <DialogTitle className="text-foreground flex flex-col gap-1 text-lg font-bold">
               <span>Manage Members</span>
               {selectedLecture && (
-                <span className="text-sm font-normal text-muted-foreground">
+                <span className="text-muted-foreground text-sm font-normal">
                   {selectedLecture.name} • {selectedLecture.date}{' '}
                   {selectedLecture.time}
                 </span>
@@ -757,7 +759,7 @@ export default function AdminCalendarPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="mt-2 flex flex-col gap-2 border-b border-border pb-4">
+          <div className="border-border mt-2 flex flex-col gap-2 border-b pb-4">
             <div className="flex gap-2">
               <Input
                 placeholder="Enter member's email..."
@@ -782,7 +784,7 @@ export default function AdminCalendarPage() {
 
           <div className="mt-2 flex max-h-[300px] flex-col gap-2 overflow-y-auto pr-2">
             {loadingMembers && (
-              <p className="animate-pulse py-4 text-center text-sm text-muted-foreground">
+              <p className="text-muted-foreground animate-pulse py-4 text-center text-sm">
                 Loading members...
               </p>
             )}
@@ -797,20 +799,20 @@ export default function AdminCalendarPage() {
               members.map((member) => (
                 <div
                   key={member.id}
-                  className="group flex items-center rounded-lg border border-border bg-card/50 p-3"
+                  className="group border-border bg-card/50 flex items-center rounded-lg border p-3"
                 >
                   <button
                     onClick={() => handleRemoveMember(member.id)}
-                    className="mr-3 text-muted-foreground transition-colors hover:text-red-500"
+                    className="text-muted-foreground mr-3 transition-colors hover:text-red-500"
                     title="Remove member"
                   >
                     <X size={18} />
                   </button>
                   <div className="flex flex-col">
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                       {member.name}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       {member.email}
                     </span>
                   </div>
@@ -818,7 +820,7 @@ export default function AdminCalendarPage() {
               ))}
 
             {!loadingMembers && !membersError && members.length === 0 && (
-              <p className="py-4 text-center text-sm text-muted-foreground">
+              <p className="text-muted-foreground py-4 text-center text-sm">
                 No members registered yet.
               </p>
             )}
@@ -830,28 +832,28 @@ export default function AdminCalendarPage() {
           DIALOG: EDIT LECTURE
       ========================================== */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-sm overflow-visible bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-sm overflow-visible">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">
+            <DialogTitle className="text-foreground text-lg font-bold">
               Edit Schedule Record
             </DialogTitle>
           </DialogHeader>
 
           <div className="mt-4 flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-foreground">Lecture Name</label>
+              <label className="text-foreground text-sm">Lecture Name</label>
               <Input
                 value={editLectureData.name}
                 disabled
-                className="cursor-not-allowed bg-card text-muted-foreground opacity-50"
+                className="bg-card text-muted-foreground cursor-not-allowed opacity-50"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Name is bound to the template and cannot be changed here.
               </p>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-foreground">Room</label>
+              <label className="text-foreground text-sm">Room</label>
               <Select
                 value={editLectureData.roomId}
                 onValueChange={(value) =>
@@ -876,7 +878,7 @@ export default function AdminCalendarPage() {
 
             <div className="flex gap-4">
               <div className="flex flex-1 flex-col gap-1">
-                <label className="text-sm text-foreground">Start Time</label>
+                <label className="text-foreground text-sm">Start Time</label>
                 <Input
                   type="time"
                   value={editLectureData.startTime}
@@ -889,7 +891,7 @@ export default function AdminCalendarPage() {
                 />
               </div>
               <div className="flex flex-1 flex-col gap-1">
-                <label className="text-sm text-foreground">End Time</label>
+                <label className="text-foreground text-sm">End Time</label>
                 <Input
                   type="time"
                   value={editLectureData.endTime}
@@ -932,13 +934,13 @@ export default function AdminCalendarPage() {
         open={capacityWarningOpen}
         onOpenChange={setCapacityWarningOpen}
       >
-        <AlertDialogContent className="z-[70] border border-border bg-background shadow-2xl sm:max-w-md">
+        <AlertDialogContent className="border-border bg-background z-[70] border shadow-2xl sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-xl font-semibold text-red-500">
               <AlertTriangle size={22} />
               Capacity Warning
             </AlertDialogTitle>
-            <AlertDialogDescription className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            <AlertDialogDescription className="text-muted-foreground mt-3 text-sm leading-relaxed">
               You are trying to change the room to{' '}
               <strong className="text-foreground">
                 {pendingEditRoom?.name}
@@ -959,13 +961,13 @@ export default function AdminCalendarPage() {
               proceed?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-4 border-t border-border/50 pt-4">
-            <AlertDialogCancel className="border border-border bg-secondary text-foreground hover:bg-muted sm:mt-0">
+          <AlertDialogFooter className="border-border/50 mt-4 border-t pt-4">
+            <AlertDialogCancel className="border-border bg-secondary text-foreground hover:bg-muted border sm:mt-0">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={executeSaveEdit}
-              className="border-0 bg-destructive text-white shadow-md hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 border-0 text-white shadow-md"
             >
               Yes, Overbook Room
             </AlertDialogAction>
@@ -979,12 +981,12 @@ export default function AdminCalendarPage() {
         open={attendanceDialogOpen}
         onOpenChange={setAttendanceDialogOpen}
       >
-        <DialogContent className="max-w-md bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">
+            <DialogTitle className="text-foreground text-lg font-bold">
               Mark Attendance
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {selectedLecture?.name} • {selectedLecture?.date}{' '}
               {selectedLecture?.time}
             </p>
@@ -992,24 +994,24 @@ export default function AdminCalendarPage() {
 
           <div className="mt-4 flex max-h-[350px] flex-col gap-3 overflow-y-auto pr-2">
             {loadingMembers ? (
-              <p className="animate-pulse py-4 text-center text-sm text-muted-foreground">
+              <p className="text-muted-foreground animate-pulse py-4 text-center text-sm">
                 Loading members...
               </p>
             ) : members.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
+              <p className="text-muted-foreground py-4 text-center text-sm">
                 No members registered for this class.
               </p>
             ) : (
               members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card/50 p-3"
+                  className="border-border bg-card/50 flex items-center justify-between rounded-lg border p-3"
                 >
                   <div className="flex flex-col">
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                       {member.name}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       {member.email}
                     </span>
                   </div>
@@ -1043,7 +1045,7 @@ export default function AdminCalendarPage() {
               <Button
                 onClick={handleSaveAttendance}
                 disabled={isSavingAttendance}
-                className="border-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 border-0"
               >
                 {isSavingAttendance ? 'Saving...' : 'Save Attendance'}
               </Button>

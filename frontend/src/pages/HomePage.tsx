@@ -199,23 +199,31 @@ export default function HomePage() {
     <>
       {/* ── Hero ── */}
       <section className="relative flex h-svh items-center justify-center overflow-hidden text-center">
-        <img src={heroImg} alt="Gym" className="absolute inset-0 h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/55 to-background/75" />
+        <img
+          src={heroImg}
+          alt="Gym"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+        <div className="from-background/55 to-background/75 absolute inset-0 bg-gradient-to-b" />
         <div className="relative max-w-[760px] px-6">
-          <p className="mb-4 text-[13px] font-semibold uppercase tracking-[3px] text-primary">
+          <p className="text-primary mb-4 text-[13px] font-semibold tracking-[3px] uppercase">
             Welcome to our gym
           </p>
-          <h1 className="mb-5 text-[clamp(36px,6vw,68px)] font-extrabold leading-[1.1] text-white">
+          <h1 className="mb-5 text-[clamp(36px,6vw,68px)] leading-[1.1] font-extrabold text-white">
             Pursue Outdoor,&nbsp;
             <span className="text-primary">Fitness Performance</span>
           </h1>
           <p className="mx-auto mb-8 max-w-[520px] text-center text-[17px] leading-[1.6] text-white/70">
-            Join our world-class fitness facility and transform your body. Expert trainers, modern
-            equipment, and flexible membership plans.
+            Join our world-class fitness facility and transform your body.
+            Expert trainers, modern equipment, and flexible membership plans.
           </p>
           <button
-            className="cursor-pointer rounded-[14px] border-none bg-primary px-9 py-4 text-[17px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
-            onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer rounded-[14px] border-none px-9 py-4 text-[17px] font-bold transition-colors"
+            onClick={() =>
+              document
+                .getElementById('pricing')
+                ?.scrollIntoView({ behavior: 'smooth' })
+            }
           >
             Get Started
           </button>
@@ -223,7 +231,10 @@ export default function HomePage() {
       </section>
 
       {/* ── Stats ── */}
-      <section className="border-b border-t border-border bg-card px-8 py-10" id="about">
+      <section
+        className="border-border bg-card border-t border-b px-8 py-10"
+        id="about"
+      >
         <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-6 text-center sm:grid-cols-4">
           {[
             { value: '5 000+', label: 'Active Members' },
@@ -232,8 +243,12 @@ export default function HomePage() {
             { value: '10+', label: 'Years of Experience' },
           ].map((s) => (
             <div className="flex flex-col gap-1.5" key={s.label}>
-              <span className="text-[38px] font-extrabold leading-none text-primary">{s.value}</span>
-              <span className="text-[14px] uppercase tracking-[1px] text-muted-foreground">{s.label}</span>
+              <span className="text-primary text-[38px] leading-none font-extrabold">
+                {s.value}
+              </span>
+              <span className="text-muted-foreground text-[14px] tracking-[1px] uppercase">
+                {s.label}
+              </span>
             </div>
           ))}
         </div>
@@ -245,11 +260,11 @@ export default function HomePage() {
           <h2 className="mb-4 text-center text-[clamp(26px,3.5vw,38px)] font-extrabold text-white">
             Choose the Plan That Fits You Best
           </h2>
-          <p className="mb-14 text-center text-[15px] text-muted-foreground">
+          <p className="text-muted-foreground mb-14 text-center text-[15px]">
             No contracts. Cancel anytime.
           </p>
           {plansError && (
-            <p className="mb-6 text-center text-muted-foreground">
+            <p className="text-muted-foreground mb-6 text-center">
               Couldn't load plans. Please try again later.
             </p>
           )}
@@ -268,13 +283,15 @@ export default function HomePage() {
                 >
                   <h3 className="mb-4 text-[20px] font-bold">{plan.name}</h3>
                   <div className="mb-7">
-                    <span className="text-[50px] font-extrabold leading-none">
+                    <span className="text-[50px] leading-none font-extrabold">
                       {formatMonthlyPrice(plan.price, plan.durationDays)}
                     </span>
                     <span
                       className={cn(
                         'ml-0.5 text-[15px]',
-                        highlighted ? 'text-primary-foreground/55' : 'text-muted-foreground',
+                        highlighted
+                          ? 'text-primary-foreground/55'
+                          : 'text-muted-foreground',
                       )}
                     >
                       /month
@@ -283,26 +300,64 @@ export default function HomePage() {
                   <p
                     className={cn(
                       '-mt-4 mb-7 text-[13px]',
-                      highlighted ? 'text-primary-foreground/60' : 'text-muted-foreground',
+                      highlighted
+                        ? 'text-primary-foreground/60'
+                        : 'text-muted-foreground',
                     )}
                   >
                     {formatBillingNote(plan.price, plan.durationDays)}
                   </p>
-                  <ul className="mb-8 flex flex-1 flex-col gap-3 list-none p-0">
+                  <ul className="mb-8 flex flex-1 list-none flex-col gap-3 p-0">
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
+                      <span
+                        className={cn(
+                          'font-bold',
+                          highlighted
+                            ? 'text-primary-foreground'
+                            : 'text-primary',
+                        )}
+                      >
+                        ✓
+                      </span>
                       Full gym access
                     </li>
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
+                      <span
+                        className={cn(
+                          'font-bold',
+                          highlighted
+                            ? 'text-primary-foreground'
+                            : 'text-primary',
+                        )}
+                      >
+                        ✓
+                      </span>
                       Valid for {plan.durationDays} days
                     </li>
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
+                      <span
+                        className={cn(
+                          'font-bold',
+                          highlighted
+                            ? 'text-primary-foreground'
+                            : 'text-primary',
+                        )}
+                      >
+                        ✓
+                      </span>
                       Access to group classes
                     </li>
                     <li className="flex items-center gap-2.5 text-[14px]">
-                      <span className={cn('font-bold', highlighted ? 'text-primary-foreground' : 'text-primary')}>✓</span>
+                      <span
+                        className={cn(
+                          'font-bold',
+                          highlighted
+                            ? 'text-primary-foreground'
+                            : 'text-primary',
+                        )}
+                      >
+                        ✓
+                      </span>
                       Cancel anytime
                     </li>
                   </ul>
@@ -321,51 +376,58 @@ export default function HomePage() {
       </section>
 
       {/* ── Trainers ── */}
-      <section className="border-t border-border bg-card px-8 py-20" id="trainers">
+      <section
+        className="border-border bg-card border-t px-8 py-20"
+        id="trainers"
+      >
         <div className="mx-auto max-w-[1200px]">
           <h2 className="mb-4 text-center text-[clamp(26px,3.5vw,38px)] font-extrabold text-white">
             Train with the Elite
           </h2>
-          <p className="mb-14 text-center text-[15px] text-muted-foreground">
-            Ready to take your workouts to the next level? Our top-tier coaches are here to push
-            your limits, refine your form, and unlock your true physical potential.
+          <p className="text-muted-foreground mb-14 text-center text-[15px]">
+            Ready to take your workouts to the next level? Our top-tier coaches
+            are here to push your limits, refine your form, and unlock your true
+            physical potential.
           </p>
           <div className="relative px-12">
             <Carousel opts={{ align: 'start', loop: true }}>
               <CarouselContent>
                 {trainers.map((trainer) => (
-                  <CarouselItem key={trainer.id} className="md:basis-1/2 lg:basis-1/3">
-                    <Card className="flex h-full flex-col rounded-2xl border border-border bg-background text-foreground transition-colors hover:border-primary">
+                  <CarouselItem
+                    key={trainer.id}
+                    className="md:basis-1/2 lg:basis-1/3"
+                  >
+                    <Card className="border-border bg-background text-foreground hover:border-primary flex h-full flex-col rounded-2xl border transition-colors">
                       <CardHeader className="flex justify-center pt-7">
                         <img
                           src={trainer.img}
                           alt={trainer.name}
-                          className="h-24 w-24 rounded-full border-[3px] border-primary object-cover"
+                          className="border-primary h-24 w-24 rounded-full border-[3px] object-cover"
                         />
                       </CardHeader>
-                      <CardContent className="flex-1 px-6 pb-2 pt-4">
+                      <CardContent className="flex-1 px-6 pt-4 pb-2">
                         <h3 className="mb-1 text-center text-[20px] font-bold text-white">
                           {trainer.name}
                         </h3>
-                        <p className="mb-3.5 text-center text-[13px] font-semibold uppercase tracking-[0.5px] text-primary">
+                        <p className="text-primary mb-3.5 text-center text-[13px] font-semibold tracking-[0.5px] uppercase">
                           {trainer.speciality}
                         </p>
-                        <p className="mb-4 text-center text-[14px] leading-[1.65] text-muted-foreground">
+                        <p className="text-muted-foreground mb-4 text-center text-[14px] leading-[1.65]">
                           {trainer.bio}
                         </p>
                         <div className="flex flex-wrap justify-center gap-1.5">
                           {trainer.tags.map((tag) => (
                             <Badge
                               key={tag}
-                              className="border-none bg-secondary text-[11px] font-semibold text-muted-foreground"
+                              className="bg-secondary text-muted-foreground border-none text-[11px] font-semibold"
                             >
                               {tag}
                             </Badge>
                           ))}
                         </div>
                       </CardContent>
-                      <CardFooter className="justify-center border-t border-border bg-background px-6 pb-6 pt-4">
-                        <Button className="w-full border-none bg-primary font-bold text-primary-foreground hover:bg-primary/90">
+                      <CardFooter className="border-border bg-background justify-center border-t px-6 pt-4 pb-6">
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 w-full border-none font-bold">
                           Contact Coach
                         </Button>
                       </CardFooter>
@@ -373,8 +435,8 @@ export default function HomePage() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="border border-border bg-card text-white hover:border-primary hover:bg-secondary" />
-              <CarouselNext className="border border-border bg-card text-white hover:border-primary hover:bg-secondary" />
+              <CarouselPrevious className="border-border bg-card hover:border-primary hover:bg-secondary border text-white" />
+              <CarouselNext className="border-border bg-card hover:border-primary hover:bg-secondary border text-white" />
             </Carousel>
           </div>
         </div>

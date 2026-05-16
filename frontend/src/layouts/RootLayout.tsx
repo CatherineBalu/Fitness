@@ -86,12 +86,19 @@ export default function RootLayout() {
   const desktopLinks = 'sm:flex sm:items-center sm:gap-8';
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div className="bg-background text-foreground min-h-svh">
       {/* ── Navbar ── */}
-      <nav className="fixed inset-x-0 top-0 z-[100] isolate h-[var(--nav-height)] border-b border-border bg-background/[92%] backdrop-blur-[10px]">
+      <nav className="border-border bg-background/[92%] fixed inset-x-0 top-0 isolate z-[100] h-[var(--nav-height)] border-b backdrop-blur-[10px]">
         <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-3 sm:px-4">
-          <Link to={logoTarget} className="flex items-center gap-1 text-inherit no-underline">
-            <img src="/src/assets/logo.png" alt="Logo" className="block h-12 w-auto sm:h-16" />
+          <Link
+            to={logoTarget}
+            className="flex items-center gap-1 text-inherit no-underline"
+          >
+            <img
+              src="/src/assets/logo.png"
+              alt="Logo"
+              className="block h-12 w-auto sm:h-16"
+            />
             <span className="text-sm font-extrabold tracking-[1px] text-white sm:text-base sm:tracking-[1.5px]">
               FITNESS
             </span>
@@ -99,23 +106,38 @@ export default function RootLayout() {
 
           <div className="flex items-center gap-2">
             {mode === 'public' && (
-              <div className={cn(desktopLinks, menuOpen ? mobileDropdown : 'hidden')}>
-                <Link to="/" className={navLinkClass} onClick={closeMenu}>Home</Link>
-                <Link to="/schedule" className={navLinkClass} onClick={closeMenu}>Schedule</Link>
-                <a href="#contact" className={navLinkClass} onClick={closeMenu}>Contact</a>
+              <div
+                className={cn(
+                  desktopLinks,
+                  menuOpen ? mobileDropdown : 'hidden',
+                )}
+              >
+                <Link to="/" className={navLinkClass} onClick={closeMenu}>
+                  Home
+                </Link>
+                <Link
+                  to="/schedule"
+                  className={navLinkClass}
+                  onClick={closeMenu}
+                >
+                  Schedule
+                </Link>
+                <a href="#contact" className={navLinkClass} onClick={closeMenu}>
+                  Contact
+                </a>
                 {isAdmin && (
                   <Button
                     asChild
-                    className="mt-3 h-10 w-full bg-primary px-5 font-bold text-primary-foreground hover:bg-primary/90 sm:mt-0 sm:w-auto"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 mt-3 h-10 w-full px-5 font-bold sm:mt-0 sm:w-auto"
                   >
-                    <Link to="/admin" onClick={closeMenu}>Switch to admin view</Link>
+                    <Link to="/admin" onClick={closeMenu}>
+                      Switch to admin view
+                    </Link>
                   </Button>
                 )}
                 {isLoaded && !isSignedIn && (
                   <SignInButton mode="modal">
-                    <Button
-                      className="mt-3 h-10 w-full bg-primary px-5 font-bold text-primary-foreground hover:bg-primary/90 sm:mt-0 sm:w-auto"
-                    >
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 mt-3 h-10 w-full px-5 font-bold sm:mt-0 sm:w-auto">
                       Log in
                     </Button>
                   </SignInButton>
@@ -146,27 +168,69 @@ export default function RootLayout() {
             )}
 
             {mode === 'staff' && (
-              <div className={cn(desktopLinks, menuOpen ? mobileDropdown : 'hidden')}>
-                <Link to="/admin/calendar" className={navLinkClass} onClick={closeMenu}>Calendar</Link>
+              <div
+                className={cn(
+                  desktopLinks,
+                  menuOpen ? mobileDropdown : 'hidden',
+                )}
+              >
+                <Link
+                  to="/admin/calendar"
+                  className={navLinkClass}
+                  onClick={closeMenu}
+                >
+                  Calendar
+                </Link>
                 {canSeeStaffStats && (
-                  <Link to="/staff/statistics" className={navLinkClass} onClick={closeMenu}>Statistics</Link>
+                  <Link
+                    to="/staff/statistics"
+                    className={navLinkClass}
+                    onClick={closeMenu}
+                  >
+                    Statistics
+                  </Link>
                 )}
                 <UserButton />
               </div>
             )}
 
             {mode === 'admin' && (
-              <div className={cn(desktopLinks, menuOpen ? mobileDropdown : 'hidden')}>
-                <Link to="/admin/staff" className={navLinkClass} onClick={closeMenu}>Manage Staff</Link>
-                <Link to="/admin/calendar" className={navLinkClass} onClick={closeMenu}>Calendar</Link>
+              <div
+                className={cn(
+                  desktopLinks,
+                  menuOpen ? mobileDropdown : 'hidden',
+                )}
+              >
+                <Link
+                  to="/admin/staff"
+                  className={navLinkClass}
+                  onClick={closeMenu}
+                >
+                  Manage Staff
+                </Link>
+                <Link
+                  to="/admin/calendar"
+                  className={navLinkClass}
+                  onClick={closeMenu}
+                >
+                  Calendar
+                </Link>
                 {canSeeAdminStats && (
-                  <Link to="/admin/statistics" className={navLinkClass} onClick={closeMenu}>Statistics</Link>
+                  <Link
+                    to="/admin/statistics"
+                    className={navLinkClass}
+                    onClick={closeMenu}
+                  >
+                    Statistics
+                  </Link>
                 )}
                 <Button
                   asChild
-                  className="mt-3 h-10 w-full bg-primary px-5 font-bold text-primary-foreground hover:bg-primary/90 sm:mt-0 sm:w-auto"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 mt-3 h-10 w-full px-5 font-bold sm:mt-0 sm:w-auto"
                 >
-                  <Link to="/" onClick={closeMenu}>Switch to public view</Link>
+                  <Link to="/" onClick={closeMenu}>
+                    Switch to public view
+                  </Link>
                 </Button>
                 <UserButton />
               </div>
@@ -175,7 +239,7 @@ export default function RootLayout() {
             <ThemeToggle className="ml-1" />
 
             <button
-              className="flex h-9 w-9 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-foreground sm:hidden"
+              className="text-foreground flex h-9 w-9 cursor-pointer items-center justify-center border-none bg-transparent p-0 sm:hidden"
               aria-label="Toggle menu"
               onClick={() => setMenuOpen((o) => !o)}
             >
@@ -188,12 +252,17 @@ export default function RootLayout() {
       <Outlet />
 
       {/* ── Footer ── */}
-      <footer className="border-t border-border bg-background px-8 pt-[60px]" id="contact">
-        <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-10 border-b border-border pb-12 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.5fr]">
+      <footer
+        className="border-border bg-background border-t px-8 pt-[60px]"
+        id="contact"
+      >
+        <div className="border-border mx-auto grid max-w-[1200px] grid-cols-1 gap-10 border-b pb-12 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.5fr]">
           <div className="flex flex-col gap-3">
-            <h4 className="mb-1 text-[13px] font-bold uppercase tracking-[1px] text-white">Address</h4>
-            <div className="flex items-start gap-2 text-[13px] leading-[1.6] text-muted-foreground">
-              <MapPin size={15} className="mt-0.5 shrink-0 text-primary" />
+            <h4 className="mb-1 text-[13px] font-bold tracking-[1px] text-white uppercase">
+              Address
+            </h4>
+            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+              <MapPin size={15} className="text-primary mt-0.5 shrink-0" />
               <span>
                 Fitness Centrum XY
                 <br />
@@ -203,24 +272,30 @@ export default function RootLayout() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <h4 className="mb-1 text-[13px] font-bold uppercase tracking-[1px] text-white">Contact</h4>
-            <div className="flex items-start gap-2 text-[13px] leading-[1.6] text-muted-foreground">
-              <Phone size={15} className="mt-0.5 shrink-0 text-primary" />
+            <h4 className="mb-1 text-[13px] font-bold tracking-[1px] text-white uppercase">
+              Contact
+            </h4>
+            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+              <Phone size={15} className="text-primary mt-0.5 shrink-0" />
               <span>+420 000 111 222</span>
             </div>
-            <div className="flex items-start gap-2 text-[13px] leading-[1.6] text-muted-foreground">
-              <Mail size={15} className="mt-0.5 shrink-0 text-primary" />
+            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+              <Mail size={15} className="text-primary mt-0.5 shrink-0" />
               <span>info@fitnessxy.cz</span>
             </div>
-            <div className="flex items-start gap-2 text-[13px] leading-[1.6] text-muted-foreground">
-              <span className="text-[13px] text-muted-foreground">Manager: Janko Mrkvička</span>
+            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+              <span className="text-muted-foreground text-[13px]">
+                Manager: Janko Mrkvička
+              </span>
             </div>
           </div>
 
           <div className="flex flex-col gap-3">
-            <h4 className="mb-1 text-[13px] font-bold uppercase tracking-[1px] text-white">Opening Hours</h4>
-            <div className="flex items-start gap-2 text-[13px] leading-[1.6] text-muted-foreground">
-              <Clock size={15} className="mt-0.5 shrink-0 text-primary" />
+            <h4 className="mb-1 text-[13px] font-bold tracking-[1px] text-white uppercase">
+              Opening Hours
+            </h4>
+            <div className="text-muted-foreground flex items-start gap-2 text-[13px] leading-[1.6]">
+              <Clock size={15} className="text-primary mt-0.5 shrink-0" />
               <span>
                 Mon – Fri: 6:00 – 22:00
                 <br />
@@ -228,22 +303,38 @@ export default function RootLayout() {
               </span>
             </div>
             <div className="mt-4 flex gap-3.5">
-              <a href="#" aria-label="Facebook" className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-primary">
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              >
                 <SocialIcon d={FACEBOOK_PATH} />
               </a>
-              <a href="#" aria-label="Instagram" className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-primary">
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              >
                 <SocialIcon d={INSTAGRAM_PATH} />
               </a>
-              <a href="#" aria-label="TikTok" className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-primary">
+              <a
+                href="#"
+                aria-label="TikTok"
+                className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              >
                 <SocialIcon d={TIKTOK_PATH} />
               </a>
-              <a href="#" aria-label="YouTube" className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-primary">
+              <a
+                href="#"
+                aria-label="YouTube"
+                className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              >
                 <SocialIcon d={YOUTUBE_PATH} />
               </a>
             </div>
           </div>
 
-          <div className="col-span-full order-first min-h-[240px] w-full overflow-hidden rounded-[var(--radius)] lg:col-auto lg:order-none lg:min-h-[200px]">
+          <div className="order-first col-span-full min-h-[240px] w-full overflow-hidden rounded-[var(--radius)] lg:order-none lg:col-auto lg:min-h-[200px]">
             <iframe
               title="Fitness Centrum XY location"
               src="https://www.google.com/maps?q=Údolní+221%2F3%2C+602+00+Brno&output=embed"
@@ -253,7 +344,7 @@ export default function RootLayout() {
             />
           </div>
         </div>
-        <div className="mx-auto max-w-[1200px] py-5 text-[12px] text-muted-foreground">
+        <div className="text-muted-foreground mx-auto max-w-[1200px] py-5 text-[12px]">
           <p>© 2026 Fitness XY. All rights reserved.</p>
         </div>
       </footer>

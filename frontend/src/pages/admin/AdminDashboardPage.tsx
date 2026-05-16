@@ -54,22 +54,24 @@ function formatDate(iso: string): string {
 
 function UpcomingClassRow({ item }: { item: Lecture }) {
   return (
-    <div className="flex items-center gap-5 rounded-lg border border-border bg-card px-5 py-4 transition-colors hover:border-primary md:flex-wrap md:gap-3">
+    <div className="border-border bg-card hover:border-primary flex items-center gap-5 rounded-lg border px-5 py-4 transition-colors md:flex-wrap md:gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="text-[15px] font-semibold text-foreground">{item.name}</span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-foreground text-[15px] font-semibold">
+          {item.name}
+        </span>
+        <span className="text-muted-foreground text-xs">
           {formatDate(item.startTime)} ·{' '}
           {formatLectureTime(item.startTime, item.endTime)} · {item.room}
         </span>
       </div>
-      <span className="whitespace-nowrap rounded-full border border-border bg-secondary px-3 py-0.5 text-[13px] font-semibold text-muted-foreground">
+      <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-[13px] font-semibold whitespace-nowrap">
         {item.registered}/{item.capacity}
       </span>
       <Link to="/admin/calendar">
         <Button
           size="sm"
           variant="outline"
-          className="shrink-0 border-border bg-transparent text-[13px] text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground md:w-full"
+          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground shrink-0 bg-transparent text-[13px] md:w-full"
         >
           Manage
         </Button>
@@ -169,30 +171,30 @@ export default function AdminDashboardPage() {
       : [];
 
   return (
-    <div className="min-h-[calc(100svh-var(--nav-height))] bg-background pt-[var(--nav-height)] text-foreground">
-      <div className="border-b border-border bg-admin-hero px-8 py-16 md:px-5 md:py-10">
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+      <div className="border-border bg-admin-hero border-b px-8 py-16 md:px-5 md:py-10">
         <div className="mx-auto max-w-[1200px]">
-          <p className="mb-1.5 text-[0.85rem] font-semibold tracking-[0.12em] text-muted-foreground">
+          <p className="text-muted-foreground mb-1.5 text-[0.85rem] font-semibold tracking-[0.12em]">
             WELCOME BACK
           </p>
-          <h1 className="mb-3 text-5xl font-black leading-none text-primary md:text-[2.2rem] sm:text-[1.8rem]">
+          <h1 className="text-primary mb-3 text-5xl leading-none font-black sm:text-[1.8rem] md:text-[2.2rem]">
             {isAdmin ? 'ADMIN' : 'STAFF'}
           </h1>
-          <p className="mb-7 text-base text-muted-foreground">
+          <p className="text-muted-foreground mb-7 text-base">
             {loading
               ? '…'
               : `You have ${upcoming.length} upcoming lecture${upcoming.length !== 1 ? 's' : ''}.`}
           </p>
           <div className="flex flex-wrap gap-3">
             <Link to="/admin/calendar">
-              <Button className="font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
                 My lectures
               </Button>
             </Link>
             <Link to="/schedule">
               <Button
                 variant="outline"
-                className="gap-1.5 font-semibold border-border text-foreground hover:border-primary hover:text-primary"
+                className="border-border text-foreground hover:border-primary hover:text-primary gap-1.5 font-semibold"
               >
                 Show schedule
                 <ArrowRight size={15} />
@@ -205,10 +207,10 @@ export default function AdminDashboardPage() {
       <div className="mx-auto max-w-[1200px] px-8 py-12 md:px-5 md:py-8">
         <section className="mb-12">
           <div className="mb-5">
-            <p className="mb-1 text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-primary">
+            <p className="text-primary mb-1 text-[0.78rem] font-semibold tracking-[0.1em] uppercase">
               Upcoming classes
             </p>
-            <h2 className="text-2xl font-extrabold text-foreground">Next up</h2>
+            <h2 className="text-foreground text-2xl font-extrabold">Next up</h2>
           </div>
           <div className="flex flex-col gap-2.5">
             {loading && <p className="text-muted-foreground">Loading…</p>}
@@ -223,9 +225,11 @@ export default function AdminDashboardPage() {
 
         {statCards.length > 0 && (
           <>
-            <div className="mb-12 h-px bg-border" />
+            <div className="bg-border mb-12 h-px" />
             <section className="mb-12">
-              <h2 className="text-2xl font-extrabold text-foreground">This month</h2>
+              <h2 className="text-foreground text-2xl font-extrabold">
+                This month
+              </h2>
               <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {statCards.map((stat) => (
                   <StatCard

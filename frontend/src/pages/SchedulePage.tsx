@@ -157,7 +157,7 @@ function ActivityCard({
         <Button
           size="sm"
           variant="outline"
-          className="mt-1 w-full border-border bg-transparent text-[12px] font-semibold uppercase text-muted-foreground hover:border-foreground hover:text-foreground disabled:opacity-50"
+          className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mt-1 w-full bg-transparent text-[12px] font-semibold uppercase disabled:opacity-50"
           disabled={busy}
           onClick={() => onUnregisterClick(activity)}
         >
@@ -171,7 +171,7 @@ function ActivityCard({
         <SignInButton mode="modal">
           <Button
             size="sm"
-            className="mt-1 w-full bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 w-full text-[12px] font-bold uppercase"
           >
             Register
           </Button>
@@ -183,7 +183,7 @@ function ActivityCard({
       return (
         <Button
           size="sm"
-          className="mt-1 w-full bg-primary text-[12px] font-bold uppercase text-primary-foreground disabled:bg-card disabled:text-muted-foreground disabled:opacity-70"
+          className="bg-primary text-primary-foreground disabled:bg-card disabled:text-muted-foreground mt-1 w-full text-[12px] font-bold uppercase disabled:opacity-70"
           disabled
         >
           Full
@@ -194,7 +194,7 @@ function ActivityCard({
     return (
       <Button
         size="sm"
-        className="mt-1 w-full bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90 disabled:bg-card disabled:text-muted-foreground disabled:opacity-70"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-card disabled:text-muted-foreground mt-1 w-full text-[12px] font-bold uppercase disabled:opacity-70"
         disabled={busy}
         onClick={() => onRegisterClick(activity)}
       >
@@ -207,28 +207,28 @@ function ActivityCard({
     <Card className="border-border bg-secondary shadow-none ring-0">
       <CardContent className="flex flex-col gap-1.5 p-2.5">
         <div className="flex items-center justify-between gap-1">
-          <span className="text-xs text-muted-foreground">{activity.time}</span>
+          <span className="text-muted-foreground text-xs">{activity.time}</span>
           <div className="flex flex-wrap items-center justify-end gap-1">
             {activity.forMembers && (
               <Badge
                 variant="outline"
-                className="inline-flex h-[18px] items-center gap-[3px] border-primary px-1.5 text-[10px] text-primary"
+                className="border-primary text-primary inline-flex h-[18px] items-center gap-[3px] px-1.5 text-[10px]"
               >
                 <Lock size={10} /> Members
               </Badge>
             )}
             <Badge
               variant="outline"
-              className="h-[18px] border-border px-1.5 text-[10px] text-muted-foreground"
+              className="border-border text-muted-foreground h-[18px] px-1.5 text-[10px]"
             >
               {activity.category}
             </Badge>
           </div>
         </div>
-        <h4 className="m-0 text-[15px] font-semibold leading-[1.2] text-foreground">
+        <h4 className="text-foreground m-0 text-[15px] leading-[1.2] font-semibold">
           {activity.name}
         </h4>
-        <div className="flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
+        <div className="text-muted-foreground flex items-center justify-between gap-1 text-[11px]">
           <span>
             {activity.room} | Trainer: {activity.trainer}
           </span>
@@ -436,8 +436,8 @@ export default function SchedulePage() {
   const hasActiveMembership = profile?.hasActiveMembership ?? false;
 
   return (
-    <div className="min-h-[calc(100svh-var(--nav-height))] bg-background pt-[var(--nav-height)] text-foreground">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center gap-6 px-4 pb-10 pt-6 sm:gap-10 sm:px-6 sm:pb-[60px] sm:pt-10">
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center gap-6 px-4 pt-6 pb-10 sm:gap-10 sm:px-6 sm:pt-10 sm:pb-[60px]">
         <div className="flex flex-wrap justify-center gap-2.5">
           {categories.map((cat) => (
             <Button
@@ -445,8 +445,9 @@ export default function SchedulePage() {
               variant={activeCategories.has(cat) ? 'default' : 'outline'}
               size="sm"
               className={cn(
-                'text-xs uppercase tracking-[0.5px]',
-                !activeCategories.has(cat) && 'border-border text-muted-foreground hover:text-foreground',
+                'text-xs tracking-[0.5px] uppercase',
+                !activeCategories.has(cat) &&
+                  'border-border text-muted-foreground hover:text-foreground',
               )}
               onClick={() => toggleCategory(cat)}
             >
@@ -464,7 +465,7 @@ export default function SchedulePage() {
           >
             <ChevronLeft />
           </Button>
-          <span className="whitespace-nowrap tracking-[0.5px] text-foreground text-lg sm:text-[22px]">
+          <span className="text-foreground text-lg tracking-[0.5px] whitespace-nowrap sm:text-[22px]">
             {isMobile
               ? `${weekDays[selectedDayIndex].name} ${formatDate(weekDays[selectedDayIndex].date)} ${weekDays[selectedDayIndex].date.getFullYear()}`
               : formatDateRange(weekStart)}
@@ -498,12 +499,16 @@ export default function SchedulePage() {
                 key={day.dayIndex}
                 className={cn(
                   'flex min-w-0 flex-col gap-3 rounded-[var(--radius)] px-1 py-2.5',
-                  today && 'sm:border-t-[3px] sm:border-t-primary sm:bg-card',
+                  today && 'sm:border-t-primary sm:bg-card sm:border-t-[3px]',
                 )}
               >
                 <div className="hidden flex-col items-center gap-2 pb-2 sm:flex">
-                  <span className="text-[18px] font-normal text-foreground">{day.name}</span>
-                  <span className="text-[18px] font-normal text-foreground">{formatDate(day.date)}</span>
+                  <span className="text-foreground text-[18px] font-normal">
+                    {day.name}
+                  </span>
+                  <span className="text-foreground text-[18px] font-normal">
+                    {formatDate(day.date)}
+                  </span>
                 </div>
                 <div className="flex flex-col gap-3">
                   {dayActivities.map((activity) => (
@@ -548,9 +553,9 @@ export default function SchedulePage() {
                   {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="border-t border-border bg-transparent">
+              <DialogFooter className="border-border border-t bg-transparent">
                 <Button
-                  className="bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 text-[12px] font-bold uppercase"
                   onClick={confirmRegister}
                 >
                   Register
@@ -569,7 +574,7 @@ export default function SchedulePage() {
                   {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="border-t border-border bg-transparent">
+              <DialogFooter className="border-border border-t bg-transparent">
                 <Button
                   className="bg-red-700 font-bold text-white hover:bg-red-800"
                   onClick={confirmUnregister}
@@ -590,9 +595,9 @@ export default function SchedulePage() {
                   a member?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="border-t border-border bg-transparent">
+              <DialogFooter className="border-border border-t bg-transparent">
                 <Button
-                  className="bg-primary text-[12px] font-bold uppercase text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 text-[12px] font-bold uppercase"
                   onClick={handleBuyMembership}
                 >
                   Buy membership

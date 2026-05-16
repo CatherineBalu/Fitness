@@ -100,19 +100,23 @@ function DeleteConfirmDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-[400px] border-border bg-card text-foreground">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-foreground">
+          <DialogTitle className="text-foreground text-lg font-bold">
             Delete staff member
           </DialogTitle>
         </DialogHeader>
-        <p className="mb-5 mt-2 text-sm leading-relaxed text-muted-foreground">
+        <p className="text-muted-foreground mt-2 mb-5 text-sm leading-relaxed">
           Are you sure you want to delete{' '}
           <strong className="text-foreground">{name}</strong>? This action
           cannot be undone.
         </p>
         <div className="flex justify-end gap-2.5">
-          <Button variant="outline" className="border-border text-foreground" onClick={onClose}>
+          <Button
+            variant="outline"
+            className="border-border text-foreground"
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
@@ -133,22 +137,29 @@ function LectureCard({
 }) {
   const status = getLectureStatus(lecture.registered, lecture.capacity);
   return (
-    <Card className="border-border bg-background transition-colors hover:border-primary">
+    <Card className="border-border bg-background hover:border-primary transition-colors">
       <CardContent className="flex flex-col gap-2 p-3.5">
         <div className="flex justify-end">
-          <span className={cn('inline-block h-2.5 w-2.5 shrink-0 rounded-full', STATUS_DOT_CLASSES[status])} />
+          <span
+            className={cn(
+              'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+              STATUS_DOT_CLASSES[status],
+            )}
+          />
         </div>
-        <h4 className="m-0 text-[0.9rem] font-semibold leading-snug text-foreground">{lecture.name}</h4>
+        <h4 className="text-foreground m-0 text-[0.9rem] leading-snug font-semibold">
+          {lecture.name}
+        </h4>
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <Clock size={12} />
             <span>{formatLectureTime(lecture.startTime, lecture.endTime)}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <MapPin size={12} />
             <span>{lecture.room}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <Users size={12} />
             <span>
               {lecture.registered}/{lecture.capacity}
@@ -158,7 +169,7 @@ function LectureCard({
         <Button
           size="sm"
           variant="outline"
-          className="mt-0.5 w-full border-border bg-transparent text-[11px] text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground"
+          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground mt-0.5 w-full bg-transparent text-[11px]"
           onClick={() => onViewMembers(lecture)}
         >
           View members
@@ -191,26 +202,33 @@ function MembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-[420px] border-border bg-card text-foreground">
+      <DialogContent className="border-border bg-card text-foreground max-w-[420px]">
         <DialogHeader>
-          <DialogTitle className="text-[1.1rem] font-bold text-foreground">
+          <DialogTitle className="text-foreground text-[1.1rem] font-bold">
             {lecture?.name} — Members
           </DialogTitle>
         </DialogHeader>
         <div className="mt-1 flex flex-col gap-2.5">
           {members.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 rounded-md border border-border bg-background px-3.5 py-2.5">
+            <div
+              key={m.id}
+              className="border-border bg-background flex items-center gap-3 rounded-md border px-3.5 py-2.5"
+            >
               <div className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-sm font-bold text-white">
                 {m.name[0]}
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold text-foreground">{m.name}</span>
-                <span className="text-xs text-muted-foreground">{m.email}</span>
+                <span className="text-foreground text-sm font-semibold">
+                  {m.name}
+                </span>
+                <span className="text-muted-foreground text-xs">{m.email}</span>
               </div>
             </div>
           ))}
           {members.length === 0 && (
-            <p className="py-4 text-center text-sm text-muted-foreground">No members registered.</p>
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              No members registered.
+            </p>
           )}
         </div>
       </DialogContent>
@@ -248,24 +266,39 @@ function ViewClassesDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="flex max-h-[85vh] w-[90vw] max-w-[760px] flex-col overflow-hidden border-border bg-card text-foreground">
+        <DialogContent className="border-border bg-card text-foreground flex max-h-[85vh] w-[90vw] max-w-[760px] flex-col overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-[1.2rem] font-bold text-foreground">
+            <DialogTitle className="text-foreground text-[1.2rem] font-bold">
               {staff ? `${staff.firstName} ${staff.lastName}` : ''} — Classes
             </DialogTitle>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="mb-5 flex gap-5 text-[13px] text-muted-foreground">
+            <div className="text-muted-foreground mb-5 flex gap-5 text-[13px]">
               <span className="flex items-center gap-1.5">
-                <span className={cn('inline-block h-2.5 w-2.5 shrink-0 rounded-full', STATUS_DOT_CLASSES['available'])} />
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['available'],
+                  )}
+                />
                 Available
               </span>
               <span className="flex items-center gap-1.5">
-                <span className={cn('inline-block h-2.5 w-2.5 shrink-0 rounded-full', STATUS_DOT_CLASSES['almost-full'])} />
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['almost-full'],
+                  )}
+                />
                 Almost full
               </span>
               <span className="flex items-center gap-1.5">
-                <span className={cn('inline-block h-2.5 w-2.5 shrink-0 rounded-full', STATUS_DOT_CLASSES['full'])} />
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['full'],
+                  )}
+                />
                 Full
               </span>
             </div>
@@ -278,7 +311,9 @@ function ViewClassesDialog({
                 />
               ))}
               {lectures.length === 0 && (
-                <p className="py-4 text-center text-sm text-muted-foreground">No classes assigned.</p>
+                <p className="text-muted-foreground py-4 text-center text-sm">
+                  No classes assigned.
+                </p>
               )}
             </div>
           </div>
@@ -383,23 +418,26 @@ function AddMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="max-w-[400px] border-border bg-card text-foreground">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="text-[1.2rem] font-bold text-foreground">
+          <DialogTitle className="text-foreground text-[1.2rem] font-bold">
             {tempPassword ? 'Staff member created' : 'Add staff member'}
           </DialogTitle>
         </DialogHeader>
 
         {tempPassword ? (
           <div className="mt-2 flex flex-col gap-4">
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               Account created successfully. Share this temporary password with
               the new staff member — they can change it after first login.
             </p>
-            <div className="rounded-md border border-border bg-background px-4 py-3 text-center font-mono text-[15px] font-bold tracking-widest text-foreground">
+            <div className="border-border bg-background text-foreground rounded-md border px-4 py-3 text-center font-mono text-[15px] font-bold tracking-widest">
               {tempPassword}
             </div>
-            <Button className="w-full bg-primary font-bold text-primary-foreground hover:bg-primary/90" onClick={handleClose}>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full font-bold"
+              onClick={handleClose}
+            >
               Done
             </Button>
           </div>
@@ -411,7 +449,9 @@ function AddMemberDialog({
               </p>
             )}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-muted-foreground">First name</label>
+              <label className="text-muted-foreground text-[13px] font-semibold">
+                First name
+              </label>
               <Input
                 name="firstName"
                 placeholder="Enter first name"
@@ -422,7 +462,9 @@ function AddMemberDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-muted-foreground">Last name</label>
+              <label className="text-muted-foreground text-[13px] font-semibold">
+                Last name
+              </label>
               <Input
                 name="lastName"
                 placeholder="Enter last name"
@@ -433,7 +475,9 @@ function AddMemberDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-muted-foreground">Email</label>
+              <label className="text-muted-foreground text-[13px] font-semibold">
+                Email
+              </label>
               <Input
                 name="email"
                 type="email"
@@ -445,7 +489,9 @@ function AddMemberDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-muted-foreground">Role</label>
+              <label className="text-muted-foreground text-[13px] font-semibold">
+                Role
+              </label>
               <Select
                 value={form.role}
                 onValueChange={(value) => {
@@ -467,7 +513,9 @@ function AddMemberDialog({
             </div>
             {form.role === 'Instructor' && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-muted-foreground">Specializations</label>
+                <label className="text-muted-foreground text-[13px] font-semibold">
+                  Specializations
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {exerciseTypes.map((et) => {
                     const active = specializations.includes(et.id);
@@ -477,7 +525,11 @@ function AddMemberDialog({
                         key={et.id}
                         size="sm"
                         variant={active ? 'default' : 'outline'}
-                        className={active ? '' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}
+                        className={
+                          active
+                            ? ''
+                            : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                        }
                         onClick={() => toggleSpecialization(et.id)}
                       >
                         {et.name}
@@ -490,7 +542,7 @@ function AddMemberDialog({
 
             <Button
               type="submit"
-              className="mt-1 bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
               disabled={loading}
             >
               {loading ? 'Creating...' : 'Create'}
@@ -573,9 +625,9 @@ function EditStaffDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-[400px] border-border bg-card text-foreground">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="text-[1.2rem] font-bold text-foreground">
+          <DialogTitle className="text-foreground text-[1.2rem] font-bold">
             Edit staff member
           </DialogTitle>
         </DialogHeader>
@@ -586,7 +638,9 @@ function EditStaffDialog({
             </p>
           )}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-semibold text-muted-foreground">First name</label>
+            <label className="text-muted-foreground text-[13px] font-semibold">
+              First name
+            </label>
             <Input
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
@@ -595,7 +649,9 @@ function EditStaffDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-semibold text-muted-foreground">Last name</label>
+            <label className="text-muted-foreground text-[13px] font-semibold">
+              Last name
+            </label>
             <Input
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
@@ -605,7 +661,9 @@ function EditStaffDialog({
           </div>
           {staff?.role === 'Instructor' && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-muted-foreground">Specializations</label>
+              <label className="text-muted-foreground text-[13px] font-semibold">
+                Specializations
+              </label>
               <div className="flex flex-wrap gap-2">
                 {exerciseTypes.map((et) => {
                   const active = specializations.includes(et.id);
@@ -615,7 +673,11 @@ function EditStaffDialog({
                       key={et.id}
                       size="sm"
                       variant={active ? 'default' : 'outline'}
-                      className={active ? '' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}
+                      className={
+                        active
+                          ? ''
+                          : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                      }
                       onClick={() => toggleSpecialization(et.id)}
                     >
                       {et.name}
@@ -627,7 +689,7 @@ function EditStaffDialog({
           )}
           <Button
             type="submit"
-            className="mt-1 bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
             disabled={loading}
           >
             {loading ? 'Saving...' : 'Save'}
@@ -713,13 +775,18 @@ export default function AdminStaffPage() {
   }
 
   return (
-    <div className="min-h-[calc(100svh-var(--nav-height))] bg-background pt-[var(--nav-height)] text-foreground">
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
       <div className="mx-auto max-w-[1200px] px-8 py-10 md:px-4 md:py-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 md:flex-col md:items-start">
-          <h1 className="text-[2rem] font-extrabold text-foreground">Manage Staff</h1>
+          <h1 className="text-foreground text-[2rem] font-extrabold">
+            Manage Staff
+          </h1>
           <div className="flex items-center gap-3">
             <div className="relative flex items-center">
-              <Search size={15} className="pointer-events-none absolute left-2.5 text-muted-foreground" />
+              <Search
+                size={15}
+                className="text-muted-foreground pointer-events-none absolute left-2.5"
+              />
               <Input
                 placeholder="Search"
                 value={search}
@@ -728,7 +795,7 @@ export default function AdminStaffPage() {
               />
               {search && (
                 <button
-                  className="absolute right-2 flex cursor-pointer items-center border-none bg-transparent p-0 text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground absolute right-2 flex cursor-pointer items-center border-none bg-transparent p-0"
                   onClick={() => setSearch('')}
                 >
                   <X size={13} />
@@ -736,7 +803,7 @@ export default function AdminStaffPage() {
               )}
             </div>
             <Button
-              className="gap-1.5 border border-border bg-secondary text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground"
+              className="border-border bg-secondary text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground gap-1.5 border"
               onClick={() => setAddOpen(true)}
             >
               <Plus size={14} />
@@ -751,7 +818,11 @@ export default function AdminStaffPage() {
               key={chip}
               size="sm"
               variant={activeFilter === chip ? 'default' : 'outline'}
-              className={activeFilter === chip ? '' : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'}
+              className={
+                activeFilter === chip
+                  ? ''
+                  : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+              }
               onClick={() =>
                 setActiveFilter((prev) => (prev === chip ? null : chip))
               }
@@ -761,46 +832,56 @@ export default function AdminStaffPage() {
           ))}
         </div>
 
-        <div className="mb-6 inline-block rounded-full border border-border bg-card px-3.5 py-1 text-[13px] text-muted-foreground">
+        <div className="border-border bg-card text-muted-foreground mb-6 inline-block rounded-full border px-3.5 py-1 text-[13px]">
           Employee counter: {filtered.length}
         </div>
 
         <div className="flex flex-col gap-2.5">
           {loadingStaff && (
-            <p className="py-6 text-sm text-muted-foreground">Loading staff...</p>
+            <p className="text-muted-foreground py-6 text-sm">
+              Loading staff...
+            </p>
           )}
           {!loadingStaff &&
             filtered.map((staff) => (
-              <div key={staff.id} className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-5 py-3.5 transition-colors hover:border-primary md:flex-nowrap md:gap-4">
+              <div
+                key={staff.id}
+                className="border-border bg-card hover:border-primary flex flex-wrap items-center gap-2.5 rounded-lg border px-5 py-3.5 transition-colors md:flex-nowrap md:gap-4"
+              >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-sm font-bold text-white">
                   {getInitials(staff.firstName, staff.lastName)}
                 </div>
-                <span className="min-w-0 text-[15px] font-semibold text-foreground md:flex-1">
+                <span className="text-foreground min-w-0 text-[15px] font-semibold md:flex-1">
                   {staff.firstName} {staff.lastName}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {staff.role === RECEPTION_FILTER ? (
-                    <span className="whitespace-nowrap rounded-full border border-border bg-secondary px-3 py-0.5 text-xs text-muted-foreground">
+                    <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap">
                       {staff.role}
                     </span>
                   ) : staff.specializations.length > 0 ? (
                     staff.specializations.map((spec) => (
-                      <span key={spec} className="whitespace-nowrap rounded-full border border-border bg-secondary px-3 py-0.5 text-xs text-muted-foreground">
+                      <span
+                        key={spec}
+                        className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap"
+                      >
                         {spec}
                       </span>
                     ))
                   ) : (
-                    <span className="whitespace-nowrap rounded-full border border-border bg-secondary px-3 py-0.5 text-xs text-muted-foreground">
+                    <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap">
                       {staff.role}
                     </span>
                   )}
                 </div>
-                <span className="whitespace-nowrap text-[13px] text-muted-foreground">{staff.since}</span>
+                <span className="text-muted-foreground text-[13px] whitespace-nowrap">
+                  {staff.since}
+                </span>
                 <div className="flex w-full justify-end gap-2 md:ml-auto md:w-auto md:shrink-0">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-border bg-transparent text-[13px] text-foreground hover:border-primary hover:bg-secondary"
+                    className="border-border text-foreground hover:border-primary hover:bg-secondary bg-transparent text-[13px]"
                     onClick={() => handleView(staff)}
                   >
                     View
@@ -808,7 +889,7 @@ export default function AdminStaffPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-border bg-transparent text-foreground hover:border-primary hover:bg-secondary hover:text-primary"
+                    className="border-border text-foreground hover:border-primary hover:bg-secondary hover:text-primary bg-transparent"
                     aria-label="Edit staff member"
                     onClick={() => {
                       setEditStaff(staff);
@@ -829,7 +910,9 @@ export default function AdminStaffPage() {
               </div>
             ))}
           {!loadingStaff && filtered.length === 0 && (
-            <p className="py-6 text-sm text-muted-foreground">No staff members found.</p>
+            <p className="text-muted-foreground py-6 text-sm">
+              No staff members found.
+            </p>
           )}
         </div>
       </div>

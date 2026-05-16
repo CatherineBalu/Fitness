@@ -161,7 +161,9 @@ export default function AddScheduleDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="border-border bg-card text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-foreground">Add lecture</DialogTitle>
+          <DialogTitle className="text-foreground text-lg font-bold">
+            Add lecture
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -300,14 +302,14 @@ export default function AddScheduleDialog({
               <Button
                 type="button"
                 variant="ghost"
-                className="border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground border"
                 onClick={() => handleClose(false)}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-primary font-bold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={form.formState.isSubmitting}
               >
                 {form.formState.isSubmitting ? 'Saving...' : 'Save'}
