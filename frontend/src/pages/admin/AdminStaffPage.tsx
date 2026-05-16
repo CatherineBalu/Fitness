@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { useApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface Lecture {
   id: string;

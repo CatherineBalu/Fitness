@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import { cn } from '@/lib/utils';
 import { useApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface Membership {
   name: string;

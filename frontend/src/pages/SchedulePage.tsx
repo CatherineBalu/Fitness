@@ -15,8 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
 import { useApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 const ALL_LECTURES = 'All lectures';
 type Category = string;
