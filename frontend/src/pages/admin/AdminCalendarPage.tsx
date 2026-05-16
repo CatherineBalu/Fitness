@@ -40,8 +40,9 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
+import { cn } from '@/lib/utils';
+
 import AddScheduleDialog from './AddScheduleDialog';
-import './AdminCalendarPage.css';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -165,11 +166,21 @@ function LectureCard({
 
   return (
     <Card
-      className={`lecture-card relative ${isPast ? 'opacity-70 grayscale-[0.3]' : ''}`}
+      className={cn(
+        'relative border border-border bg-card transition-colors hover:border-primary',
+        isPast && 'opacity-70 grayscale-[0.3]',
+      )}
     >
-      <CardContent className="lecture-card-content">
-        <div className="lecture-card-top mb-1 flex min-h-[16px] items-start justify-between">
-          {!isPast && <span className={`status-dot status-dot--${status}`} />}
+      <CardContent className="flex flex-col gap-2.5 p-4">
+        <div className="mb-1 flex min-h-[16px] items-start justify-between">
+          {!isPast && (
+            <span
+              className={cn(
+                'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                STATUS_DOT_CLASSES[status],
+              )}
+            />
+          )}
           {isPast && (
             <span className="ml-auto text-[10px] font-bold tracking-wider text-slate-500 uppercase">
               Past
@@ -178,7 +189,9 @@ function LectureCard({
         </div>
 
         <div className="mb-2 flex items-center gap-2">
-          <h3 className="lecture-name m-0 pr-0">{lecture.name}</h3>
+          <h3 className="m-0 pr-0 text-[0.95rem] font-semibold leading-snug text-foreground">
+            {lecture.name}
+          </h3>
           {!isPast && (
             <button
               onClick={() => onEditLecture(lecture)}
@@ -190,20 +203,20 @@ function LectureCard({
           )}
         </div>
 
-        <div className="lecture-meta">
-          <div className="lecture-meta-row">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CalendarDays size={13} />
             <span>{lecture.date}</span>
           </div>
-          <div className="lecture-meta-row">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock size={13} />
             <span>{lecture.time}</span>
           </div>
-          <div className="lecture-meta-row">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <MapPin size={13} />
             <span>{lecture.room}</span>
           </div>
-          <div className="lecture-meta-row">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Users size={13} />
             <span>
               Capacity {lecture.registered}/{lecture.capacity}
@@ -216,7 +229,7 @@ function LectureCard({
             <Button
               size="sm"
               variant="outline"
-              className="lecture-view-btn flex-1 text-xs"
+              className="flex-1 border-border bg-transparent text-xs text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground"
               onClick={() => onViewMembers(lecture)}
             >
               Members
@@ -224,7 +237,10 @@ function LectureCard({
           )}
           <Button
             size="sm"
-            className={`lecture-attendance-btn text-xs ${isPast ? 'w-full' : 'flex-1'}`}
+            className={cn(
+              'bg-primary text-xs text-primary-foreground hover:bg-primary/90',
+              isPast ? 'w-full' : 'flex-1',
+            )}
             onClick={() => onMarkAttendance(lecture)}
           >
             <UserCheck size={14} className="mr-1" /> Attendance
@@ -234,6 +250,12 @@ function LectureCard({
     </Card>
   );
 }
+
+const STATUS_DOT_CLASSES: Record<string, string> = {
+  available: 'bg-green-400',
+  'almost-full': 'bg-orange-400',
+  unavailable: 'bg-red-400',
+};
 
 // --- CONSTANTS ---
 
@@ -608,12 +630,13 @@ export default function AdminCalendarPage() {
   const maxHistoryDateStr = getDaysAgoStr(1); // Cannot select future dates in history
 
   return (
-    <div className="admin-cal-page">
-      <div className="admin-cal-inner">
-        <div className="admin-cal-header">
-          <h1 className="admin-cal-title">My lectures</h1>
+    <div className="min-h-[calc(100svh-var(--nav-height))] bg-background pt-[var(--nav-height)] text-foreground">
+      <div className="mx-auto max-w-[1200px] px-8 py-10 md:px-4 md:py-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-3xl font-extrabold text-foreground">My lectures</h1>
           <Button
-            className="admin-cal-add-btn"
+            variant="outline"
+            className="gap-1.5 bg-muted hover:border-primary hover:bg-primary hover:text-primary-foreground"
             onClick={() => setDialogOpen(true)}
           >
             <Plus size={15} />
@@ -622,17 +645,13 @@ export default function AdminCalendarPage() {
         </div>
 
         {/* Filters */}
-        <div className="admin-cal-filters">
+        <div className="mb-4 flex gap-1">
           {FILTERS.map((f) => (
             <Button
               key={f.value}
               size="sm"
-              variant={filter === f.value ? 'default' : 'ghost'}
-              className={
-                filter === f.value
-                  ? 'filter-btn filter-btn--active'
-                  : 'filter-btn'
-              }
+              variant={filter === f.value ? 'secondary' : 'ghost'}
+              className={filter === f.value ? '' : 'text-muted-foreground'}
               onClick={() => handleFilterChange(f.value)}
             >
               {f.label}
@@ -679,26 +698,26 @@ export default function AdminCalendarPage() {
           </div>
         )}
 
-        <div className="admin-cal-legend">
-          <span className="legend-item">
-            <span className="status-dot status-dot--available" />
+        <div className="mb-8 flex gap-5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-green-400" />
             Available
           </span>
-          <span className="legend-item">
-            <span className="status-dot status-dot--almost-full" />
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-orange-400" />
             Almost full
           </span>
-          <span className="legend-item">
-            <span className="status-dot status-dot--unavailable" />
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-red-400" />
             Unavailable
           </span>
         </div>
 
         {loading && (
-          <p style={{ color: 'var(--c-muted)' }}>Loading schedule...</p>
+          <p className="text-muted-foreground">Loading schedule...</p>
         )}
 
-        <div className="admin-cal-grid">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((lecture) => (
             <LectureCard
               key={lecture.id}
@@ -726,9 +745,9 @@ export default function AdminCalendarPage() {
           DIALOG: MEMBERS (Add / Remove)
       ========================================== */}
       <Dialog open={membersDialogOpen} onOpenChange={setMembersDialogOpen}>
-        <DialogContent className="add-schedule-dialog max-w-md">
+        <DialogContent className="max-w-md bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="add-schedule-title flex flex-col gap-1">
+            <DialogTitle className="flex flex-col gap-1 text-lg font-bold text-foreground">
               <span>Manage Members</span>
               {selectedLecture && (
                 <span className="text-sm font-normal text-slate-400">
@@ -812,9 +831,9 @@ export default function AdminCalendarPage() {
           DIALOG: EDIT LECTURE
       ========================================== */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="add-schedule-dialog max-w-sm overflow-visible">
+        <DialogContent className="max-w-sm overflow-visible bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="add-schedule-title">
+            <DialogTitle className="text-lg font-bold text-foreground">
               Edit Schedule Record
             </DialogTitle>
           </DialogHeader>
@@ -961,9 +980,9 @@ export default function AdminCalendarPage() {
         open={attendanceDialogOpen}
         onOpenChange={setAttendanceDialogOpen}
       >
-        <DialogContent className="add-schedule-dialog max-w-md">
+        <DialogContent className="max-w-md bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="add-schedule-title">
+            <DialogTitle className="text-lg font-bold text-foreground">
               Mark Attendance
             </DialogTitle>
             <p className="text-sm text-slate-400">
