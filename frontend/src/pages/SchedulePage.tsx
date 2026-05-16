@@ -155,6 +155,7 @@ function ActivityCard({
     if (activity.isRegistered) {
       return (
         <Button
+          data-testid="cal-unregister-btn"
           size="sm"
           variant="outline"
           className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mt-1 w-full bg-transparent text-[12px] font-semibold uppercase disabled:opacity-50"
@@ -227,7 +228,10 @@ function ActivityCard({
             </Badge>
           </div>
         </div>
-        <h4 className="text-foreground m-0 text-[15px] leading-[1.2] font-semibold">
+        <h4
+          data-testid="cal-activity-name"
+          className="text-foreground m-0 text-[15px] leading-[1.2] font-semibold"
+        >
           {activity.name}
         </h4>
         <div className="text-muted-foreground flex items-center justify-between gap-1 text-[11px]">
