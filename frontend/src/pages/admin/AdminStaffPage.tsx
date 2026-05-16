@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useApi } from '@/lib/api';
-import './AdminStaffPage.css';
+import { cn } from '@/lib/utils';
 
 interface Lecture {
   id: string;
@@ -60,6 +60,12 @@ interface EmployeeType {
 
 const RECEPTION_FILTER = 'Reception';
 
+const STATUS_DOT_CLASSES: Record<string, string> = {
+  available: 'bg-success',
+  'almost-full': 'bg-warning',
+  full: 'bg-destructive',
+};
+
 interface Member {
   id: string;
   name: string;
@@ -94,20 +100,21 @@ function DeleteConfirmDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="delete-confirm-dialog">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="delete-confirm-title">
+          <DialogTitle className="text-foreground text-lg font-bold">
             Delete staff member
           </DialogTitle>
         </DialogHeader>
-        <p className="delete-confirm-body">
-          Are you sure you want to delete <strong>{name}</strong>? This action
+        <p className="text-muted-foreground mt-2 mb-5 text-sm leading-relaxed">
+          Are you sure you want to delete{' '}
+          <strong className="text-foreground">{name}</strong>? This action
           cannot be undone.
         </p>
-        <div className="delete-confirm-actions">
+        <div className="flex justify-end gap-2.5">
           <Button
             variant="outline"
-            className="delete-confirm-cancel"
+            className="border-border text-foreground"
             onClick={onClose}
           >
             Cancel
@@ -130,22 +137,29 @@ function LectureCard({
 }) {
   const status = getLectureStatus(lecture.registered, lecture.capacity);
   return (
-    <Card className="staff-lecture-card">
-      <CardContent className="staff-lecture-card-content">
-        <div className="staff-lecture-card-top">
-          <span className={`status-dot status-dot--${status}`} />
+    <Card className="border-border bg-background hover:border-primary transition-colors">
+      <CardContent className="flex flex-col gap-2 p-3.5">
+        <div className="flex justify-end">
+          <span
+            className={cn(
+              'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+              STATUS_DOT_CLASSES[status],
+            )}
+          />
         </div>
-        <h4 className="staff-lecture-name">{lecture.name}</h4>
-        <div className="staff-lecture-meta">
-          <div className="staff-lecture-meta-row">
+        <h4 className="text-foreground m-0 text-[0.9rem] leading-snug font-semibold">
+          {lecture.name}
+        </h4>
+        <div className="flex flex-col gap-1.5">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <Clock size={12} />
             <span>{formatLectureTime(lecture.startTime, lecture.endTime)}</span>
           </div>
-          <div className="staff-lecture-meta-row">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <MapPin size={12} />
             <span>{lecture.room}</span>
           </div>
-          <div className="staff-lecture-meta-row">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <Users size={12} />
             <span>
               {lecture.registered}/{lecture.capacity}
@@ -155,7 +169,7 @@ function LectureCard({
         <Button
           size="sm"
           variant="outline"
-          className="staff-lecture-view-btn"
+          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground mt-0.5 w-full bg-transparent text-[11px]"
           onClick={() => onViewMembers(lecture)}
         >
           View members
@@ -188,24 +202,33 @@ function MembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="members-dialog">
+      <DialogContent className="border-border bg-card text-foreground max-w-[420px]">
         <DialogHeader>
-          <DialogTitle className="members-dialog-title">
+          <DialogTitle className="text-foreground text-[1.1rem] font-bold">
             {lecture?.name} — Members
           </DialogTitle>
         </DialogHeader>
-        <div className="members-list">
+        <div className="mt-1 flex flex-col gap-2.5">
           {members.map((m) => (
-            <div key={m.id} className="members-list-row">
-              <div className="member-avatar">{m.name[0]}</div>
-              <div className="member-info">
-                <span className="member-name">{m.name}</span>
-                <span className="member-email">{m.email}</span>
+            <div
+              key={m.id}
+              className="border-border bg-background flex items-center gap-3 rounded-md border px-3.5 py-2.5"
+            >
+              <div className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-sm font-bold text-white">
+                {m.name[0]}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-foreground text-sm font-semibold">
+                  {m.name}
+                </span>
+                <span className="text-muted-foreground text-xs">{m.email}</span>
               </div>
             </div>
           ))}
           {members.length === 0 && (
-            <p className="members-empty">No members registered.</p>
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              No members registered.
+            </p>
           )}
         </div>
       </DialogContent>
@@ -243,28 +266,43 @@ function ViewClassesDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="classes-dialog">
+        <DialogContent className="border-border bg-card text-foreground flex max-h-[85vh] w-[90vw] max-w-[760px] flex-col overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="classes-dialog-title">
+            <DialogTitle className="text-foreground text-[1.2rem] font-bold">
               {staff ? `${staff.firstName} ${staff.lastName}` : ''} — Classes
             </DialogTitle>
           </DialogHeader>
-          <div className="classes-dialog-body">
-            <div className="classes-dialog-legend">
-              <span className="legend-item">
-                <span className="status-dot status-dot--available" />
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="text-muted-foreground text-xs-plus mb-5 flex gap-5">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['available'],
+                  )}
+                />
                 Available
               </span>
-              <span className="legend-item">
-                <span className="status-dot status-dot--almost-full" />
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['almost-full'],
+                  )}
+                />
                 Almost full
               </span>
-              <span className="legend-item">
-                <span className="status-dot status-dot--full" />
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['full'],
+                  )}
+                />
                 Full
               </span>
             </div>
-            <div className="classes-dialog-grid">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lectures.map((lecture) => (
                 <LectureCard
                   key={lecture.id}
@@ -273,7 +311,9 @@ function ViewClassesDialog({
                 />
               ))}
               {lectures.length === 0 && (
-                <p className="members-empty">No classes assigned.</p>
+                <p className="text-muted-foreground py-4 text-center text-sm">
+                  No classes assigned.
+                </p>
               )}
             </div>
           </div>
@@ -378,63 +418,80 @@ function AddMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="add-member-dialog">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="add-member-dialog-title">
+          <DialogTitle className="text-foreground text-[1.2rem] font-bold">
             {tempPassword ? 'Staff member created' : 'Add staff member'}
           </DialogTitle>
         </DialogHeader>
 
         {tempPassword ? (
-          <div className="add-member-success">
-            <p className="add-member-success-text">
+          <div className="mt-2 flex flex-col gap-4">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               Account created successfully. Share this temporary password with
               the new staff member — they can change it after first login.
             </p>
-            <div className="add-member-temp-password">{tempPassword}</div>
-            <Button className="add-member-submit" onClick={handleClose}>
+            <div className="border-border bg-background text-foreground rounded-md border px-4 py-3 text-center font-mono text-[15px] font-bold tracking-widest">
+              {tempPassword}
+            </div>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full font-bold"
+              onClick={handleClose}
+            >
               Done
             </Button>
           </div>
         ) : (
-          <form className="add-member-form" onSubmit={handleSubmit}>
-            {error && <p className="add-member-error">{error}</p>}
-            <div className="add-member-field">
-              <label className="add-member-label">First name</label>
+          <form className="mt-2 flex flex-col gap-4" onSubmit={handleSubmit}>
+            {error && (
+              <p className="border-destructive/30 bg-destructive/10 text-xs-plus text-destructive rounded-md border px-3 py-2">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
+                First name
+              </label>
               <Input
                 name="firstName"
                 placeholder="Enter first name"
                 value={form.firstName}
                 onChange={handleChange}
-                className="add-member-input"
+                className="bg-background"
                 required
               />
             </div>
-            <div className="add-member-field">
-              <label className="add-member-label">Last name</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
+                Last name
+              </label>
               <Input
                 name="lastName"
                 placeholder="Enter last name"
                 value={form.lastName}
                 onChange={handleChange}
-                className="add-member-input"
+                className="bg-background"
                 required
               />
             </div>
-            <div className="add-member-field">
-              <label className="add-member-label">Email</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
+                Email
+              </label>
               <Input
                 name="email"
                 type="email"
                 placeholder="Enter email"
                 value={form.email}
                 onChange={handleChange}
-                className="add-member-input"
+                className="bg-background"
                 required
               />
             </div>
-            <div className="add-member-field">
-              <label className="add-member-label">Role</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
+                Role
+              </label>
               <Select
                 value={form.role}
                 onValueChange={(value) => {
@@ -442,7 +499,7 @@ function AddMemberDialog({
                   if (value !== 'Instructor') setSpecializations([]);
                 }}
               >
-                <SelectTrigger className="add-member-input">
+                <SelectTrigger className="bg-background">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -455,9 +512,11 @@ function AddMemberDialog({
               </Select>
             </div>
             {form.role === 'Instructor' && (
-              <div className="add-member-field">
-                <label className="add-member-label">Specializations</label>
-                <div className="add-member-specializations">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-muted-foreground text-xs-plus font-semibold">
+                  Specializations
+                </label>
+                <div className="flex flex-wrap gap-2">
                   {exerciseTypes.map((et) => {
                     const active = specializations.includes(et.id);
                     return (
@@ -468,8 +527,8 @@ function AddMemberDialog({
                         variant={active ? 'default' : 'outline'}
                         className={
                           active
-                            ? 'staff-filter-btn staff-filter-btn--active'
-                            : 'staff-filter-btn'
+                            ? ''
+                            : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
                         }
                         onClick={() => toggleSpecialization(et.id)}
                       >
@@ -483,7 +542,7 @@ function AddMemberDialog({
 
             <Button
               type="submit"
-              className="add-member-submit"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
               disabled={loading}
             >
               {loading ? 'Creating...' : 'Create'}
@@ -566,36 +625,46 @@ function EditStaffDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="add-member-dialog">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="add-member-dialog-title">
+          <DialogTitle className="text-foreground text-[1.2rem] font-bold">
             Edit staff member
           </DialogTitle>
         </DialogHeader>
-        <form className="add-member-form" onSubmit={handleSubmit}>
-          {error && <p className="add-member-error">{error}</p>}
-          <div className="add-member-field">
-            <label className="add-member-label">First name</label>
+        <form className="mt-2 flex flex-col gap-4" onSubmit={handleSubmit}>
+          {error && (
+            <p className="border-destructive/30 bg-destructive/10 text-xs-plus text-destructive rounded-md border px-3 py-2">
+              {error}
+            </p>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-muted-foreground text-xs-plus font-semibold">
+              First name
+            </label>
             <Input
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="add-member-input"
+              className="bg-background"
               required
             />
           </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Last name</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-muted-foreground text-xs-plus font-semibold">
+              Last name
+            </label>
             <Input
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="add-member-input"
+              className="bg-background"
               required
             />
           </div>
           {staff?.role === 'Instructor' && (
-            <div className="add-member-field">
-              <label className="add-member-label">Specializations</label>
-              <div className="add-member-specializations">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-muted-foreground text-xs-plus font-semibold">
+                Specializations
+              </label>
+              <div className="flex flex-wrap gap-2">
                 {exerciseTypes.map((et) => {
                   const active = specializations.includes(et.id);
                   return (
@@ -606,8 +675,8 @@ function EditStaffDialog({
                       variant={active ? 'default' : 'outline'}
                       className={
                         active
-                          ? 'staff-filter-btn staff-filter-btn--active'
-                          : 'staff-filter-btn'
+                          ? ''
+                          : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
                       }
                       onClick={() => toggleSpecialization(et.id)}
                     >
@@ -620,7 +689,7 @@ function EditStaffDialog({
           )}
           <Button
             type="submit"
-            className="add-member-submit"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
             disabled={loading}
           >
             {loading ? 'Saving...' : 'Save'}
@@ -706,22 +775,27 @@ export default function AdminStaffPage() {
   }
 
   return (
-    <div className="admin-staff-page">
-      <div className="admin-staff-inner">
-        <div className="admin-staff-header">
-          <h1 className="admin-staff-title">Manage Staff</h1>
-          <div className="admin-staff-header-actions">
-            <div className="admin-staff-search-wrap">
-              <Search size={15} className="admin-staff-search-icon" />
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+      <div className="mx-auto max-w-[1200px] px-8 py-10 md:px-4 md:py-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 md:flex-col md:items-start">
+          <h1 className="text-foreground text-[2rem] font-extrabold">
+            Manage Staff
+          </h1>
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center">
+              <Search
+                size={15}
+                className="text-muted-foreground pointer-events-none absolute left-2.5"
+              />
               <Input
                 placeholder="Search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="admin-staff-search"
+                className="w-[220px] pl-8"
               />
               {search && (
                 <button
-                  className="admin-staff-search-clear"
+                  className="text-muted-foreground hover:text-foreground absolute right-2 flex cursor-pointer items-center border-none bg-transparent p-0"
                   onClick={() => setSearch('')}
                 >
                   <X size={13} />
@@ -729,7 +803,7 @@ export default function AdminStaffPage() {
               )}
             </div>
             <Button
-              className="admin-staff-add-btn"
+              className="border-border bg-secondary text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground gap-1.5 border"
               onClick={() => setAddOpen(true)}
             >
               <Plus size={14} />
@@ -738,7 +812,7 @@ export default function AdminStaffPage() {
           </div>
         </div>
 
-        <div className="admin-staff-filters">
+        <div className="mb-4 flex flex-wrap gap-2">
           {filterChips.map((chip) => (
             <Button
               key={chip}
@@ -746,8 +820,8 @@ export default function AdminStaffPage() {
               variant={activeFilter === chip ? 'default' : 'outline'}
               className={
                 activeFilter === chip
-                  ? 'staff-filter-btn staff-filter-btn--active'
-                  : 'staff-filter-btn'
+                  ? ''
+                  : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
               }
               onClick={() =>
                 setActiveFilter((prev) => (prev === chip ? null : chip))
@@ -758,42 +832,56 @@ export default function AdminStaffPage() {
           ))}
         </div>
 
-        <div className="admin-staff-counter">
+        <div className="border-border bg-card text-muted-foreground text-xs-plus mb-6 inline-block rounded-full border px-3.5 py-1">
           Employee counter: {filtered.length}
         </div>
 
-        <div className="admin-staff-list">
+        <div className="flex flex-col gap-2.5">
           {loadingStaff && (
-            <p className="admin-staff-loading">Loading staff...</p>
+            <p className="text-muted-foreground py-6 text-sm">
+              Loading staff...
+            </p>
           )}
           {!loadingStaff &&
             filtered.map((staff) => (
-              <div key={staff.id} className="staff-row">
-                <div className="staff-row-avatar">
+              <div
+                key={staff.id}
+                className="border-border bg-card hover:border-primary flex flex-wrap items-center gap-2.5 rounded-lg border px-5 py-3.5 transition-colors md:flex-nowrap md:gap-4"
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-sm font-bold text-white">
                   {getInitials(staff.firstName, staff.lastName)}
                 </div>
-                <span className="staff-row-name">
+                <span className="text-foreground min-w-0 text-[15px] font-semibold md:flex-1">
                   {staff.firstName} {staff.lastName}
                 </span>
-                <div className="staff-row-badges">
+                <div className="flex flex-wrap gap-1.5">
                   {staff.role === RECEPTION_FILTER ? (
-                    <span className="staff-row-badge">{staff.role}</span>
+                    <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap">
+                      {staff.role}
+                    </span>
                   ) : staff.specializations.length > 0 ? (
                     staff.specializations.map((spec) => (
-                      <span key={spec} className="staff-row-badge">
+                      <span
+                        key={spec}
+                        className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap"
+                      >
                         {spec}
                       </span>
                     ))
                   ) : (
-                    <span className="staff-row-badge">{staff.role}</span>
+                    <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap">
+                      {staff.role}
+                    </span>
                   )}
                 </div>
-                <span className="staff-row-since">{staff.since}</span>
-                <div className="staff-row-actions">
+                <span className="text-muted-foreground text-xs-plus whitespace-nowrap">
+                  {staff.since}
+                </span>
+                <div className="flex w-full justify-end gap-2 md:ml-auto md:w-auto md:shrink-0">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="staff-row-view-btn"
+                    className="border-border text-foreground hover:border-primary hover:bg-secondary text-xs-plus bg-transparent"
                     onClick={() => handleView(staff)}
                   >
                     View
@@ -801,7 +889,7 @@ export default function AdminStaffPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="staff-row-edit-btn"
+                    className="border-border text-foreground hover:border-primary hover:bg-secondary hover:text-primary bg-transparent"
                     aria-label="Edit staff member"
                     onClick={() => {
                       setEditStaff(staff);
@@ -813,7 +901,7 @@ export default function AdminStaffPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    className="staff-row-delete-btn"
+                    className="text-xs-plus"
                     onClick={() => setDeleteTarget(staff)}
                   >
                     Delete
@@ -822,7 +910,9 @@ export default function AdminStaffPage() {
               </div>
             ))}
           {!loadingStaff && filtered.length === 0 && (
-            <p className="admin-staff-empty">No staff members found.</p>
+            <p className="text-muted-foreground py-6 text-sm">
+              No staff members found.
+            </p>
           )}
         </div>
       </div>

@@ -11,7 +11,6 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { useApi } from '@/lib/api';
-import '@/components/stats/stats.css';
 
 interface LecturesByMonth {
   month: string;
@@ -66,34 +65,49 @@ export default function StaffStatisticsPage() {
   }, [apiRequest]);
 
   return (
-    <div className="admin-dash-page">
-      <div className="admin-dash-hero">
-        <div className="admin-dash-hero-inner">
-          <p className="admin-dash-welcome-label">YOUR ACTIVITY</p>
-          <h1 className="admin-dash-name">MY STATISTICS</h1>
-          <p className="admin-dash-subtitle">
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+      <div className="border-border bg-admin-hero border-b px-8 py-16 md:px-5 md:py-10">
+        <div className="mx-auto max-w-[1200px]">
+          <p className="text-muted-foreground mb-1.5 text-[0.85rem] font-semibold tracking-[0.12em]">
+            YOUR ACTIVITY
+          </p>
+          <h1 className="text-primary mb-3 text-5xl leading-none font-black sm:text-[1.8rem] md:text-[2.2rem]">
+            MY STATISTICS
+          </h1>
+          <p className="text-muted-foreground mb-7 text-base">
             Your teaching load, attendance, and most popular class.
           </p>
         </div>
       </div>
 
-      <div className="admin-dash-inner">
-        {error && <div className="stats-error">Failed to load: {error}</div>}
+      <div className="mx-auto max-w-[1200px] px-8 py-12 md:px-5 md:py-8">
+        {error && (
+          <div className="bg-card border-destructive/70 text-destructive mb-6 rounded-md border px-4 py-3 text-xs">
+            Failed to load: {error}
+          </div>
+        )}
 
-        {loading && !error && <div className="stats-empty">Loading...</div>}
+        {loading && !error && (
+          <div className="border-border bg-card text-muted-foreground rounded-md border border-dashed p-6 text-center text-sm">
+            Loading...
+          </div>
+        )}
 
         {!loading && stats && !stats.available && (
-          <Card className="stats-chart-card">
-            <CardContent className="stats-chart-content">
-              <div className="stats-unavailable">
+          <Card>
+            <CardContent className="p-5">
+              <div className="text-muted-foreground flex flex-col items-center gap-4 px-4 py-8 text-center">
                 <Info size={32} />
-                <h2 className="admin-dash-section-title">
+                <h2 className="text-foreground text-2xl font-extrabold">
                   Statistics unavailable
                 </h2>
-                <p className="stats-unavailable-text">
+                <p className="text-muted-foreground max-w-[480px] text-sm leading-relaxed">
                   Statistics are available only for instructors. Your role —
-                  <strong> {stats.employeeType}</strong> — does not have any
-                  activity data to summarise.
+                  <strong className="text-foreground">
+                    {' '}
+                    {stats.employeeType}
+                  </strong>{' '}
+                  — does not have any activity data to summarise.
                 </p>
               </div>
             </CardContent>
@@ -102,9 +116,11 @@ export default function StaffStatisticsPage() {
 
         {!loading && stats && stats.available && (
           <>
-            <section className="admin-dash-section">
-              <h2 className="admin-dash-section-title">This month</h2>
-              <div className="dash-stats-grid">
+            <section className="mb-12">
+              <h2 className="text-foreground text-2xl font-extrabold">
+                This month
+              </h2>
+              <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
                   icon={<Calendar size={22} />}
                   value={String(stats.monthLectureCount)}
@@ -123,21 +139,27 @@ export default function StaffStatisticsPage() {
               </div>
             </section>
 
-            <div className="admin-dash-divider" />
+            <div className="bg-border mb-12 h-px" />
 
-            <section className="admin-dash-section">
-              <div className="admin-dash-section-header">
-                <p className="admin-dash-section-label">Trend</p>
-                <h2 className="admin-dash-section-title">Last 6 months</h2>
+            <section className="mb-12">
+              <div className="mb-5">
+                <p className="text-primary mb-1 text-[0.78rem] font-semibold tracking-[0.1em] uppercase">
+                  Trend
+                </p>
+                <h2 className="text-foreground text-2xl font-extrabold">
+                  Last 6 months
+                </h2>
               </div>
               {stats.lecturesByMonth.length === 0 ? (
-                <div className="stats-empty">No lectures in this window.</div>
+                <div className="border-border bg-card text-muted-foreground rounded-md border border-dashed p-6 text-center text-sm">
+                  No lectures in this window.
+                </div>
               ) : (
-                <Card className="stats-chart-card">
-                  <CardContent className="stats-chart-content">
+                <Card>
+                  <CardContent className="p-5">
                     <ChartContainer
                       config={lecturesChartConfig}
-                      className="stats-chart"
+                      className="h-[280px] w-full"
                     >
                       <BarChart
                         data={stats.lecturesByMonth}
@@ -172,24 +194,28 @@ export default function StaffStatisticsPage() {
               )}
             </section>
 
-            <section className="admin-dash-section">
-              <div className="admin-dash-section-header">
-                <p className="admin-dash-section-label">Highlights</p>
-                <h2 className="admin-dash-section-title">Most popular class</h2>
+            <section className="mb-12">
+              <div className="mb-5">
+                <p className="text-primary mb-1 text-[0.78rem] font-semibold tracking-[0.1em] uppercase">
+                  Highlights
+                </p>
+                <h2 className="text-foreground text-2xl font-extrabold">
+                  Most popular class
+                </h2>
               </div>
               {stats.mostPopularLecture ? (
-                <div className="stats-list">
-                  <div className="stats-row">
-                    <span className="stats-row-label">
+                <div className="flex flex-col gap-2">
+                  <div className="border-border bg-card hover:border-primary flex items-center gap-4 rounded-md border px-4 py-3 transition-colors">
+                    <span className="text-foreground min-w-0 flex-1 overflow-hidden text-sm font-semibold text-ellipsis whitespace-nowrap">
                       {stats.mostPopularLecture.lectureName}
                     </span>
-                    <span className="stats-row-value">
+                    <span className="border-border bg-muted text-foreground rounded-full border px-3 py-0.5 text-sm font-bold whitespace-nowrap">
                       {stats.mostPopularLecture.reservationCount} reservations
                     </span>
                   </div>
                 </div>
               ) : (
-                <div className="stats-empty">
+                <div className="border-border bg-card text-muted-foreground rounded-md border border-dashed p-6 text-center text-sm">
                   No reservations on your lectures yet.
                 </div>
               )}

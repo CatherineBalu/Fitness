@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useApi } from '@/lib/api';
-import './CustomerProfilePage.css';
+import { cn } from '@/lib/utils';
 
 interface Membership {
   name: string;
@@ -123,11 +123,19 @@ export default function CustomerProfilePage() {
   }
 
   if (loading) {
-    return <div className="cp-loading">Loading your profile…</div>;
+    return (
+      <div className="text-muted-foreground py-4 text-[0.85rem]">
+        Loading your profile…
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="cp-loading">Failed to load profile: {error}</div>;
+    return (
+      <div className="text-muted-foreground py-4 text-[0.85rem]">
+        Failed to load profile: {error}
+      </div>
+    );
   }
 
   const upcoming = registrations.filter(
@@ -136,43 +144,49 @@ export default function CustomerProfilePage() {
   const past = registrations.filter((r) => new Date(r.startTime) < new Date());
 
   return (
-    <div className="cp-root">
+    <div className="text-foreground flex flex-col gap-8 pt-1 pb-4">
       {/* ── Membership ── */}
-      <section className="cp-section">
-        <p className="cp-section-label">Account</p>
-        <h2 className="cp-section-title">Membership</h2>
+      <section className="flex flex-col gap-3">
+        <p className="text-primary mb-0.5 text-[0.72rem] font-bold tracking-[0.12em] uppercase">
+          Account
+        </p>
+        <h2 className="text-foreground mb-2.5 text-[1.1rem] font-extrabold">
+          Membership
+        </h2>
 
         {profile?.membership ? (
           <div
-            className={`cp-membership-card ${
-              profile.membership.isActive
-                ? 'cp-membership-card--active'
-                : 'cp-membership-card--expired'
-            }`}
+            className={cn(
+              'border-border bg-secondary flex flex-col gap-3 rounded-xl border px-5 py-[18px] transition-colors',
+              profile.membership.isActive ? 'border-primary' : 'opacity-70',
+            )}
           >
-            <div className="cp-membership-header">
-              <span className="cp-membership-name">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-foreground text-base font-bold">
                 {profile.membership.name}
               </span>
               <span
-                className={`cp-badge ${
+                className={cn(
+                  'rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold tracking-[0.08em] uppercase',
                   profile.membership.isActive
-                    ? 'cp-badge--active'
-                    : 'cp-badge--expired'
-                }`}
+                    ? 'border-primary/30 bg-primary/15 text-primary border'
+                    : 'border-border bg-muted text-muted-foreground border',
+                )}
               >
                 {profile.membership.isActive ? 'Active' : 'Expired'}
               </span>
             </div>
 
-            <div className="cp-membership-meta">
-              <p className="cp-membership-meta-row">
+            <div className="flex flex-col gap-1">
+              <p className="text-muted-foreground text-[0.8rem]">
                 Valid until:{' '}
-                <span>{formatDate(profile.membership.validUntil)}</span>
+                <span className="text-foreground font-medium">
+                  {formatDate(profile.membership.validUntil)}
+                </span>
               </p>
-              <p className="cp-membership-meta-row">
+              <p className="text-muted-foreground text-[0.8rem]">
                 Price:{' '}
-                <span>
+                <span className="text-foreground font-medium">
                   €
                   {(
                     profile.membership.price /
@@ -188,26 +202,26 @@ export default function CustomerProfilePage() {
 
             {!confirmCancel ? (
               <button
-                className="cp-cancel-btn"
+                className="border-destructive/25 bg-destructive/10 text-destructive hover:border-destructive/50 hover:bg-destructive/15 inline-flex cursor-pointer items-center gap-1.5 self-start rounded-lg border px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors"
                 onClick={() => setConfirmCancel(true)}
               >
                 Cancel membership
               </button>
             ) : (
-              <div className="cp-confirm-box">
-                <p className="cp-confirm-text">
+              <div className="border-destructive/20 bg-destructive/[6%] flex flex-col gap-2.5 rounded-[10px] border px-4 py-3.5">
+                <p className="text-muted-foreground text-[0.82rem] leading-[1.5]">
                   Your membership will be cancelled immediately. You'll lose
                   access to members-only classes.
                 </p>
-                <div className="cp-confirm-actions">
+                <div className="flex gap-2">
                   <button
-                    className="cp-btn-ghost"
+                    className="border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground cursor-pointer rounded-lg border bg-transparent px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors"
                     onClick={() => setConfirmCancel(false)}
                   >
                     Keep it
                   </button>
                   <button
-                    className="cp-btn-danger"
+                    className="text-destructive-foreground bg-destructive hover:bg-destructive/90 cursor-pointer rounded-lg px-3.5 py-1.5 text-[0.8rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={handleCancelMembership}
                     disabled={cancelling}
                   >
@@ -218,47 +232,59 @@ export default function CustomerProfilePage() {
             )}
           </div>
         ) : (
-          <p className="cp-membership-empty">No active membership.</p>
+          <p className="border-border bg-secondary text-muted-foreground rounded-xl border px-5 py-[18px] text-[0.85rem]">
+            No active membership.
+          </p>
         )}
       </section>
 
       {/* ── Registered lectures ── */}
-      <section className="cp-section">
-        <p className="cp-section-label">Schedule</p>
-        <h2 className="cp-section-title">Registered Lectures</h2>
+      <section className="flex flex-col gap-3">
+        <p className="text-primary mb-0.5 text-[0.72rem] font-bold tracking-[0.12em] uppercase">
+          Schedule
+        </p>
+        <h2 className="text-foreground mb-2.5 text-[1.1rem] font-extrabold">
+          Registered Lectures
+        </h2>
 
         {registrations.length === 0 ? (
-          <p className="cp-empty">No registrations yet.</p>
+          <p className="text-muted-foreground py-3 text-[0.82rem]">
+            No registrations yet.
+          </p>
         ) : (
-          <div className="cp-list">
+          <div className="flex flex-col gap-2">
             {upcoming.length > 0 && (
               <>
-                <p className="cp-sub-label">Upcoming</p>
+                <p className="text-muted-foreground mt-2 mb-1 text-[0.72rem] font-bold tracking-[0.1em] uppercase">
+                  Upcoming
+                </p>
                 {upcoming.map((r) => (
                   <div
                     key={r.reservationId}
-                    className="cp-row cp-row--interactive"
+                    className="border-border bg-secondary flex items-center justify-between gap-3 rounded-[10px] border px-4 py-3"
                   >
-                    <div className="cp-row-info">
-                      <span className="cp-row-name">{r.lectureName}</span>
-                      <span className="cp-row-meta">
+                    <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                      <span className="text-foreground overflow-hidden text-[0.88rem] font-semibold text-ellipsis whitespace-nowrap">
+                        {r.lectureName}
+                      </span>
+                      <span className="text-muted-foreground text-[0.75rem]">
                         {formatDate(r.startTime)} · {formatTime(r.startTime)}–
                         {formatTime(r.endTime)} · {r.roomName}
                       </span>
                     </div>
                     {confirmUnregister === r.scheduleId ? (
-                      <div className="cp-unregister-confirm">
-                        <span className="cp-unregister-confirm-text">
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span className="text-muted-foreground text-[0.75rem] whitespace-nowrap">
                           Cancel this?
                         </span>
                         <button
-                          className="cp-btn-ghost cp-btn-small"
+                          className="border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground cursor-pointer rounded-lg border bg-transparent px-2.5 py-1 text-[0.75rem] font-semibold transition-colors"
                           onClick={() => setConfirmUnregister(null)}
                         >
                           Keep
                         </button>
                         <button
-                          className="cp-btn-danger cp-btn-small"
+                          className="text-destructive-foreground bg-destructive hover:bg-destructive/90 cursor-pointer rounded-lg px-2.5 py-1 text-[0.75rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                           onClick={() => handleUnregister(r.scheduleId)}
                           disabled={unregistering}
                         >
@@ -267,7 +293,7 @@ export default function CustomerProfilePage() {
                       </div>
                     ) : (
                       <button
-                        className="cp-unregister-btn"
+                        className="border-destructive/25 bg-destructive/10 text-destructive hover:border-destructive/50 hover:bg-destructive/15 shrink-0 cursor-pointer rounded-[7px] border px-3 py-1 text-[0.75rem] font-semibold transition-colors"
                         onClick={() => setConfirmUnregister(r.scheduleId)}
                       >
                         Unregister
@@ -279,12 +305,19 @@ export default function CustomerProfilePage() {
             )}
             {past.length > 0 && (
               <>
-                <p className="cp-sub-label">Past</p>
+                <p className="text-muted-foreground mt-2 mb-1 text-[0.72rem] font-bold tracking-[0.1em] uppercase">
+                  Past
+                </p>
                 {past.map((r) => (
-                  <div key={r.reservationId} className="cp-row cp-row--past">
-                    <div className="cp-row-info">
-                      <span className="cp-row-name">{r.lectureName}</span>
-                      <span className="cp-row-meta">
+                  <div
+                    key={r.reservationId}
+                    className="border-border bg-secondary flex items-center justify-between gap-3 rounded-[10px] border px-4 py-3 opacity-50"
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                      <span className="text-foreground overflow-hidden text-[0.88rem] font-semibold text-ellipsis whitespace-nowrap">
+                        {r.lectureName}
+                      </span>
+                      <span className="text-muted-foreground text-[0.75rem]">
                         {formatDate(r.startTime)} · {formatTime(r.startTime)}–
                         {formatTime(r.endTime)} · {r.roomName}
                       </span>
@@ -298,30 +331,43 @@ export default function CustomerProfilePage() {
       </section>
 
       {/* ── Spending ── */}
-      <section className="cp-section">
-        <p className="cp-section-label">Finances</p>
-        <h2 className="cp-section-title">Spending</h2>
+      <section className="flex flex-col gap-3">
+        <p className="text-primary mb-0.5 text-[0.72rem] font-bold tracking-[0.12em] uppercase">
+          Finances
+        </p>
+        <h2 className="text-foreground mb-2.5 text-[1.1rem] font-extrabold">
+          Spending
+        </h2>
 
         {!spending || spending.payments.length === 0 ? (
-          <p className="cp-empty">No payments yet.</p>
+          <p className="text-muted-foreground py-3 text-[0.82rem]">
+            No payments yet.
+          </p>
         ) : (
           <>
-            <div className="cp-spending-total">
-              <span className="cp-spending-total-label">Total spent</span>
-              <span className="cp-spending-total-amount">
+            <div className="border-primary/20 bg-primary/[6%] mb-2 flex items-center justify-between rounded-[10px] border px-4 py-2.5 text-[0.85rem]">
+              <span className="text-foreground font-semibold">Total spent</span>
+              <span className="text-primary text-base font-extrabold">
                 €{spending.total.toFixed(0)}
               </span>
             </div>
-            <div className="cp-list">
+            <div className="flex flex-col gap-2">
               {spending.payments.map((p) => (
-                <div key={p.id} className="cp-row">
-                  <div className="cp-row-info">
-                    <span className="cp-row-name">{p.subscriptionName}</span>
-                    <span className="cp-row-meta">
+                <div
+                  key={p.id}
+                  className="border-border bg-secondary flex items-center justify-between gap-3 rounded-[10px] border px-4 py-3"
+                >
+                  <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                    <span className="text-foreground overflow-hidden text-[0.88rem] font-semibold text-ellipsis whitespace-nowrap">
+                      {p.subscriptionName}
+                    </span>
+                    <span className="text-muted-foreground text-[0.75rem]">
                       {formatDate(p.paymentDate)} · {p.paymentMethod}
                     </span>
                   </div>
-                  <span className="cp-row-value">€{p.amount.toFixed(0)}</span>
+                  <span className="text-primary shrink-0 text-[0.88rem] font-bold whitespace-nowrap">
+                    €{p.amount.toFixed(0)}
+                  </span>
                 </div>
               ))}
             </div>

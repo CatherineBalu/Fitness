@@ -6,8 +6,8 @@ test.describe('Schedule page — structure', () => {
   });
 
   test('renders the weekly calendar grid', async ({ page }) => {
-    await expect(page.locator('.cal-root')).toBeVisible();
-    await expect(page.locator('.cal-week-grid')).toBeVisible();
+    await expect(page.getByTestId('cal-root')).toBeVisible();
+    await expect(page.getByTestId('cal-week-grid')).toBeVisible();
   });
 
   test('shows day column headers', async ({ page }) => {
@@ -29,61 +29,61 @@ test.describe('Schedule page — structure', () => {
   });
 
   test('shows week navigation arrows', async ({ page }) => {
-    await expect(page.locator('.cal-nav-arrow').first()).toBeVisible();
-    await expect(page.locator('.cal-nav-arrow').last()).toBeVisible();
+    await expect(page.getByTestId('cal-nav-arrow').first()).toBeVisible();
+    await expect(page.getByTestId('cal-nav-arrow').last()).toBeVisible();
   });
 
   test('shows date range in week nav', async ({ page }) => {
-    await expect(page.locator('.cal-date-range')).toBeVisible();
-    await expect(page.locator('.cal-date-range')).toContainText(/20\d\d/);
+    await expect(page.getByTestId('cal-date-range')).toBeVisible();
+    await expect(page.getByTestId('cal-date-range')).toContainText(/20\d\d/);
   });
 
   test('shows All lectures filter button active by default', async ({ page }) => {
-    const allBtn = page.locator('.cal-cat-btn').filter({ hasText: 'All lectures' });
+    const allBtn = page.getByTestId('cal-cat-btn').filter({ hasText: 'All lectures' });
     await expect(allBtn).toBeVisible();
-    await expect(allBtn).toHaveClass(/cal-cat-btn--active/);
+    await expect(allBtn).toHaveAttribute('data-active', 'true');
   });
 
   test('navigating to next week updates the date range', async ({ page }) => {
-    const rangeText = await page.locator('.cal-date-range').textContent();
-    await page.locator('.cal-nav-arrow').last().click();
-    await expect(page.locator('.cal-date-range')).not.toHaveText(rangeText!, {
+    const rangeText = await page.getByTestId('cal-date-range').textContent();
+    await page.getByTestId('cal-nav-arrow').last().click();
+    await expect(page.getByTestId('cal-date-range')).not.toHaveText(rangeText!, {
       timeout: 3_000,
     });
   });
 
   test('navigating to previous week updates the date range', async ({ page }) => {
-    const rangeText = await page.locator('.cal-date-range').textContent();
-    await page.locator('.cal-nav-arrow').first().click();
-    await expect(page.locator('.cal-date-range')).not.toHaveText(rangeText!, {
+    const rangeText = await page.getByTestId('cal-date-range').textContent();
+    await page.getByTestId('cal-nav-arrow').first().click();
+    await expect(page.getByTestId('cal-date-range')).not.toHaveText(rangeText!, {
       timeout: 3_000,
     });
   });
 
   test('clicking a non-All-lectures category deactivates All lectures', async ({ page }) => {
-    await page.waitForSelector('.cal-cat-btn', { timeout: 10_000 });
-    const buttons = page.locator('.cal-cat-btn');
+    await page.getByTestId('cal-cat-btn').first().waitFor({ timeout: 10_000 });
+    const buttons = page.getByTestId('cal-cat-btn');
     const count = await buttons.count();
 
     if (count > 1) {
       const secondBtn = buttons.nth(1);
       await secondBtn.click();
-      const allBtn = page.locator('.cal-cat-btn').filter({ hasText: 'All lectures' });
-      await expect(allBtn).not.toHaveClass(/cal-cat-btn--active/);
-      await expect(secondBtn).toHaveClass(/cal-cat-btn--active/);
+      const allBtn = page.getByTestId('cal-cat-btn').filter({ hasText: 'All lectures' });
+      await expect(allBtn).toHaveAttribute('data-active', 'false');
+      await expect(secondBtn).toHaveAttribute('data-active', 'true');
     }
   });
 
   test('clicking All lectures after a category resets to all active', async ({ page }) => {
-    await page.waitForSelector('.cal-cat-btn', { timeout: 10_000 });
-    const buttons = page.locator('.cal-cat-btn');
+    await page.getByTestId('cal-cat-btn').first().waitFor({ timeout: 10_000 });
+    const buttons = page.getByTestId('cal-cat-btn');
     const count = await buttons.count();
 
     if (count > 1) {
       await buttons.nth(1).click();
-      const allBtn = page.locator('.cal-cat-btn').filter({ hasText: 'All lectures' });
+      const allBtn = page.getByTestId('cal-cat-btn').filter({ hasText: 'All lectures' });
       await allBtn.click();
-      await expect(allBtn).toHaveClass(/cal-cat-btn--active/);
+      await expect(allBtn).toHaveAttribute('data-active', 'true');
     }
   });
 });
@@ -91,12 +91,12 @@ test.describe('Schedule page — structure', () => {
 test.describe('Schedule page — unauthenticated interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule');
-    await page.waitForSelector('.cal-week-grid', { timeout: 10_000 });
+    await page.getByTestId('cal-week-grid').waitFor({ timeout: 10_000 });
   });
 
   test('future lecture Register button triggers Clerk modal for guests', async ({ page }) => {
     const registerBtn = page
-      .locator('.cal-register-btn')
+      .getByTestId('cal-register-btn')
       .filter({ hasText: 'Register' })
       .first();
 
