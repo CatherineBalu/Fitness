@@ -11,7 +11,6 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { useApi } from '@/lib/api';
-import '@/components/stats/stats.css';
 
 interface LecturesByMonth {
   month: string;
@@ -78,21 +77,29 @@ export default function StaffStatisticsPage() {
       </div>
 
       <div className="admin-dash-inner">
-        {error && <div className="stats-error">Failed to load: {error}</div>}
+        {error && (
+          <div className="mb-6 rounded-md border border-red-800 bg-card px-4 py-3 text-xs text-red-400">
+            Failed to load: {error}
+          </div>
+        )}
 
-        {loading && !error && <div className="stats-empty">Loading...</div>}
+        {loading && !error && (
+          <div className="rounded-md border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            Loading...
+          </div>
+        )}
 
         {!loading && stats && !stats.available && (
-          <Card className="stats-chart-card">
-            <CardContent className="stats-chart-content">
-              <div className="stats-unavailable">
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center gap-4 px-4 py-8 text-center text-muted-foreground">
                 <Info size={32} />
                 <h2 className="admin-dash-section-title">
                   Statistics unavailable
                 </h2>
-                <p className="stats-unavailable-text">
+                <p className="max-w-[480px] text-sm leading-relaxed text-muted-foreground">
                   Statistics are available only for instructors. Your role —
-                  <strong> {stats.employeeType}</strong> — does not have any
+                  <strong className="text-foreground"> {stats.employeeType}</strong> — does not have any
                   activity data to summarise.
                 </p>
               </div>
@@ -131,13 +138,15 @@ export default function StaffStatisticsPage() {
                 <h2 className="admin-dash-section-title">Last 6 months</h2>
               </div>
               {stats.lecturesByMonth.length === 0 ? (
-                <div className="stats-empty">No lectures in this window.</div>
+                <div className="rounded-md border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                  No lectures in this window.
+                </div>
               ) : (
-                <Card className="stats-chart-card">
-                  <CardContent className="stats-chart-content">
+                <Card>
+                  <CardContent className="p-5">
                     <ChartContainer
                       config={lecturesChartConfig}
-                      className="stats-chart"
+                      className="h-[280px] w-full"
                     >
                       <BarChart
                         data={stats.lecturesByMonth}
@@ -178,18 +187,18 @@ export default function StaffStatisticsPage() {
                 <h2 className="admin-dash-section-title">Most popular class</h2>
               </div>
               {stats.mostPopularLecture ? (
-                <div className="stats-list">
-                  <div className="stats-row">
-                    <span className="stats-row-label">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4 rounded-md border border-border bg-card px-4 py-3 transition-colors hover:border-primary">
+                    <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-foreground">
                       {stats.mostPopularLecture.lectureName}
                     </span>
-                    <span className="stats-row-value">
+                    <span className="whitespace-nowrap rounded-full border border-border bg-muted px-3 py-0.5 text-sm font-bold text-foreground">
                       {stats.mostPopularLecture.reservationCount} reservations
                     </span>
                   </div>
                 </div>
               ) : (
-                <div className="stats-empty">
+                <div className="rounded-md border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                   No reservations on your lectures yet.
                 </div>
               )}
