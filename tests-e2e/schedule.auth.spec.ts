@@ -3,12 +3,12 @@ import { test, expect } from '@playwright/test';
 test.describe('Schedule page — authenticated interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule');
-    await page.waitForSelector('.cal-week-grid', { timeout: 10_000 });
+    await page.getByTestId('cal-week-grid').waitFor({ timeout: 10_000 });
   });
 
   test('register dialog appears when clicking Register on a future lecture', async ({ page }) => {
     const registerBtn = page
-      .locator('.cal-register-btn')
+      .getByTestId('cal-register-btn')
       .filter({ hasText: 'Register' })
       .first();
 
@@ -26,7 +26,7 @@ test.describe('Schedule page — authenticated interactions', () => {
 
   test('register dialog shows lecture name', async ({ page }) => {
     const registerBtn = page
-      .locator('.cal-register-btn')
+      .getByTestId('cal-register-btn')
       .filter({ hasText: 'Register' })
       .first();
 
@@ -37,7 +37,7 @@ test.describe('Schedule page — authenticated interactions', () => {
     }
 
     const card = registerBtn.locator('..').locator('..');
-    const lectureName = await card.locator('.cal-activity-name').textContent();
+    const lectureName = await card.getByTestId('cal-activity-name').textContent();
 
     await registerBtn.click();
     if (lectureName) {
@@ -47,7 +47,7 @@ test.describe('Schedule page — authenticated interactions', () => {
 
   test('closing register dialog via Escape removes it', async ({ page }) => {
     const registerBtn = page
-      .locator('.cal-register-btn')
+      .getByTestId('cal-register-btn')
       .filter({ hasText: 'Register' })
       .first();
 
@@ -65,7 +65,7 @@ test.describe('Schedule page — authenticated interactions', () => {
 
   test('unregister dialog appears for already-registered lecture', async ({ page }) => {
     const unregisterBtn = page
-      .locator('.cal-unregister-btn')
+      .getByTestId('cal-unregister-btn')
       .filter({ hasText: 'Unregister' })
       .first();
 

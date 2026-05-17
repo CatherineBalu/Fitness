@@ -2,7 +2,7 @@ import CustomerProfilePage from '@/components/CustomerProfilePage';
 
 export default function MyProfilePage() {
   return (
-    <div style={{ maxWidth: 720, margin: '2rem auto', padding: '0 1rem' }}>
+    <div className="mx-auto max-w-[720px] px-4 py-8">
       <CustomerProfilePage />
     </div>
   );

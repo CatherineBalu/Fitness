@@ -10,7 +10,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import './AddScheduleDialog.css';
 import {
   Form,
   FormControl,
@@ -123,15 +122,17 @@ export default function AddScheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="add-schedule-dialog">
+      <DialogContent className="border-border bg-card text-foreground">
         <DialogHeader>
-          <DialogTitle className="add-schedule-title">Add lecture</DialogTitle>
+          <DialogTitle className="text-foreground text-lg font-bold">
+            Add lecture
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+            className="flex flex-col gap-4"
           >
             <FormField
               control={form.control}
@@ -201,12 +202,12 @@ export default function AddScheduleDialog({
               )}
             />
 
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div className="flex gap-3">
               <FormField
                 control={form.control}
                 name="startTime"
                 render={({ field }) => (
-                  <FormItem style={{ flex: 1 }}>
+                  <FormItem className="flex-1">
                     <FormLabel>Start time</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
@@ -220,7 +221,7 @@ export default function AddScheduleDialog({
                 control={form.control}
                 name="endTime"
                 render={({ field }) => (
-                  <FormItem style={{ flex: 1 }}>
+                  <FormItem className="flex-1">
                     <FormLabel>End time</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
@@ -260,14 +261,14 @@ export default function AddScheduleDialog({
               <Button
                 type="button"
                 variant="ghost"
-                className="dialog-btn-cancel"
+                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground border"
                 onClick={() => handleClose(false)}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="dialog-btn-save"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={createSchedule.isPending}
               >
                 {createSchedule.isPending ? 'Saving...' : 'Save'}

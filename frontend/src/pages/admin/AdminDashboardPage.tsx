@@ -12,7 +12,6 @@ import { useEffect, useState } from 'react';
 import StatCard from '@/components/common/StatCard';
 import { Button } from '@/components/ui/button';
 import { useApi } from '@/lib/api';
-import './AdminDashboardPage.css';
 
 interface Lecture {
   id: string;
@@ -55,19 +54,25 @@ function formatDate(iso: string): string {
 
 function UpcomingClassRow({ item }: { item: Lecture }) {
   return (
-    <div className="dash-class-row">
-      <div className="dash-class-info">
-        <span className="dash-class-name">{item.name}</span>
-        <span className="dash-class-meta">
+    <div className="border-border bg-card hover:border-primary flex items-center gap-5 rounded-lg border px-5 py-4 transition-colors md:flex-wrap md:gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="text-foreground text-[15px] font-semibold">
+          {item.name}
+        </span>
+        <span className="text-muted-foreground text-xs">
           {formatDate(item.startTime)} ·{' '}
           {formatLectureTime(item.startTime, item.endTime)} · {item.room}
         </span>
       </div>
-      <span className="dash-class-capacity">
+      <span className="border-border bg-secondary text-muted-foreground text-xs-plus rounded-full border px-3 py-0.5 font-semibold whitespace-nowrap">
         {item.registered}/{item.capacity}
       </span>
       <Link to="/admin/calendar">
-        <Button size="sm" variant="outline" className="dash-class-manage-btn">
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground text-xs-plus shrink-0 bg-transparent md:w-full"
+        >
           Manage
         </Button>
       </Link>
@@ -166,26 +171,30 @@ export default function AdminDashboardPage() {
       : [];
 
   return (
-    <div className="admin-dash-page">
-      <div className="admin-dash-hero">
-        <div className="admin-dash-hero-inner">
-          <p className="admin-dash-welcome-label">WELCOME BACK</p>
-          <h1 className="admin-dash-name">{isAdmin ? 'ADMIN' : 'STAFF'}</h1>
-          <p className="admin-dash-subtitle">
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+      <div className="border-border bg-admin-hero border-b px-8 py-16 md:px-5 md:py-10">
+        <div className="mx-auto max-w-[1200px]">
+          <p className="text-muted-foreground mb-1.5 text-[0.85rem] font-semibold tracking-[0.12em]">
+            WELCOME BACK
+          </p>
+          <h1 className="text-primary mb-3 text-5xl leading-none font-black sm:text-[1.8rem] md:text-[2.2rem]">
+            {isAdmin ? 'ADMIN' : 'STAFF'}
+          </h1>
+          <p className="text-muted-foreground mb-7 text-base">
             {loading
               ? '…'
               : `You have ${upcoming.length} upcoming lecture${upcoming.length !== 1 ? 's' : ''}.`}
           </p>
-          <div className="admin-dash-hero-actions">
+          <div className="flex flex-wrap gap-3">
             <Link to="/admin/calendar">
-              <Button className="dash-hero-btn dash-hero-btn--primary">
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
                 My lectures
               </Button>
             </Link>
             <Link to="/schedule">
               <Button
                 variant="outline"
-                className="dash-hero-btn dash-hero-btn--outline"
+                className="border-border text-foreground hover:border-primary hover:text-primary gap-1.5 font-semibold"
               >
                 Show schedule
                 <ArrowRight size={15} />
@@ -195,16 +204,18 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="admin-dash-inner">
-        <section className="admin-dash-section">
-          <div className="admin-dash-section-header">
-            <p className="admin-dash-section-label">Upcoming classes</p>
-            <h2 className="admin-dash-section-title">Next up</h2>
+      <div className="mx-auto max-w-[1200px] px-8 py-12 md:px-5 md:py-8">
+        <section className="mb-12">
+          <div className="mb-5">
+            <p className="text-primary mb-1 text-[0.78rem] font-semibold tracking-[0.1em] uppercase">
+              Upcoming classes
+            </p>
+            <h2 className="text-foreground text-2xl font-extrabold">Next up</h2>
           </div>
-          <div className="dash-classes-list">
-            {loading && <p style={{ color: 'var(--c-muted)' }}>Loading…</p>}
+          <div className="flex flex-col gap-2.5">
+            {loading && <p className="text-muted-foreground">Loading…</p>}
             {!loading && upcoming.length === 0 && (
-              <p style={{ color: 'var(--c-muted)' }}>No upcoming lectures.</p>
+              <p className="text-muted-foreground">No upcoming lectures.</p>
             )}
             {upcoming.map((item) => (
               <UpcomingClassRow key={item.id} item={item} />
@@ -214,10 +225,12 @@ export default function AdminDashboardPage() {
 
         {statCards.length > 0 && (
           <>
-            <div className="admin-dash-divider" />
-            <section className="admin-dash-section">
-              <h2 className="admin-dash-section-title">This month</h2>
-              <div className="dash-stats-grid">
+            <div className="bg-border mb-12 h-px" />
+            <section className="mb-12">
+              <h2 className="text-foreground text-2xl font-extrabold">
+                This month
+              </h2>
+              <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {statCards.map((stat) => (
                   <StatCard
                     key={stat.label}

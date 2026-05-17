@@ -1,3 +1,12 @@
+# Run MR pipelines on every push to an open MR; branch pipelines only on devel/main.
+# Without this, branch pipelines and MR pipelines would both be created, causing
+# "duplicate pipeline" conflicts and blocking the MR pipeline from running.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "devel"
+
 # 1. Define the stages of the pipeline
 stages:
   - lint_and_format
