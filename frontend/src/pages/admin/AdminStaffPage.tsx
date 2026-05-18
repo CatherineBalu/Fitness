@@ -1,5 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Clock, MapPin, Users, X, Pencil } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -18,8 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useApi } from '@/lib/api';
+import { apiClient } from '@/lib/apiClient';
 import { cn } from '@/lib/utils';
+
+const staffListKey = ['staff', 'list'] as const;
+const exerciseTypesKey = ['exercise-types'] as const;
+const employeeTypesKey = ['employee-types'] as const;
 
 interface Lecture {
   id: string;
@@ -188,17 +193,11 @@ function MembersDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useApi();
-  const [members, setMembers] = useState<Member[]>([]);
-
-  useEffect(() => {
-    if (!open || !lecture) return;
-    apiRequest<Member[]>(`/api/lectures/${lecture.id}/members`)
-      .then((data) => setMembers(data))
-      .catch(() => setMembers([]));
-    // apiRequest is stable via useCallback; lecture.id and open are the real triggers
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, lecture]);
+  const { data: members = [] } = useQuery({
+    queryKey: ['lecture', lecture?.id, 'members'] as const,
+    queryFn: () => apiClient<Member[]>(`/api/lectures/${lecture!.id}/members`),
+    enabled: open && !!lecture,
+  });
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -245,18 +244,14 @@ function ViewClassesDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useApi();
-  const [lectures, setLectures] = useState<Lecture[]>([]);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
 
-  useEffect(() => {
-    if (!open || !staff) return;
-    apiRequest<Lecture[]>(`/api/staff/${staff.id}/lectures`)
-      .then((data) => setLectures(data))
-      .catch(() => setLectures([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, staff]);
+  const { data: lectures = [] } = useQuery({
+    queryKey: ['staff', staff?.id, 'lectures'] as const,
+    queryFn: () => apiClient<Lecture[]>(`/api/staff/${staff!.id}/lectures`),
+    enabled: open && !!staff,
+  });
 
   function handleViewMembers(lecture: Lecture) {
     setSelectedLecture(lecture);
@@ -339,7 +334,7 @@ function AddMemberDialog({
   onAdded: () => void;
   exerciseTypes: ExerciseType[];
 }) {
-  const { apiRequest } = useApi();
+  const qc = useQueryClient();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -347,18 +342,36 @@ function AddMemberDialog({
     role: '',
   });
   const [specializations, setSpecializations] = useState<string[]>([]);
-  const [employeeTypes, setEmployeeTypes] = useState<EmployeeType[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    apiRequest<EmployeeType[]>('/api/employee-types')
-      .then((data) => setEmployeeTypes(data))
-      .catch(() => setEmployeeTypes([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const { data: employeeTypes = [] } = useQuery({
+    queryKey: employeeTypesKey,
+    queryFn: () => apiClient<EmployeeType[]>('/api/employee-types'),
+    enabled: open,
+  });
+
+  const createStaff = useMutation({
+    mutationFn: (payload: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      role: string;
+      specializations: string[];
+    }) =>
+      apiClient<{ success: boolean; temporaryPassword: string }>('/api/staff', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: (data) => {
+      setTempPassword(data.temporaryPassword);
+      void qc.invalidateQueries({ queryKey: staffListKey });
+      onAdded();
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -370,7 +383,7 @@ function AddMemberDialog({
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -384,28 +397,10 @@ function AddMemberDialog({
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const data = await apiRequest<{
-        success: boolean;
-        temporaryPassword: string;
-      }>('/api/staff', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...form,
-          specializations: form.role === 'Instructor' ? specializations : [],
-        }),
-      });
-      setTempPassword(data.temporaryPassword);
-      onAdded();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to create staff member',
-      );
-    } finally {
-      setLoading(false);
-    }
+    createStaff.mutate({
+      ...form,
+      specializations: form.role === 'Instructor' ? specializations : [],
+    });
   }
 
   function handleClose() {
@@ -543,9 +538,9 @@ function AddMemberDialog({
             <Button
               type="submit"
               className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={loading}
+              disabled={createStaff.isPending}
             >
-              {loading ? 'Creating...' : 'Create'}
+              {createStaff.isPending ? 'Creating...' : 'Create'}
             </Button>
           </form>
         )}
@@ -567,15 +562,15 @@ function EditStaffDialog({
   onSaved: () => void;
   exerciseTypes: ExerciseType[];
 }) {
-  const { apiRequest } = useApi();
+  const qc = useQueryClient();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [specializations, setSpecializations] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open || !staff) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFirstName(staff.firstName);
     setLastName(staff.lastName);
     const ids = exerciseTypes
@@ -585,13 +580,33 @@ function EditStaffDialog({
     setError(null);
   }, [open, staff, exerciseTypes]);
 
+  const updateStaff = useMutation({
+    mutationFn: (payload: {
+      firstName: string;
+      lastName: string;
+      specializations?: string[];
+    }) =>
+      apiClient<void>(`/api/staff/${staff!.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: staffListKey });
+      onSaved();
+      onClose();
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
   function toggleSpecialization(id: string) {
     setSpecializations((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!staff) return;
     setError(null);
@@ -601,26 +616,12 @@ function EditStaffDialog({
       return;
     }
 
-    setLoading(true);
-    try {
-      await apiRequest(`/api/staff/${staff.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          specializations:
-            staff.role === 'Instructor' ? specializations : undefined,
-        }),
-      });
-      onSaved();
-      onClose();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to update staff member',
-      );
-    } finally {
-      setLoading(false);
-    }
+    updateStaff.mutate({
+      firstName,
+      lastName,
+      specializations:
+        staff.role === 'Instructor' ? specializations : undefined,
+    });
   }
 
   return (
@@ -690,9 +691,9 @@ function EditStaffDialog({
           <Button
             type="submit"
             className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loading}
+            disabled={updateStaff.isPending}
           >
-            {loading ? 'Saving...' : 'Save'}
+            {updateStaff.isPending ? 'Saving...' : 'Save'}
           </Button>
         </form>
       </DialogContent>
@@ -701,10 +702,7 @@ function EditStaffDialog({
 }
 
 export default function AdminStaffPage() {
-  const { apiRequest } = useApi();
-  const [staffList, setStaffList] = useState<StaffMember[]>([]);
-  const [exerciseTypes, setExerciseTypes] = useState<ExerciseType[]>([]);
-  const [loadingStaff, setLoadingStaff] = useState(true);
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [viewStaff, setViewStaff] = useState<StaffMember | null>(null);
@@ -714,40 +712,37 @@ export default function AdminStaffPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
 
-  const loadStaff = useCallback(() => {
-    setLoadingStaff(true);
-    apiRequest<StaffMember[]>('/api/staff')
-      .then((data) => {
-        setStaffList(data);
-        setLoadingStaff(false);
-      })
-      .catch(() => {
-        setStaffList([]);
-        setLoadingStaff(false);
-      });
-  }, [apiRequest]);
+  const { data: staffList = [], isLoading: loadingStaff } = useQuery({
+    queryKey: staffListKey,
+    queryFn: () => apiClient<StaffMember[]>('/api/staff'),
+  });
+  const { data: exerciseTypes = [] } = useQuery({
+    queryKey: exerciseTypesKey,
+    queryFn: () => apiClient<ExerciseType[]>('/api/exercise-types'),
+  });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadStaff();
-    apiRequest<ExerciseType[]>('/api/exercise-types')
-      .then((data) => setExerciseTypes(data))
-      .catch(() => setExerciseTypes([]));
-  }, [loadStaff, apiRequest]);
+  const deleteStaff = useMutation({
+    mutationFn: (id: string) =>
+      apiClient<void>(`/api/staff/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: staffListKey });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!deleteTarget) return;
     const target = deleteTarget;
     setDeleteTarget(null);
-    try {
-      await apiRequest(`/api/staff/${target.id}`, { method: 'DELETE' });
-      loadStaff();
-      toast.success(`${target.firstName} ${target.lastName} has been removed.`);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to delete staff member.',
-      );
-    }
+    deleteStaff.mutate(target.id, {
+      onSuccess: () => {
+        toast.success(
+          `${target.firstName} ${target.lastName} has been removed.`,
+        );
+      },
+    });
   }
 
   const filterChips = [...exerciseTypes.map((t) => t.name), RECEPTION_FILTER];
@@ -925,20 +920,14 @@ export default function AdminStaffPage() {
       <AddMemberDialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onAdded={() => {
-          loadStaff();
-          toast.success('Staff member added successfully.');
-        }}
+        onAdded={() => toast.success('Staff member added successfully.')}
         exerciseTypes={exerciseTypes}
       />
       <EditStaffDialog
         staff={editStaff}
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={() => {
-          loadStaff();
-          toast.success('Staff member updated successfully.');
-        }}
+        onSaved={() => toast.success('Staff member updated successfully.')}
         exerciseTypes={exerciseTypes}
       />
       <DeleteConfirmDialog
