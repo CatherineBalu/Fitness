@@ -7,7 +7,7 @@ import { Toaster } from 'sonner';
 import ThemeToggle from '@/components/common/ThemeToggle';
 import CustomerProfilePage from '@/components/CustomerProfilePage';
 import { Button } from '@/components/ui/button';
-import { useApi } from '@/lib/api';
+import { apiClient } from '@/lib/apiClient';
 import { can } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +43,6 @@ export default function RootLayout() {
   const { user } = useUser();
   const role = (user?.publicMetadata as { role?: string })?.role ?? null;
 
-  const { apiRequest } = useApi();
   const bootstrappedRef = useRef(false);
 
   useEffect(() => {
@@ -51,7 +50,7 @@ export default function RootLayout() {
     bootstrappedRef.current = true;
     void (async () => {
       try {
-        await apiRequest('/auth/profile');
+        await apiClient('/auth/profile');
       } catch {
         // bootstrap failure is non-fatal — user still loads with no role
       }
@@ -61,7 +60,7 @@ export default function RootLayout() {
         // reload failure is non-fatal
       }
     })();
-  }, [isSignedIn, user, role, apiRequest]);
+  }, [isSignedIn, user, role]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdminPath =
