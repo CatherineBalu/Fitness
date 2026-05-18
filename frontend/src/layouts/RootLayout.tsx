@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Toaster } from 'sonner';
 
 import ThemeToggle from '@/components/common/ThemeToggle';
-import CustomerProfilePage from '@/components/CustomerProfilePage';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/apiClient';
 import { can } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
+import CustomerProfilePage from '@/pages/CustomerProfilePage';
 
 import logoImg from '../assets/logo.png';
 

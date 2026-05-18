@@ -25,9 +25,14 @@ export interface ScheduleItem {
   startTime: string;
   endTime: string;
   lectureName: string;
+  description: string;
   roomName: string;
   roomCapacity: number;
+  exerciseType: string;
+  forMembers: boolean;
+  instructors: { name: string; isLead: boolean }[];
   registered: number;
+  isRegistered: boolean;
 }
 
 export interface LectureMember {
