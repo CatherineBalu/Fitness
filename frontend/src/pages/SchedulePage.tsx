@@ -311,7 +311,7 @@ export default function SchedulePage() {
 
   const handleBuyMembership = () => {
     closeDialog();
-    navigate({ to: '/', hash: 'pricing' });
+    void navigate({ to: '/', hash: 'pricing' });
   };
 
   const categories = useMemo(() => {

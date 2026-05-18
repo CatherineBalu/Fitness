@@ -138,7 +138,7 @@ function BuyButton({
       });
       return;
     }
-    navigate({ to: '/checkout', search: { plan: plan.id } });
+    void navigate({ to: '/checkout', search: { plan: plan.id } });
   };
 
   return (
