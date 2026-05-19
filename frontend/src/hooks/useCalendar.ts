@@ -72,12 +72,16 @@ export const calendarKeys = {
     [...calendarKeys.all, 'members', lectureId] as const,
 };
 
-export function useSchedule(from: string | null, to: string | null) {
+export function useSchedule(
+  from: string | null,
+  to: string | null,
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: calendarKeys.schedule(from ?? '', to ?? ''),
     queryFn: () =>
       apiClient<ScheduleItem[]>(`/schedule?from=${from!}&to=${to!}`),
-    enabled: !!from && !!to,
+    enabled: !!from && !!to && (options.enabled ?? true),
   });
 }
 

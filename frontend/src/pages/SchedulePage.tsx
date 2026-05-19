@@ -275,9 +275,14 @@ export default function SchedulePage() {
   toDate.setUTCDate(toDate.getUTCDate() + 6);
   const to = fmtISO(toDate);
 
+  // Gate on isLoaded so the schedule fetch waits for Clerk to hydrate.
+  // Otherwise apiClient reads window.Clerk?.session before it exists, fires
+  // unauthenticated, and the grid renders before isSignedIn flips true —
+  // making the Register button still wrap in <SignInButton>.
   const { data: scheduleItems = [], isLoading: loading } = useSchedule(
     from,
     to,
+    { enabled: isLoaded },
   );
 
   const register = useRegisterReservation();
