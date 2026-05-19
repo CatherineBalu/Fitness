@@ -105,7 +105,7 @@ function DeleteConfirmDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px] sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="text-foreground text-lg font-bold">
             Delete staff member
@@ -201,7 +201,7 @@ function MembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="border-border bg-card text-foreground max-w-[420px]">
+      <DialogContent className="border-border bg-card text-foreground max-w-[420px] sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle className="text-foreground text-[1.1rem] font-bold">
             {lecture?.name} — Members
@@ -261,7 +261,7 @@ function ViewClassesDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="border-border bg-card text-foreground flex max-h-[85vh] w-[90vw] max-w-[760px] flex-col overflow-hidden">
+        <DialogContent className="border-border bg-card text-foreground flex max-h-[85vh] w-[90vw] max-w-[760px] flex-col overflow-hidden sm:max-w-[760px]">
           <DialogHeader>
             <DialogTitle className="text-foreground text-[1.2rem] font-bold">
               {staff ? `${staff.firstName} ${staff.lastName}` : ''} — Classes
@@ -413,7 +413,7 @@ function AddMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px] sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="text-foreground text-[1.2rem] font-bold">
             {tempPassword ? 'Staff member created' : 'Add staff member'}
@@ -626,7 +626,7 @@ function EditStaffDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="border-border bg-card text-foreground max-w-[400px]">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px] sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="text-foreground text-[1.2rem] font-bold">
             Edit staff member
