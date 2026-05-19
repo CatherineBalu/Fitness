@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Clock,
   MapPin,
@@ -10,7 +11,9 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 import {
   AlertDialog,
@@ -31,6 +34,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -55,6 +66,19 @@ import { cn } from '@/lib/utils';
 import AddScheduleDialog from './AddScheduleDialog';
 
 import type { RoomOption, ScheduleItem } from '@/hooks/useCalendar';
+
+const editScheduleSchema = z
+  .object({
+    roomId: z.string().min(1, 'Room is required'),
+    startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time'),
+    endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time'),
+  })
+  .refine((d) => d.endTime > d.startTime, {
+    path: ['endTime'],
+    message: 'End time must be after start time',
+  });
+
+type EditScheduleValues = z.infer<typeof editScheduleSchema>;
 
 type Filter = 'all' | 'today' | 'this-week' | 'upcoming' | 'history';
 
@@ -326,18 +350,10 @@ export default function AdminCalendarPage() {
 
   // --- EDIT LECTURE STATE ---
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editLectureData, setEditLectureData] = useState<{
-    name: string;
-    roomId: string;
-    startTime: string;
-    endTime: string;
-  }>({
-    name: '',
-    roomId: '',
-    startTime: '',
-    endTime: '',
+  const editScheduleForm = useForm<EditScheduleValues>({
+    resolver: zodResolver(editScheduleSchema),
+    defaultValues: { roomId: '', startTime: '', endTime: '' },
   });
-  const [editTimeError, setEditTimeError] = useState('');
 
   const [capacityWarningOpen, setCapacityWarningOpen] = useState(false);
   const [pendingEditRoom, setPendingEditRoom] = useState<RoomOption | null>(
@@ -410,13 +426,9 @@ export default function AdminCalendarPage() {
 
   function handleEditLecture(lecture: Lecture) {
     setSelectedLecture(lecture);
-    setEditTimeError('');
-
     const currentRoom = rooms.find((r) => r.name === lecture.room);
     const times = lecture.time.split(' - ');
-
-    setEditLectureData({
-      name: lecture.name,
+    editScheduleForm.reset({
       roomId: currentRoom?.id || '',
       startTime: times[0] || '',
       endTime: times[1] || '',
@@ -424,15 +436,8 @@ export default function AdminCalendarPage() {
     setEditDialogOpen(true);
   }
 
-  function onInitialSaveEdit() {
-    setEditTimeError('');
-
-    if (editLectureData.endTime <= editLectureData.startTime) {
-      setEditTimeError('End time must be after start time.');
-      return;
-    }
-
-    const selectedRoom = rooms.find((r) => r.id === editLectureData.roomId);
+  function onInitialSaveEdit(values: EditScheduleValues) {
+    const selectedRoom = rooms.find((r) => r.id === values.roomId);
     if (selectedRoom && selectedLecture) {
       if (selectedRoom.capacity < selectedLecture.registered) {
         setPendingEditRoom(selectedRoom);
@@ -440,17 +445,18 @@ export default function AdminCalendarPage() {
         return;
       }
     }
-
-    executeSaveEdit();
+    executeSaveEdit(values);
   }
 
-  function executeSaveEdit() {
+  function executeSaveEdit(
+    values: EditScheduleValues = editScheduleForm.getValues(),
+  ) {
     if (!selectedLecture) return;
     updateSchedule.mutate(
       {
-        roomId: editLectureData.roomId,
-        startTime: editLectureData.startTime,
-        endTime: editLectureData.endTime,
+        roomId: values.roomId,
+        startTime: values.startTime,
+        endTime: values.endTime,
       },
       {
         onSuccess: () => {
@@ -706,91 +712,104 @@ export default function AdminCalendarPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-foreground text-sm">Lecture Name</label>
-              <Input
-                value={editLectureData.name}
-                disabled
-                className="bg-card text-muted-foreground cursor-not-allowed opacity-50"
+          <Form {...editScheduleForm}>
+            <form
+              onSubmit={editScheduleForm.handleSubmit(onInitialSaveEdit)}
+              className="mt-4 flex flex-col gap-4"
+            >
+              <div className="flex flex-col gap-1">
+                <label className="text-foreground text-sm">Lecture Name</label>
+                <Input
+                  value={selectedLecture?.name ?? ''}
+                  disabled
+                  className="bg-card text-muted-foreground cursor-not-allowed opacity-50"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Name is bound to the template and cannot be changed here.
+                </p>
+              </div>
+
+              <FormField
+                control={editScheduleForm.control}
+                name="roomId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground text-sm">
+                      Room
+                    </FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a room" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent
+                        position="popper"
+                        className="z-[100] max-h-[200px] overflow-y-auto"
+                      >
+                        {rooms.map((room) => (
+                          <SelectItem key={room.id} value={room.id}>
+                            {room.name} (Capacity: {room.capacity})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <p className="text-muted-foreground text-xs">
-                Name is bound to the template and cannot be changed here.
-              </p>
-            </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-foreground text-sm">Room</label>
-              <Select
-                value={editLectureData.roomId}
-                onValueChange={(value) =>
-                  setEditLectureData({ ...editLectureData, roomId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a room" />
-                </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  className="z-[100] max-h-[200px] overflow-y-auto"
+              <div className="flex gap-4">
+                <FormField
+                  control={editScheduleForm.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-foreground text-sm">
+                        Start Time
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editScheduleForm.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-foreground text-sm">
+                        End Time
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setEditDialogOpen(false)}
+                  className="text-muted-foreground"
                 >
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.name} (Capacity: {room.capacity})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex flex-1 flex-col gap-1">
-                <label className="text-foreground text-sm">Start Time</label>
-                <Input
-                  type="time"
-                  value={editLectureData.startTime}
-                  onChange={(e) =>
-                    setEditLectureData({
-                      ...editLectureData,
-                      startTime: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className="flex flex-1 flex-col gap-1">
-                <label className="text-foreground text-sm">End Time</label>
-                <Input
-                  type="time"
-                  value={editLectureData.endTime}
-                  onChange={(e) =>
-                    setEditLectureData({
-                      ...editLectureData,
-                      endTime: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            {editTimeError && (
-              <p className="text-destructive text-xs">{editTimeError}</p>
-            )}
-          </div>
-
-          <DialogFooter className="mt-6">
-            <Button
-              variant="ghost"
-              onClick={() => setEditDialogOpen(false)}
-              className="text-muted-foreground"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={onInitialSaveEdit}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Save Changes
-            </Button>
-          </DialogFooter>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -833,7 +852,7 @@ export default function AdminCalendarPage() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={executeSaveEdit}
+              onClick={() => executeSaveEdit()}
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0 shadow-md"
             >
               Yes, Overbook Room
