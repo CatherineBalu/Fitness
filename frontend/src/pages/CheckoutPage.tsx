@@ -19,10 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuthProfile } from '@/hooks/useAuthProfile';
-import {
-  useBuySubscription,
-  useSubscriptions,
-} from '@/hooks/useSubscriptions';
+import { useBuySubscription, useSubscriptions } from '@/hooks/useSubscriptions';
 import { cn } from '@/lib/utils';
 
 const STEPS = [

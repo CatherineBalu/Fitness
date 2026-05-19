@@ -169,11 +169,7 @@ export default function StaffStatisticsPage() {
                           allowDecimals={false}
                         />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar
-                          dataKey="count"
-                          fill="var(--accent)"
-                          radius={4}
-                        />
+                        <Bar dataKey="count" fill="var(--accent)" radius={4} />
                       </BarChart>
                     </ChartContainer>
                   </CardContent>

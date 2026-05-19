@@ -289,7 +289,8 @@ export default function SchedulePage() {
       : null;
 
   const activities = useMemo<Activity[]>(
-    () => scheduleItems.map((item: ScheduleItem) => toActivity(item, weekStart)),
+    () =>
+      scheduleItems.map((item: ScheduleItem) => toActivity(item, weekStart)),
     [scheduleItems, weekStart],
   );
 
