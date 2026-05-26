@@ -72,7 +72,7 @@ export const app = new Elysia()
   .use(customerRoutes)
   .use(subscriptionRoutes)
   .listen({
-    port: 3001,
+    port: parseInt(process.env.PORT ?? '3001'),
     hostname: '0.0.0.0',
   });
 

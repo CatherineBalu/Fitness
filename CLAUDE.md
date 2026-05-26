@@ -146,6 +146,12 @@ TanStack file-based routing in `frontend/src/routes/`. Code-based `router.tsx` i
 - `ThemeProvider` (in `components/common/`) manages `light` / `dark` / `system`, syncs to `localStorage`, applies the class.
 - `ThemeToggle` lives in the Navbar (`components/layout/`). Three options: light / dark / system.
 
+## Deployment
+
+Frontend → Vercel, Backend → Railway, DB → Neon (serverless Postgres).
+Local dev: Docker Compose (unchanged). Env var docs in `backend/.env.example` and `frontend/.env.example`.
+Schema changes against prod: `DATABASE_URL=<neon-url> bunx drizzle-kit push`.
+
 ## Git
 
 Use `/branch` and `/commit` skills.
