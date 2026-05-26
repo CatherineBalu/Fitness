@@ -1,8 +1,8 @@
 import { SignInButton, useAuth, useClerk } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,19 +18,14 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { useApi } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthProfile } from '@/hooks/useAuthProfile';
+import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { cn } from '@/lib/utils';
 
 import heroImg from '../assets/hero.png';
 
-const API_URL = import.meta.env.VITE_API_URL as string;
-
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: string;
-  durationDays: number;
-}
+import type { SubscriptionPlan } from '@/hooks/useSubscriptions';
 
 function formatPrice(price: string) {
   const num = Number(price);
@@ -143,7 +138,7 @@ function BuyButton({
       });
       return;
     }
-    navigate({ to: '/checkout', search: { plan: plan.id } });
+    void navigate({ to: '/checkout', search: { plan: plan.id } });
   };
 
   return (
@@ -155,43 +150,20 @@ function BuyButton({
 
 export default function HomePage() {
   const { isSignedIn, isLoaded } = useAuth();
-  const { apiRequest } = useApi();
 
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [plansError, setPlansError] = useState<string | null>(null);
-  const [profileActive, setProfileActive] = useState<boolean | null>(null);
+  const {
+    data: plans = [],
+    isLoading: plansLoading,
+    isError: plansError,
+  } = useSubscriptions();
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${API_URL}/subscriptions`)
-      .then((res) => res.json())
-      .then((data: SubscriptionPlan[]) => {
-        if (!cancelled) setPlans(data);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setPlansError(err.message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: profile } = useAuthProfile({
+    enabled: isLoaded && !!isSignedIn,
+  });
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    let cancelled = false;
-    apiRequest<{ hasActiveMembership: boolean }>('/auth/profile')
-      .then((p) => {
-        if (!cancelled) setProfileActive(!!p.hasActiveMembership);
-      })
-      .catch(() => {
-        if (!cancelled) setProfileActive(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoaded, isSignedIn, apiRequest]);
-
-  const hasActiveMembership = isSignedIn ? (profileActive ?? false) : false;
+  const hasActiveMembership = isSignedIn
+    ? (profile?.hasActiveMembership ?? false)
+    : false;
 
   const highlightIndex = plans.length > 2 ? 1 : -1;
 
@@ -273,9 +245,17 @@ export default function HomePage() {
             No contracts. Cancel anytime.
           </p>
           {plansError && (
-            <p className="text-muted-foreground mb-6 text-center">
-              Couldn't load plans. Please try again later.
-            </p>
+            <Alert variant="destructive" className="mx-auto max-w-md">
+              <AlertTitle>Couldn't load plans</AlertTitle>
+              <AlertDescription>Please try again later.</AlertDescription>
+            </Alert>
+          )}
+          {plansLoading && (
+            <div className="mx-auto grid max-w-[960px] grid-cols-1 gap-6 sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[28rem] rounded-xl" />
+              ))}
+            </div>
           )}
           <div className="mx-auto grid max-w-[960px] grid-cols-1 gap-6 sm:grid-cols-3">
             {plans.map((plan, idx) => {

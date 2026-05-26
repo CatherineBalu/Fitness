@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Clock,
   MapPin,
@@ -9,7 +10,10 @@ import {
   Pencil,
   AlertTriangle,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
 
 import {
   AlertDialog,
@@ -30,6 +34,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -38,12 +50,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import {
+  useAddLectureMember,
+  useLectureMembers,
+  useRemoveLectureMember,
+  useRooms,
+  useSchedule,
+  useUpdateAttendance,
+  useUpdateSchedule,
+} from '@/hooks/useCalendar';
 import { cn } from '@/lib/utils';
 
 import AddScheduleDialog from './AddScheduleDialog';
 
-const API_URL = import.meta.env.VITE_API_URL as string;
+import type { RoomOption, ScheduleItem } from '@/hooks/useCalendar';
+
+const editScheduleSchema = z
+  .object({
+    roomId: z.string().min(1, 'Room is required'),
+    startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time'),
+    endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time'),
+  })
+  .refine((d) => d.endTime > d.startTime, {
+    path: ['endTime'],
+    message: 'End time must be after start time',
+  });
+
+type EditScheduleValues = z.infer<typeof editScheduleSchema>;
 
 type Filter = 'all' | 'today' | 'this-week' | 'upcoming' | 'history';
 
@@ -56,29 +91,6 @@ interface Lecture {
   capacity: number;
   registered: number;
   dayOffset: number; // 0 = today, positive = future, negative = past
-}
-
-interface ScheduleItem {
-  id: string;
-  startTime: string;
-  endTime: string;
-  lectureName: string;
-  roomName: string;
-  roomCapacity: number;
-  registered: number;
-}
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  attended?: boolean;
-}
-
-interface RoomOption {
-  id: string;
-  name: string;
-  capacity: number;
 }
 
 // --- HELPER FUNCTIONS ---
@@ -266,45 +278,82 @@ const FILTERS: { label: string; value: Filter }[] = [
   { label: 'History', value: 'history' },
 ];
 
+function rangeForFilter(
+  filter: Filter,
+  historyFrom: string,
+  historyTo: string,
+): { from: string; to: string } {
+  const today = new Date();
+  const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+  const todayStr = fmtISO(today);
+
+  if (filter === 'all') return { from: '2000-01-01', to: '2100-01-01' };
+  if (filter === 'today') return { from: todayStr, to: todayStr };
+  if (filter === 'this-week') {
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    return { from: todayStr, to: fmtISO(nextWeek) };
+  }
+  if (filter === 'upcoming') {
+    const nextMonth = new Date(today);
+    nextMonth.setDate(nextMonth.getDate() + 30);
+    return { from: todayStr, to: fmtISO(nextMonth) };
+  }
+  return { from: historyFrom, to: historyTo };
+}
+
 export default function AdminCalendarPage() {
   const [filter, setFilter] = useState<Filter>('upcoming');
-  const [lectures, setLectures] = useState<Lecture[]>([]);
-  const [rooms, setRooms] = useState<RoomOption[]>([]);
-  const [loading, setLoading] = useState(true);
-
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // --- HISTORY DATE PICKER STATE ---
   const [historyFrom, setHistoryFrom] = useState(getDaysAgoStr(3));
   const [historyTo, setHistoryTo] = useState(getDaysAgoStr(1));
 
+  const [range, setRange] = useState(() =>
+    rangeForFilter('upcoming', getDaysAgoStr(3), getDaysAgoStr(1)),
+  );
+
+  const { data: scheduleItems = [], isLoading: loadingSchedule } = useSchedule(
+    range.from,
+    range.to,
+  );
+  const { data: rooms = [] } = useRooms();
+
+  const lectures = useMemo(() => {
+    const baseDate = toUTCDateOnly(new Date());
+    return [...scheduleItems]
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      )
+      .map((item) => scheduleItemToLecture(item, baseDate));
+  }, [scheduleItems]);
+
   // --- MEMBERS DIALOG STATE ---
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
-  const [membersError, setMembersError] = useState('');
+
+  const selectedLectureId = selectedLecture?.id ?? null;
+  const {
+    data: members = [],
+    isLoading: loadingMembers,
+    isError: membersError,
+  } = useLectureMembers(selectedLectureId);
+
+  const addMember = useAddLectureMember(selectedLectureId ?? '');
+  const removeMember = useRemoveLectureMember(selectedLectureId ?? '');
+  const updateSchedule = useUpdateSchedule(selectedLectureId ?? '');
+  const updateAttendance = useUpdateAttendance(selectedLectureId ?? '');
 
   const [searchEmail, setSearchEmail] = useState('');
-  const [searchStatus, setSearchStatus] = useState<'success' | 'error' | null>(
-    null,
-  );
-  const [searchErrorMsg, setSearchErrorMsg] = useState('');
 
   // --- EDIT LECTURE STATE ---
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editLectureData, setEditLectureData] = useState<{
-    name: string;
-    roomId: string;
-    startTime: string;
-    endTime: string;
-  }>({
-    name: '',
-    roomId: '',
-    startTime: '',
-    endTime: '',
+  const editScheduleForm = useForm<EditScheduleValues>({
+    resolver: zodResolver(editScheduleSchema),
+    defaultValues: { roomId: '', startTime: '', endTime: '' },
   });
-  const [editTimeError, setEditTimeError] = useState('');
 
   const [capacityWarningOpen, setCapacityWarningOpen] = useState(false);
   const [pendingEditRoom, setPendingEditRoom] = useState<RoomOption | null>(
@@ -313,175 +362,62 @@ export default function AdminCalendarPage() {
 
   // --- ATTENDANCE STATE ---
   const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
-  const [attendanceStatus, setAttendanceStatus] = useState<
+  const [attendanceOverrides, setAttendanceOverrides] = useState<
     Record<string, boolean>
   >({});
-  const [isSavingAttendance, setIsSavingAttendance] = useState(false);
 
-  // ==========================================
-  // DATA FETCHING ROUTER
-  // ==========================================
+  // Derive attendance from members + user overrides (no effect+setState cascade).
+  const attendanceStatus = useMemo(() => {
+    const result: Record<string, boolean> = {};
+    members.forEach((m) => {
+      result[m.id] = attendanceOverrides[m.id] ?? m.attended ?? false;
+    });
+    return result;
+  }, [members, attendanceOverrides]);
 
-  const loadSchedule = useCallback(
-    async (fromDateStr: string, toDateStr: string) => {
-      setLoading(true);
-      const baseDate = toUTCDateOnly(new Date());
-
-      try {
-        const [scheduleRes, roomsRes] = await Promise.all([
-          fetch(`${API_URL}/schedule?from=${fromDateStr}&to=${toDateStr}`),
-          fetch(`${API_URL}/calendar/rooms`),
-        ]);
-        const scheduleData = await scheduleRes.json();
-        const roomsData = await roomsRes.json();
-
-        setLectures(
-          scheduleData
-            .sort(
-              (a: ScheduleItem, b: ScheduleItem) =>
-                new Date(a.startTime).getTime() -
-                new Date(b.startTime).getTime(),
-            )
-            .map((item: ScheduleItem) => scheduleItemToLecture(item, baseDate)),
-        );
-        setRooms(roomsData);
-      } catch (err) {
-        console.error('Failed to fetch schedule:', err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  function handleAttendanceDialogChange(open: boolean) {
+    setAttendanceDialogOpen(open);
+    if (!open) setAttendanceOverrides({});
+  }
 
   const handleFilterChange = (newFilter: Filter) => {
     setFilter(newFilter);
-    const today = new Date();
-    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
-    const todayStr = fmtISO(today);
-
-    if (newFilter === 'all') {
-      loadSchedule('2000-01-01', '2100-01-01');
-    } else if (newFilter === 'today') {
-      loadSchedule(todayStr, todayStr);
-    } else if (newFilter === 'this-week') {
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      loadSchedule(todayStr, fmtISO(nextWeek));
-    } else if (newFilter === 'upcoming') {
-      const nextMonth = new Date(today);
-      nextMonth.setDate(nextMonth.getDate() + 30);
-      loadSchedule(todayStr, fmtISO(nextMonth));
-    } else if (newFilter === 'history') {
-      // Automatically load the last 3 days
+    if (newFilter === 'history') {
       const defaultFrom = getDaysAgoStr(3);
       const defaultTo = getDaysAgoStr(1);
       setHistoryFrom(defaultFrom);
       setHistoryTo(defaultTo);
-      loadSchedule(defaultFrom, defaultTo);
+      setRange({ from: defaultFrom, to: defaultTo });
+    } else {
+      setRange(rangeForFilter(newFilter, historyFrom, historyTo));
     }
   };
-
-  useEffect(() => {
-    handleFilterChange('upcoming');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function fetchMembersForLecture(lectureId: string) {
-    const res = await fetch(`${API_URL}/calendar/${lectureId}/members`);
-    if (!res.ok) throw new Error('Failed to fetch members');
-    return await res.json();
-  }
 
   // ==========================================
   // HANDLERS: MEMBERS
   // ==========================================
 
-  async function handleViewMembers(lecture: Lecture) {
+  function handleViewMembers(lecture: Lecture) {
     setSelectedLecture(lecture);
-    setSearchStatus(null);
     setSearchEmail('');
     setMembersDialogOpen(true);
-    setLoadingMembers(true);
-    setMembersError('');
-    setMembers([]);
-
-    try {
-      const data = await fetchMembersForLecture(lecture.id);
-      setMembers(data);
-    } catch (error) {
-      console.error(error);
-      setMembersError('Failed to load registered members. Please try again.');
-    } finally {
-      setLoadingMembers(false);
-    }
   }
 
-  async function handleAddMember() {
+  function handleAddMember() {
     if (!searchEmail.includes('@') || !selectedLecture) {
-      setSearchStatus('error');
-      setSearchErrorMsg('Invalid email address');
+      toast.error('Invalid email address');
       return;
     }
-
-    try {
-      const res = await fetch(
-        `${API_URL}/calendar/${selectedLecture.id}/members`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: searchEmail }),
-        },
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to add member');
-      }
-
-      setMembers((prev) => [data, ...prev]);
-      setSearchStatus('success');
-      setSearchErrorMsg('Member successfully added');
-      setSearchEmail('');
-
-      if (filter !== 'history') {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      setSearchStatus('error');
-      if (error instanceof Error) {
-        setSearchErrorMsg(error.message);
-      } else {
-        setSearchErrorMsg('An unknown error occurred');
-      }
-    }
+    addMember.mutate(searchEmail, {
+      onSuccess: () => {
+        setSearchEmail('');
+      },
+    });
   }
 
-  async function handleRemoveMember(memberId: string) {
+  function handleRemoveMember(memberId: string) {
     if (!selectedLecture) return;
-
-    const previousMembers = [...members];
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
-
-    try {
-      const res = await fetch(
-        `${API_URL}/calendar/${selectedLecture.id}/members/${memberId}`,
-        {
-          method: 'DELETE',
-        },
-      );
-
-      if (!res.ok) throw new Error('Failed to remove member');
-
-      if (filter !== 'history') {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      console.error(error);
-      setMembers(previousMembers);
-      alert('Failed to remove member. Please try again.');
-    }
+    removeMember.mutate(memberId);
   }
 
   // ==========================================
@@ -490,13 +426,9 @@ export default function AdminCalendarPage() {
 
   function handleEditLecture(lecture: Lecture) {
     setSelectedLecture(lecture);
-    setEditTimeError('');
-
     const currentRoom = rooms.find((r) => r.name === lecture.room);
     const times = lecture.time.split(' - ');
-
-    setEditLectureData({
-      name: lecture.name,
+    editScheduleForm.reset({
       roomId: currentRoom?.id || '',
       startTime: times[0] || '',
       endTime: times[1] || '',
@@ -504,15 +436,8 @@ export default function AdminCalendarPage() {
     setEditDialogOpen(true);
   }
 
-  function onInitialSaveEdit() {
-    setEditTimeError('');
-
-    if (editLectureData.endTime <= editLectureData.startTime) {
-      setEditTimeError('End time must be after start time.');
-      return;
-    }
-
-    const selectedRoom = rooms.find((r) => r.id === editLectureData.roomId);
+  function onInitialSaveEdit(values: EditScheduleValues) {
+    const selectedRoom = rooms.find((r) => r.id === values.roomId);
     if (selectedRoom && selectedLecture) {
       if (selectedRoom.capacity < selectedLecture.registered) {
         setPendingEditRoom(selectedRoom);
@@ -520,109 +445,54 @@ export default function AdminCalendarPage() {
         return;
       }
     }
-
-    executeSaveEdit();
+    executeSaveEdit(values);
   }
 
-  async function executeSaveEdit() {
+  function executeSaveEdit(
+    values: EditScheduleValues = editScheduleForm.getValues(),
+  ) {
     if (!selectedLecture) return;
-
-    try {
-      const res = await fetch(`${API_URL}/calendar/${selectedLecture.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: editLectureData.roomId,
-          startTime: editLectureData.startTime,
-          endTime: editLectureData.endTime,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to update schedule');
-
-      setCapacityWarningOpen(false);
-      setEditDialogOpen(false);
-
-      if (filter === 'history') {
-        loadSchedule(historyFrom, historyTo);
-      } else {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Failed to update lecture. Please try again.');
-    }
+    updateSchedule.mutate(
+      {
+        roomId: values.roomId,
+        startTime: values.startTime,
+        endTime: values.endTime,
+      },
+      {
+        onSuccess: () => {
+          setCapacityWarningOpen(false);
+          setEditDialogOpen(false);
+        },
+      },
+    );
   }
 
   // ==========================================
   // HANDLERS: ATTENDANCE
   // ==========================================
 
-  async function handleMarkAttendance(lecture: Lecture) {
+  function handleMarkAttendance(lecture: Lecture) {
     setSelectedLecture(lecture);
-    setMembers([]);
-    setAttendanceStatus({});
     setAttendanceDialogOpen(true);
-    setLoadingMembers(true);
-
-    try {
-      const data = await fetchMembersForLecture(lecture.id);
-      setMembers(data);
-
-      const initialStatus: Record<string, boolean> = {};
-      data.forEach((m: Member) => {
-        initialStatus[m.id] = m.attended || false;
-      });
-      setAttendanceStatus(initialStatus);
-    } catch (error) {
-      console.error(error);
-      alert('Failed to load members for attendance.');
-    } finally {
-      setLoadingMembers(false);
-    }
   }
 
   function toggleAttendance(memberId: string, isPresent: boolean) {
-    setAttendanceStatus((prev) => ({ ...prev, [memberId]: isPresent }));
+    setAttendanceOverrides((prev) => ({ ...prev, [memberId]: isPresent }));
   }
 
-  async function handleSaveAttendance() {
+  function handleSaveAttendance() {
     if (!selectedLecture) return;
-    setIsSavingAttendance(true);
-
     const attendanceRecords = Object.entries(attendanceStatus).map(
-      ([personId, attended]) => ({
-        personId,
-        attended,
-      }),
+      ([personId, attended]) => ({ personId, attended }),
     );
-
-    try {
-      const res = await fetch(
-        `${API_URL}/calendar/${selectedLecture.id}/attendance`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ attendanceRecords }),
+    updateAttendance.mutate(
+      { attendanceRecords },
+      {
+        onSuccess: () => {
+          handleAttendanceDialogChange(false);
         },
-      );
-
-      if (!res.ok) throw new Error('Failed to save attendance');
-
-      setAttendanceDialogOpen(false);
-      setMembers([]);
-      setAttendanceStatus({});
-      if (filter === 'history') {
-        loadSchedule(historyFrom, historyTo);
-      } else {
-        handleFilterChange(filter);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Failed to save attendance records. Please try again.');
-    } finally {
-      setIsSavingAttendance(false);
-    }
+      },
+    );
   }
 
   const filtered = filterLectures(lectures, filter);
@@ -684,13 +554,15 @@ export default function AdminCalendarPage() {
               />
             </div>
             <Button
-              onClick={() => loadSchedule(historyFrom, historyTo)}
+              onClick={() => setRange({ from: historyFrom, to: historyTo })}
               className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
             >
               Load Range
             </Button>
             <Button
-              onClick={() => loadSchedule('2000-01-01', maxHistoryDateStr)}
+              onClick={() =>
+                setRange({ from: '2000-01-01', to: maxHistoryDateStr })
+              }
               variant="outline"
               className="border-border bg-card text-foreground hover:bg-secondary w-full sm:w-auto"
             >
@@ -714,26 +586,32 @@ export default function AdminCalendarPage() {
           </span>
         </div>
 
-        {loading && (
-          <p className="text-muted-foreground">Loading schedule...</p>
+        {loadingSchedule && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-56 rounded-xl" />
+            ))}
+          </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((lecture) => (
-            <LectureCard
-              key={lecture.id}
-              lecture={lecture}
-              onViewMembers={handleViewMembers}
-              onEditLecture={handleEditLecture}
-              onMarkAttendance={handleMarkAttendance}
-            />
-          ))}
-          {!loading && filtered.length === 0 && (
-            <p className="text-muted-foreground col-span-full py-8 text-center">
-              No lectures found for this filter.
-            </p>
-          )}
-        </div>
+        {!loadingSchedule && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filtered.map((lecture) => (
+              <LectureCard
+                key={lecture.id}
+                lecture={lecture}
+                onViewMembers={handleViewMembers}
+                onEditLecture={handleEditLecture}
+                onMarkAttendance={handleMarkAttendance}
+              />
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-muted-foreground col-span-full py-8 text-center">
+                No lectures found for this filter.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <AddScheduleDialog
@@ -769,17 +647,12 @@ export default function AdminCalendarPage() {
               />
               <Button
                 onClick={handleAddMember}
+                disabled={addMember.isPending}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                Add
+                {addMember.isPending ? 'Adding…' : 'Add'}
               </Button>
             </div>
-            {searchStatus === 'success' && (
-              <p className="text-success text-sm">{searchErrorMsg}</p>
-            )}
-            {searchStatus === 'error' && (
-              <p className="text-destructive text-sm">{searchErrorMsg}</p>
-            )}
           </div>
 
           <div className="mt-2 flex max-h-[300px] flex-col gap-2 overflow-y-auto pr-2">
@@ -790,7 +663,7 @@ export default function AdminCalendarPage() {
             )}
             {membersError && (
               <p className="text-destructive py-4 text-center text-sm">
-                {membersError}
+                Failed to load registered members.
               </p>
             )}
 
@@ -839,91 +712,104 @@ export default function AdminCalendarPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-foreground text-sm">Lecture Name</label>
-              <Input
-                value={editLectureData.name}
-                disabled
-                className="bg-card text-muted-foreground cursor-not-allowed opacity-50"
+          <Form {...editScheduleForm}>
+            <form
+              onSubmit={editScheduleForm.handleSubmit(onInitialSaveEdit)}
+              className="mt-4 flex flex-col gap-4"
+            >
+              <div className="flex flex-col gap-1">
+                <label className="text-foreground text-sm">Lecture Name</label>
+                <Input
+                  value={selectedLecture?.name ?? ''}
+                  disabled
+                  className="bg-card text-muted-foreground cursor-not-allowed opacity-50"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Name is bound to the template and cannot be changed here.
+                </p>
+              </div>
+
+              <FormField
+                control={editScheduleForm.control}
+                name="roomId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground text-sm">
+                      Room
+                    </FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a room" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent
+                        position="popper"
+                        className="z-[100] max-h-[200px] overflow-y-auto"
+                      >
+                        {rooms.map((room) => (
+                          <SelectItem key={room.id} value={room.id}>
+                            {room.name} (Capacity: {room.capacity})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <p className="text-muted-foreground text-xs">
-                Name is bound to the template and cannot be changed here.
-              </p>
-            </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-foreground text-sm">Room</label>
-              <Select
-                value={editLectureData.roomId}
-                onValueChange={(value) =>
-                  setEditLectureData({ ...editLectureData, roomId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a room" />
-                </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  className="z-[100] max-h-[200px] overflow-y-auto"
+              <div className="flex gap-4">
+                <FormField
+                  control={editScheduleForm.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-foreground text-sm">
+                        Start Time
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editScheduleForm.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel className="text-foreground text-sm">
+                        End Time
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setEditDialogOpen(false)}
+                  className="text-muted-foreground"
                 >
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.name} (Capacity: {room.capacity})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex flex-1 flex-col gap-1">
-                <label className="text-foreground text-sm">Start Time</label>
-                <Input
-                  type="time"
-                  value={editLectureData.startTime}
-                  onChange={(e) =>
-                    setEditLectureData({
-                      ...editLectureData,
-                      startTime: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className="flex flex-1 flex-col gap-1">
-                <label className="text-foreground text-sm">End Time</label>
-                <Input
-                  type="time"
-                  value={editLectureData.endTime}
-                  onChange={(e) =>
-                    setEditLectureData({
-                      ...editLectureData,
-                      endTime: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            {editTimeError && (
-              <p className="text-destructive text-xs">{editTimeError}</p>
-            )}
-          </div>
-
-          <DialogFooter className="mt-6">
-            <Button
-              variant="ghost"
-              onClick={() => setEditDialogOpen(false)}
-              className="text-muted-foreground"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={onInitialSaveEdit}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Save Changes
-            </Button>
-          </DialogFooter>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -966,7 +852,7 @@ export default function AdminCalendarPage() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={executeSaveEdit}
+              onClick={() => executeSaveEdit()}
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0 shadow-md"
             >
               Yes, Overbook Room
@@ -979,7 +865,7 @@ export default function AdminCalendarPage() {
       ========================================== */}
       <Dialog
         open={attendanceDialogOpen}
-        onOpenChange={setAttendanceDialogOpen}
+        onOpenChange={handleAttendanceDialogChange}
       >
         <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
@@ -1037,17 +923,17 @@ export default function AdminCalendarPage() {
           <DialogFooter className="mt-4">
             <Button
               variant="ghost"
-              onClick={() => setAttendanceDialogOpen(false)}
+              onClick={() => handleAttendanceDialogChange(false)}
             >
               Cancel
             </Button>
             {members.length > 0 && (
               <Button
                 onClick={handleSaveAttendance}
-                disabled={isSavingAttendance}
+                disabled={updateAttendance.isPending}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 border-0"
               >
-                {isSavingAttendance ? 'Saving...' : 'Save Attendance'}
+                {updateAttendance.isPending ? 'Saving...' : 'Save Attendance'}
               </Button>
             )}
           </DialogFooter>

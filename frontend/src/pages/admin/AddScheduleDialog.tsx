@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -27,8 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const API_URL = import.meta.env.VITE_API_URL as string;
+import {
+  useCreateSchedule,
+  useInstructors,
+  useLectures,
+  useRooms,
+} from '@/hooks/useCalendar';
 
 const formSchema = z
   .object({
@@ -56,23 +59,6 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface LectureOption {
-  id: string;
-  lectureName: string;
-  exerciseType: string;
-}
-
-interface RoomOption {
-  id: string;
-  name: string;
-  capacity: number;
-}
-
-interface InstructorOption {
-  id: string;
-  name: string;
-}
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -84,10 +70,10 @@ export default function AddScheduleDialog({
   onOpenChange,
   onCreated,
 }: Props) {
-  const [lectures, setLectures] = useState<LectureOption[]>([]);
-  const [rooms, setRooms] = useState<RoomOption[]>([]);
-  const [instructors, setInstructors] = useState<InstructorOption[]>([]);
-  const [submitError, setSubmitError] = useState('');
+  const { data: lectures = [] } = useLectures();
+  const { data: rooms = [] } = useRooms();
+  const { data: instructors = [] } = useInstructors();
+  const createSchedule = useCreateSchedule();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -101,22 +87,7 @@ export default function AddScheduleDialog({
     },
   });
 
-  useEffect(() => {
-    if (!open) return;
-    Promise.all([
-      fetch(`${API_URL}/calendar/lectures`).then((r) => r.json()),
-      fetch(`${API_URL}/calendar/rooms`).then((r) => r.json()),
-      fetch(`${API_URL}/calendar/instructors`).then((r) => r.json()),
-    ]).then(([l, r, i]) => {
-      setLectures(l);
-      setRooms(r);
-      setInstructors(i);
-    });
-  }, [open]);
-
-  async function onSubmit(values: FormValues) {
-    setSubmitError('');
-
+  function onSubmit(values: FormValues) {
     const startISO = new Date(
       `${values.date}T${values.startTime}:00Z`,
     ).toISOString();
@@ -124,10 +95,8 @@ export default function AddScheduleDialog({
       `${values.date}T${values.endTime}:00Z`,
     ).toISOString();
 
-    const res = await fetch(`${API_URL}/calendar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    createSchedule.mutate(
+      {
         lectureId: values.lectureId,
         roomId: values.roomId,
         startTime: startISO,
@@ -135,25 +104,19 @@ export default function AddScheduleDialog({
         instructors: values.leadId
           ? [{ employeeId: values.leadId, isLead: true }]
           : [],
-      }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      setSubmitError(data.error ?? 'Failed to create schedule.');
-      return;
-    }
-
-    form.reset();
-    onOpenChange(false);
-    onCreated();
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          onOpenChange(false);
+          onCreated();
+        },
+      },
+    );
   }
 
   function handleClose(v: boolean) {
-    if (!v) {
-      form.reset();
-      setSubmitError('');
-    }
+    if (!v) form.reset();
     onOpenChange(v);
   }
 
@@ -294,10 +257,6 @@ export default function AddScheduleDialog({
               )}
             />
 
-            {submitError && (
-              <p className="text-destructive text-xs">{submitError}</p>
-            )}
-
             <DialogFooter>
               <Button
                 type="button"
@@ -310,9 +269,9 @@ export default function AddScheduleDialog({
               <Button
                 type="submit"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={form.formState.isSubmitting}
+                disabled={createSchedule.isPending}
               >
-                {form.formState.isSubmitting ? 'Saving...' : 'Save'}
+                {createSchedule.isPending ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
           </form>

@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
-import { useApi } from '@/lib/api';
+import { authKeys } from '@/hooks/useAuthProfile';
+import {
+  customerRegistrationsKey,
+  useUnregisterReservation,
+} from '@/hooks/useReservations';
+import { apiClient } from '@/lib/apiClient';
 import { cn } from '@/lib/utils';
 
 interface Membership {
@@ -41,6 +47,9 @@ interface SpendingData {
   payments: Payment[];
 }
 
+const customerMeKey = ['customer', 'me'] as const;
+const customerSpendingKey = ['customer', 'spending'] as const;
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -57,70 +66,43 @@ function formatTime(iso: string) {
 }
 
 export default function CustomerProfilePage() {
-  const { apiRequest } = useApi();
-
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [spending, setSpending] = useState<SpendingData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
     null,
   );
-  const [unregistering, setUnregistering] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      apiRequest<ProfileData>('/api/customer/me'),
-      apiRequest<Registration[]>('/api/customer/registrations'),
-      apiRequest<SpendingData>('/api/customer/spending'),
-    ])
-      .then(([p, r, s]) => {
-        if (cancelled) return;
-        setProfile(p);
-        setRegistrations(r);
-        setSpending(s);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [apiRequest]);
+  const profileQuery = useQuery({
+    queryKey: customerMeKey,
+    queryFn: () => apiClient<ProfileData>('/api/customer/me'),
+  });
+  const registrationsQuery = useQuery({
+    queryKey: customerRegistrationsKey,
+    queryFn: () => apiClient<Registration[]>('/api/customer/registrations'),
+  });
+  const spendingQuery = useQuery({
+    queryKey: customerSpendingKey,
+    queryFn: () => apiClient<SpendingData>('/api/customer/spending'),
+  });
 
-  async function handleUnregister(scheduleId: string) {
-    setUnregistering(true);
-    try {
-      await apiRequest(`/schedule/${scheduleId}/reservations`, {
-        method: 'DELETE',
-      });
-      setRegistrations((prev) =>
-        prev.filter((r) => r.scheduleId !== scheduleId),
-      );
-      setConfirmUnregister(null);
-      window.dispatchEvent(new CustomEvent('schedule:invalidated'));
-    } finally {
-      setUnregistering(false);
-    }
-  }
-
-  async function handleCancelMembership() {
-    setCancelling(true);
-    try {
-      await apiRequest('/api/customer/membership', { method: 'DELETE' });
-      setProfile((prev) => (prev ? { ...prev, membership: null } : prev));
+  const unregister = useUnregisterReservation();
+  const cancelMembership = useMutation({
+    mutationFn: () =>
+      apiClient<void>('/api/customer/membership', { method: 'DELETE' }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: customerMeKey });
+      void qc.invalidateQueries({ queryKey: authKeys.profile() });
       setConfirmCancel(false);
-    } finally {
-      setCancelling(false);
-    }
-  }
+    },
+  });
+
+  const loading =
+    profileQuery.isLoading ||
+    registrationsQuery.isLoading ||
+    spendingQuery.isLoading;
+
+  const error =
+    profileQuery.error ?? registrationsQuery.error ?? spendingQuery.error;
 
   if (loading) {
     return (
@@ -133,15 +115,25 @@ export default function CustomerProfilePage() {
   if (error) {
     return (
       <div className="text-muted-foreground py-4 text-[0.85rem]">
-        Failed to load profile: {error}
+        Failed to load profile: {error.message}
       </div>
     );
   }
+
+  const profile = profileQuery.data ?? null;
+  const registrations = registrationsQuery.data ?? [];
+  const spending = spendingQuery.data ?? null;
 
   const upcoming = registrations.filter(
     (r) => new Date(r.startTime) >= new Date(),
   );
   const past = registrations.filter((r) => new Date(r.startTime) < new Date());
+
+  const handleUnregister = (scheduleId: string) => {
+    unregister.mutate(scheduleId, {
+      onSuccess: () => setConfirmUnregister(null),
+    });
+  };
 
   return (
     <div className="text-foreground flex flex-col gap-8 pt-1 pb-4">
@@ -222,10 +214,10 @@ export default function CustomerProfilePage() {
                   </button>
                   <button
                     className="text-destructive-foreground bg-destructive hover:bg-destructive/90 cursor-pointer rounded-lg px-3.5 py-1.5 text-[0.8rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={handleCancelMembership}
-                    disabled={cancelling}
+                    onClick={() => cancelMembership.mutate()}
+                    disabled={cancelMembership.isPending}
                   >
-                    {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                    {cancelMembership.isPending ? 'Cancelling…' : 'Yes, cancel'}
                   </button>
                 </div>
               </div>
@@ -286,9 +278,9 @@ export default function CustomerProfilePage() {
                         <button
                           className="text-destructive-foreground bg-destructive hover:bg-destructive/90 cursor-pointer rounded-lg px-2.5 py-1 text-[0.75rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                           onClick={() => handleUnregister(r.scheduleId)}
-                          disabled={unregistering}
+                          disabled={unregister.isPending}
                         >
-                          {unregistering ? '…' : 'Yes'}
+                          {unregister.isPending ? '…' : 'Yes'}
                         </button>
                       </div>
                     ) : (

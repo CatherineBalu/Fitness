@@ -1,5 +1,5 @@
+import { useQuery } from '@tanstack/react-query';
 import { Calendar, Users, TrendingUp, Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 import StatCard from '@/components/common/StatCard';
@@ -10,7 +10,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { useApi } from '@/lib/api';
+import { apiClient } from '@/lib/apiClient';
 
 interface LecturesByMonth {
   month: string;
@@ -37,32 +37,19 @@ type StaffStats =
 const lecturesChartConfig: ChartConfig = {
   count: {
     label: 'Lectures',
-    color: 'var(--c-accent)',
+    color: 'var(--accent)',
   },
 };
 
 export default function StaffStatisticsPage() {
-  const { apiRequest } = useApi();
-  const [stats, setStats] = useState<StaffStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiRequest<StaffStats>('/api/stats/staff/me')
-      .then((data) => {
-        if (!cancelled) setStats(data);
-      })
-      .catch((e: Error) => {
-        if (!cancelled) setError(e.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [apiRequest]);
+  const {
+    data: stats,
+    error,
+    isLoading: loading,
+  } = useQuery({
+    queryKey: ['stats', 'staff', 'me'],
+    queryFn: () => apiClient<StaffStats>('/api/stats/staff/me'),
+  });
 
   return (
     <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
@@ -83,7 +70,7 @@ export default function StaffStatisticsPage() {
       <div className="mx-auto max-w-[1200px] px-8 py-12 md:px-5 md:py-8">
         {error && (
           <div className="bg-card border-destructive/70 text-destructive mb-6 rounded-md border px-4 py-3 text-xs">
-            Failed to load: {error}
+            Failed to load: {error.message}
           </div>
         )}
 
@@ -167,7 +154,7 @@ export default function StaffStatisticsPage() {
                       >
                         <CartesianGrid
                           vertical={false}
-                          stroke="var(--c-border)"
+                          stroke="var(--border)"
                         />
                         <XAxis
                           dataKey="month"
@@ -182,11 +169,7 @@ export default function StaffStatisticsPage() {
                           allowDecimals={false}
                         />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar
-                          dataKey="count"
-                          fill="var(--c-accent)"
-                          radius={4}
-                        />
+                        <Bar dataKey="count" fill="var(--accent)" radius={4} />
                       </BarChart>
                     </ChartContainer>
                   </CardContent>

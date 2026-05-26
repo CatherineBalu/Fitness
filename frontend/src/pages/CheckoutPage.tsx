@@ -4,7 +4,6 @@ import { useNavigate, useSearch, Link } from '@tanstack/react-router';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -19,10 +18,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useApi } from '@/lib/api';
+import { useAuthProfile } from '@/hooks/useAuthProfile';
+import { useBuySubscription, useSubscriptions } from '@/hooks/useSubscriptions';
 import { cn } from '@/lib/utils';
-
-const API_URL = import.meta.env.VITE_API_URL as string;
 
 const STEPS = [
   'Contact details',
@@ -30,21 +28,6 @@ const STEPS = [
   'Payment',
   'Confirmation',
 ] as const;
-
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: string;
-  durationDays: number;
-}
-
-interface Profile {
-  name: string;
-  surname: string;
-  email: string;
-  phoneNumber: string | null;
-  hasActiveMembership: boolean;
-}
 
 type PaymentMethod = 'card' | 'bank';
 
@@ -132,41 +115,27 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { plan: planId } = useSearch({ from: '/checkout' });
   const { user, isLoaded: userLoaded } = useUser();
-  const { apiRequest } = useApi();
 
-  const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: plans, isError: plansLoadError } = useSubscriptions();
+  const { data: profile, error: profileError } = useAuthProfile({
+    enabled: !!user,
+  });
+  const buy = useBuySubscription();
+
   const [step, setStep] = useState(0);
-
   const [contact, setContact] = useState<ContactForm | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [payPending, setPayPending] = useState(false);
 
-  useEffect(() => {
-    if (!planId) {
-      setLoadError('No plan selected.');
-      return;
-    }
-    let cancelled = false;
-    Promise.all([
-      fetch(`${API_URL}/subscriptions`).then((r) => r.json()),
-      apiRequest<Profile>('/auth/profile'),
-    ])
-      .then(([plans, prof]: [SubscriptionPlan[], Profile]) => {
-        if (cancelled) return;
-        const found = plans.find((p) => p.id === planId) ?? null;
-        if (!found) setLoadError('Plan not found.');
-        setPlan(found);
-        setProfile(prof);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setLoadError(err.message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [planId, apiRequest]);
+  const plan = plans?.find((p) => p.id === planId) ?? null;
+  const loadError = !planId
+    ? 'No plan selected.'
+    : plansLoadError
+      ? 'Failed to load subscription plans.'
+      : profileError
+        ? profileError.message
+        : plans !== undefined && !plan
+          ? 'Plan not found.'
+          : null;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -198,23 +167,12 @@ export default function CheckoutPage() {
     setStep(1);
   };
 
-  const handlePay = async () => {
+  const handlePay = () => {
     if (!plan) return;
-    setPayPending(true);
-    try {
-      await apiRequest('/subscriptions/buy', {
-        method: 'POST',
-        body: JSON.stringify({
-          subscriptionId: plan.id,
-          paymentMethod,
-        }),
-      });
-      setStep(3);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setPayPending(false);
-    }
+    buy.mutate(
+      { subscriptionId: plan.id, paymentMethod },
+      { onSuccess: () => setStep(3) },
+    );
   };
 
   if (!userLoaded) {
@@ -528,9 +486,9 @@ export default function CheckoutPage() {
                   type="button"
                   className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[110px] font-bold disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={handlePay}
-                  disabled={payPending}
+                  disabled={buy.isPending}
                 >
-                  {payPending
+                  {buy.isPending
                     ? 'Processing…'
                     : `Pay ${formatPrice(plan.price)}`}
                 </Button>
