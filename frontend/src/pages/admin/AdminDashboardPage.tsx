@@ -1,4 +1,5 @@
 import { useUser } from '@clerk/clerk-react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import {
   Calendar,
@@ -7,11 +8,10 @@ import {
   CalendarCheck,
   ArrowRight,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 import StatCard from '@/components/common/StatCard';
 import { Button } from '@/components/ui/button';
-import { useApi } from '@/lib/api';
+import { apiClient } from '@/lib/apiClient';
 
 interface Lecture {
   id: string;
@@ -81,49 +81,35 @@ function UpcomingClassRow({ item }: { item: Lecture }) {
 }
 
 export default function AdminDashboardPage() {
-  const { apiRequest } = useApi();
   const { user } = useUser();
   const role = (user?.publicMetadata as { role?: string })?.role ?? null;
   const isAdmin = role === 'admin';
 
-  const [upcoming, setUpcoming] = useState<Lecture[]>([]);
-  const [adminStats, setAdminStats] = useState<AdminOverview | null>(null);
-  const [staffStats, setStaffStats] = useState<StaffStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const lecturesQuery = useQuery({
+    queryKey: ['staff', 'me', 'lectures'],
+    queryFn: () => apiClient<Lecture[]>('/api/staff/me/lectures'),
+  });
+  const adminOverviewQuery = useQuery({
+    queryKey: ['stats', 'admin', 'overview'],
+    queryFn: () => apiClient<AdminOverview>('/api/stats/admin/overview'),
+    enabled: isAdmin,
+  });
+  const staffStatsQuery = useQuery({
+    queryKey: ['stats', 'staff', 'me'],
+    queryFn: () => apiClient<StaffStats>('/api/stats/staff/me'),
+    enabled: !isAdmin,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    const now = new Date();
+  const loading =
+    lecturesQuery.isLoading ||
+    (isAdmin ? adminOverviewQuery.isLoading : staffStatsQuery.isLoading);
+  const adminStats = adminOverviewQuery.data ?? null;
+  const staffStats = staffStatsQuery.data ?? null;
 
-    const requests: Promise<unknown>[] = [
-      apiRequest<Lecture[]>('/api/staff/me/lectures'),
-      isAdmin
-        ? apiRequest<AdminOverview>('/api/stats/admin/overview')
-        : apiRequest<StaffStats>('/api/stats/staff/me'),
-    ];
-
-    Promise.all(requests)
-      .then(([lectures, stats]) => {
-        if (cancelled) return;
-        const upcomingLectures = (lectures as Lecture[])
-          .filter((l) => new Date(l.startTime) > now)
-          .slice(0, 3);
-        setUpcoming(upcomingLectures);
-        if (isAdmin) {
-          setAdminStats(stats as AdminOverview);
-        } else {
-          setStaffStats(stats as StaffStats);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiRequest, isAdmin]);
+  const now = new Date();
+  const upcoming = (lecturesQuery.data ?? [])
+    .filter((l) => new Date(l.startTime) > now)
+    .slice(0, 3);
 
   const statCards = isAdmin
     ? [

@@ -1,6 +1,5 @@
 import { SignInButton, useAuth, useClerk } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -20,8 +19,8 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthProfile } from '@/hooks/useAuthProfile';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
-import { useApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 import heroImg from '../assets/hero.png';
@@ -139,7 +138,7 @@ function BuyButton({
       });
       return;
     }
-    navigate({ to: '/checkout', search: { plan: plan.id } });
+    void navigate({ to: '/checkout', search: { plan: plan.id } });
   };
 
   return (
@@ -151,31 +150,20 @@ function BuyButton({
 
 export default function HomePage() {
   const { isSignedIn, isLoaded } = useAuth();
-  const { apiRequest } = useApi();
 
   const {
     data: plans = [],
     isLoading: plansLoading,
     isError: plansError,
   } = useSubscriptions();
-  const [profileActive, setProfileActive] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    let cancelled = false;
-    apiRequest<{ hasActiveMembership: boolean }>('/auth/profile')
-      .then((p) => {
-        if (!cancelled) setProfileActive(!!p.hasActiveMembership);
-      })
-      .catch(() => {
-        if (!cancelled) setProfileActive(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoaded, isSignedIn, apiRequest]);
+  const { data: profile } = useAuthProfile({
+    enabled: isLoaded && !!isSignedIn,
+  });
 
-  const hasActiveMembership = isSignedIn ? (profileActive ?? false) : false;
+  const hasActiveMembership = isSignedIn
+    ? (profile?.hasActiveMembership ?? false)
+    : false;
 
   const highlightIndex = plans.length > 2 ? 1 : -1;
 

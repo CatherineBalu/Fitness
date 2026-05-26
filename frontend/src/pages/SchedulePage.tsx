@@ -1,8 +1,7 @@
 import { useAuth, SignInButton } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
+import { useState, useMemo, useEffect } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,26 +14,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useApi } from '@/lib/api';
+import { useAuthProfile } from '@/hooks/useAuthProfile';
+import { useSchedule } from '@/hooks/useCalendar';
+import {
+  useRegisterReservation,
+  useUnregisterReservation,
+} from '@/hooks/useReservations';
 import { cn } from '@/lib/utils';
+
+import type { ScheduleItem } from '@/hooks/useCalendar';
 
 const ALL_LECTURES = 'All lectures';
 type Category = string;
-
-interface ScheduleItem {
-  id: string;
-  startTime: string;
-  endTime: string;
-  lectureName: string;
-  description: string;
-  roomName: string;
-  roomCapacity: number;
-  exerciseType: string;
-  forMembers: boolean;
-  instructors: { name: string; isLead: boolean }[];
-  registered: number;
-  isRegistered: boolean;
-}
 
 interface Activity {
   id: string;
@@ -49,10 +40,6 @@ interface Activity {
   dayIndex: number;
   forMembers: boolean;
   isRegistered: boolean;
-}
-
-interface Profile {
-  hasActiveMembership: boolean;
 }
 
 type DialogState =
@@ -266,7 +253,6 @@ function useIsMobile(): boolean {
 export default function SchedulePage() {
   const isMobile = useIsMobile();
   const { isSignedIn, isLoaded } = useAuth();
-  const { apiRequest } = useApi();
   const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
@@ -277,90 +263,61 @@ export default function SchedulePage() {
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(
     new Set([ALL_LECTURES]),
   );
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      setProfile(null);
-      return;
-    }
-    apiRequest<Profile>('/auth/profile')
-      .then(setProfile)
-      .catch((err) => console.error('Failed to load profile:', err));
-  }, [isLoaded, isSignedIn, apiRequest]);
+  const { data: profile } = useAuthProfile({
+    enabled: isLoaded && !!isSignedIn,
+  });
 
-  const loadSchedule = useCallback(async () => {
-    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
-    const from = fmtISO(weekStart);
-    const toDate = new Date(weekStart);
-    toDate.setUTCDate(toDate.getUTCDate() + 6);
-    const to = fmtISO(toDate);
+  const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+  const from = fmtISO(weekStart);
+  const toDate = new Date(weekStart);
+  toDate.setUTCDate(toDate.getUTCDate() + 6);
+  const to = fmtISO(toDate);
 
-    try {
-      const data = await apiRequest<ScheduleItem[]>(
-        `/schedule?from=${from}&to=${to}`,
-      );
-      setActivities(data.map((item) => toActivity(item, weekStart)));
-    } catch (err) {
-      console.error('Failed to fetch schedule:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [weekStart, apiRequest]);
+  // Gate on isLoaded so the schedule fetch waits for Clerk to hydrate.
+  // Otherwise apiClient reads window.Clerk?.session before it exists, fires
+  // unauthenticated, and the grid renders before isSignedIn flips true —
+  // making the Register button still wrap in <SignInButton>.
+  const { data: scheduleItems = [], isLoading: loading } = useSchedule(
+    from,
+    to,
+    { enabled: isLoaded },
+  );
 
-  useEffect(() => {
-    setLoading(true);
-    loadSchedule();
-  }, [loadSchedule]);
+  const register = useRegisterReservation();
+  const unregister = useUnregisterReservation();
+  const busyId = register.isPending
+    ? register.variables
+    : unregister.isPending
+      ? unregister.variables
+      : null;
 
-  useEffect(() => {
-    const handler = () => loadSchedule();
-    window.addEventListener('schedule:invalidated', handler);
-    return () => window.removeEventListener('schedule:invalidated', handler);
-  }, [loadSchedule]);
+  const activities = useMemo<Activity[]>(
+    () =>
+      scheduleItems.map((item: ScheduleItem) => toActivity(item, weekStart)),
+    [scheduleItems, weekStart],
+  );
 
   const closeDialog = () => setDialog({ type: 'none' });
 
-  const confirmRegister = async () => {
+  const confirmRegister = () => {
     if (dialog.type !== 'confirm-register') return;
     const id = dialog.activity.id;
     closeDialog();
-    setBusyId(id);
-    try {
-      await apiRequest(`/schedule/${id}/reservations`, { method: 'POST' });
-      toast.success('Registered successfully');
-      await loadSchedule();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to register');
-    } finally {
-      setBusyId(null);
-    }
+    register.mutate(id);
   };
 
-  const confirmUnregister = async () => {
+  const confirmUnregister = () => {
     if (dialog.type !== 'confirm-unregister') return;
     const id = dialog.activity.id;
     closeDialog();
-    setBusyId(id);
-    try {
-      await apiRequest(`/schedule/${id}/reservations`, { method: 'DELETE' });
-      toast.success('Unregistered successfully');
-      await loadSchedule();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to unregister');
-    } finally {
-      setBusyId(null);
-    }
+    unregister.mutate(id);
   };
 
   const handleBuyMembership = () => {
     closeDialog();
-    navigate({ to: '/', hash: 'pricing' });
+    void navigate({ to: '/', hash: 'pricing' });
   };
 
   const categories = useMemo(() => {

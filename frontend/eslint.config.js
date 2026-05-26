@@ -71,18 +71,6 @@ export default defineConfig([
       'react/forbid-dom-props': 'off',
     },
   },
-  // TODO(NUE-M3): remove this override once pages migrate to apiClient + Tailwind
-  {
-    files: [
-      'src/pages/**/*.{ts,tsx}',
-      'src/components/CustomerProfilePage.tsx',
-    ],
-    rules: {
-      '@typescript-eslint/no-floating-promises': 'off',
-      'promise/prefer-await-to-then': 'off',
-      'react/forbid-dom-props': 'off',
-    },
-  },
   {
     files: ['tests/**/*.{ts,tsx}', '*.config.{ts,js}'],
     extends: [js.configs.recommended, tseslint.configs.recommended],

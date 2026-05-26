@@ -1,4 +1,4 @@
-import CustomerProfilePage from '@/components/CustomerProfilePage';
+import CustomerProfilePage from './CustomerProfilePage';
 
 export default function MyProfilePage() {
   return (
