@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { useAuth, SignInButton } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -14,26 +14,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useApi } from '@/lib/api';
-import './SchedulePage.css';
+import { useAuthProfile } from '@/hooks/useAuthProfile';
+import { useSchedule } from '@/hooks/useCalendar';
+import {
+  useRegisterReservation,
+  useUnregisterReservation,
+} from '@/hooks/useReservations';
+import { cn } from '@/lib/utils';
+
+import type { ScheduleItem } from '@/hooks/useCalendar';
 
 const ALL_LECTURES = 'All lectures';
 type Category = string;
-
-interface ScheduleItem {
-  id: string;
-  startTime: string;
-  endTime: string;
-  lectureName: string;
-  description: string;
-  roomName: string;
-  roomCapacity: number;
-  exerciseType: string;
-  forMembers: boolean;
-  instructors: { name: string; isLead: boolean }[];
-  registered: number;
-  isRegistered: boolean;
-}
 
 interface Activity {
   id: string;
@@ -48,10 +40,6 @@ interface Activity {
   dayIndex: number;
   forMembers: boolean;
   isRegistered: boolean;
-}
-
-interface Profile {
-  hasActiveMembership: boolean;
 }
 
 type DialogState =
@@ -154,9 +142,10 @@ function ActivityCard({
     if (activity.isRegistered) {
       return (
         <Button
+          data-testid="cal-unregister-btn"
           size="sm"
           variant="outline"
-          className="cal-unregister-btn"
+          className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mt-1 w-full bg-transparent text-[12px] font-semibold uppercase disabled:opacity-50"
           disabled={busy}
           onClick={() => onUnregisterClick(activity)}
         >
@@ -168,7 +157,11 @@ function ActivityCard({
     if (!isSignedIn) {
       return (
         <SignInButton mode="modal">
-          <Button size="sm" className="cal-register-btn">
+          <Button
+            data-testid="cal-register-btn"
+            size="sm"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 w-full text-[12px] font-bold uppercase"
+          >
             Register
           </Button>
         </SignInButton>
@@ -177,7 +170,11 @@ function ActivityCard({
 
     if (isFull) {
       return (
-        <Button size="sm" className="cal-register-btn" disabled>
+        <Button
+          size="sm"
+          className="bg-primary text-primary-foreground disabled:bg-card disabled:text-muted-foreground mt-1 w-full text-[12px] font-bold uppercase disabled:opacity-70"
+          disabled
+        >
           Full
         </Button>
       );
@@ -185,8 +182,9 @@ function ActivityCard({
 
     return (
       <Button
+        data-testid="cal-register-btn"
         size="sm"
-        className="cal-register-btn"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-card disabled:text-muted-foreground mt-1 w-full text-[12px] font-bold uppercase disabled:opacity-70"
         disabled={busy}
         onClick={() => onRegisterClick(activity)}
       >
@@ -196,27 +194,38 @@ function ActivityCard({
   };
 
   return (
-    <Card className="cal-activity-card">
-      <CardContent className="cal-activity-content">
-        <div className="cal-activity-top">
-          <span className="cal-activity-time">{activity.time}</span>
-          <div className="cal-activity-top-right">
+    <Card className="border-border bg-secondary shadow-none ring-0">
+      <CardContent className="flex flex-col gap-1.5 p-2.5">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-muted-foreground text-xs">{activity.time}</span>
+          <div className="flex flex-wrap items-center justify-end gap-1">
             {activity.forMembers && (
-              <Badge variant="outline" className="cal-badge-members-only">
+              <Badge
+                variant="outline"
+                className="border-primary text-primary inline-flex h-[18px] items-center gap-[3px] px-1.5 text-[10px]"
+              >
                 <Lock size={10} /> Members
               </Badge>
             )}
-            <Badge variant="outline" className="cal-badge-members">
+            <Badge
+              variant="outline"
+              className="border-border text-muted-foreground h-[18px] px-1.5 text-[10px]"
+            >
               {activity.category}
             </Badge>
           </div>
         </div>
-        <h4 className="cal-activity-name">{activity.name}</h4>
-        <div className="cal-activity-details">
+        <h4
+          data-testid="cal-activity-name"
+          className="text-foreground m-0 text-[15px] leading-[1.2] font-semibold"
+        >
+          {activity.name}
+        </h4>
+        <div className="text-muted-foreground flex items-center justify-between gap-1 text-[11px]">
           <span>
             {activity.room} | Trainer: {activity.trainer}
           </span>
-          <span className="cal-activity-capacity">
+          <span className="whitespace-nowrap">
             {activity.registered}/{activity.capacity}
           </span>
         </div>
@@ -244,7 +253,6 @@ function useIsMobile(): boolean {
 export default function SchedulePage() {
   const isMobile = useIsMobile();
   const { isSignedIn, isLoaded } = useAuth();
-  const { apiRequest } = useApi();
   const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
@@ -255,90 +263,61 @@ export default function SchedulePage() {
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(
     new Set([ALL_LECTURES]),
   );
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      setProfile(null);
-      return;
-    }
-    apiRequest<Profile>('/auth/profile')
-      .then(setProfile)
-      .catch((err) => console.error('Failed to load profile:', err));
-  }, [isLoaded, isSignedIn, apiRequest]);
+  const { data: profile } = useAuthProfile({
+    enabled: isLoaded && !!isSignedIn,
+  });
 
-  const loadSchedule = useCallback(async () => {
-    const fmtISO = (d: Date) => d.toISOString().split('T')[0];
-    const from = fmtISO(weekStart);
-    const toDate = new Date(weekStart);
-    toDate.setUTCDate(toDate.getUTCDate() + 6);
-    const to = fmtISO(toDate);
+  const fmtISO = (d: Date) => d.toISOString().split('T')[0];
+  const from = fmtISO(weekStart);
+  const toDate = new Date(weekStart);
+  toDate.setUTCDate(toDate.getUTCDate() + 6);
+  const to = fmtISO(toDate);
 
-    try {
-      const data = await apiRequest<ScheduleItem[]>(
-        `/schedule?from=${from}&to=${to}`,
-      );
-      setActivities(data.map((item) => toActivity(item, weekStart)));
-    } catch (err) {
-      console.error('Failed to fetch schedule:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [weekStart, apiRequest]);
+  // Gate on isLoaded so the schedule fetch waits for Clerk to hydrate.
+  // Otherwise apiClient reads window.Clerk?.session before it exists, fires
+  // unauthenticated, and the grid renders before isSignedIn flips true —
+  // making the Register button still wrap in <SignInButton>.
+  const { data: scheduleItems = [], isLoading: loading } = useSchedule(
+    from,
+    to,
+    { enabled: isLoaded },
+  );
 
-  useEffect(() => {
-    setLoading(true);
-    loadSchedule();
-  }, [loadSchedule]);
+  const register = useRegisterReservation();
+  const unregister = useUnregisterReservation();
+  const busyId = register.isPending
+    ? register.variables
+    : unregister.isPending
+      ? unregister.variables
+      : null;
 
-  useEffect(() => {
-    const handler = () => loadSchedule();
-    window.addEventListener('schedule:invalidated', handler);
-    return () => window.removeEventListener('schedule:invalidated', handler);
-  }, [loadSchedule]);
+  const activities = useMemo<Activity[]>(
+    () =>
+      scheduleItems.map((item: ScheduleItem) => toActivity(item, weekStart)),
+    [scheduleItems, weekStart],
+  );
 
   const closeDialog = () => setDialog({ type: 'none' });
 
-  const confirmRegister = async () => {
+  const confirmRegister = () => {
     if (dialog.type !== 'confirm-register') return;
     const id = dialog.activity.id;
     closeDialog();
-    setBusyId(id);
-    try {
-      await apiRequest(`/schedule/${id}/reservations`, { method: 'POST' });
-      toast.success('Registered successfully');
-      await loadSchedule();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to register');
-    } finally {
-      setBusyId(null);
-    }
+    register.mutate(id);
   };
 
-  const confirmUnregister = async () => {
+  const confirmUnregister = () => {
     if (dialog.type !== 'confirm-unregister') return;
     const id = dialog.activity.id;
     closeDialog();
-    setBusyId(id);
-    try {
-      await apiRequest(`/schedule/${id}/reservations`, { method: 'DELETE' });
-      toast.success('Unregistered successfully');
-      await loadSchedule();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to unregister');
-    } finally {
-      setBusyId(null);
-    }
+    unregister.mutate(id);
   };
 
   const handleBuyMembership = () => {
     closeDialog();
-    navigate({ to: '/', hash: 'pricing' });
+    void navigate({ to: '/', hash: 'pricing' });
   };
 
   const categories = useMemo(() => {
@@ -420,19 +399,24 @@ export default function SchedulePage() {
   const hasActiveMembership = profile?.hasActiveMembership ?? false;
 
   return (
-    <div className="schedule-page-content">
-      <div className="cal-root">
-        <div className="cal-categories">
+    <div
+      data-testid="cal-root"
+      className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]"
+    >
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center gap-6 px-4 pt-6 pb-10 sm:gap-10 sm:px-6 sm:pt-10 sm:pb-[60px]">
+        <div className="flex flex-wrap justify-center gap-2.5">
           {categories.map((cat) => (
             <Button
               key={cat}
+              data-testid="cal-cat-btn"
+              data-active={activeCategories.has(cat) ? 'true' : 'false'}
               variant={activeCategories.has(cat) ? 'default' : 'outline'}
               size="sm"
-              className={
-                activeCategories.has(cat)
-                  ? 'cal-cat-btn cal-cat-btn--active'
-                  : 'cal-cat-btn'
-              }
+              className={cn(
+                'text-xs tracking-[0.5px] uppercase',
+                !activeCategories.has(cat) &&
+                  'border-border text-muted-foreground hover:text-foreground',
+              )}
               onClick={() => toggleCategory(cat)}
             >
               {cat}
@@ -440,34 +424,43 @@ export default function SchedulePage() {
           ))}
         </div>
 
-        <div className="cal-week-nav">
+        <div className="flex items-center gap-6 sm:gap-12">
           <Button
+            data-testid="cal-nav-arrow"
             variant="ghost"
             size="icon"
             onClick={goPrev}
-            className="cal-nav-arrow"
+            className="text-foreground hover:bg-card hover:text-primary"
           >
             <ChevronLeft />
           </Button>
-          <span className="cal-date-range">
+          <span
+            data-testid="cal-date-range"
+            className="text-foreground text-lg tracking-[0.5px] whitespace-nowrap sm:text-[22px]"
+          >
             {isMobile
               ? `${weekDays[selectedDayIndex].name} ${formatDate(weekDays[selectedDayIndex].date)} ${weekDays[selectedDayIndex].date.getFullYear()}`
               : formatDateRange(weekStart)}
           </span>
           <Button
+            data-testid="cal-nav-arrow"
             variant="ghost"
             size="icon"
             onClick={goNext}
-            className="cal-nav-arrow"
+            className="text-foreground hover:bg-card hover:text-primary"
           >
             <ChevronRight />
           </Button>
         </div>
 
         {loading && (
-          <p style={{ color: 'var(--c-muted)' }}>Loading schedule...</p>
+          <p className="text-muted-foreground">Loading schedule...</p>
         )}
-        <div className="cal-week-grid">
+
+        <div
+          data-testid="cal-week-grid"
+          className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:grid-cols-7"
+        >
           {(isMobile
             ? weekDays.filter((d) => d.dayIndex === selectedDayIndex)
             : weekDays
@@ -480,13 +473,20 @@ export default function SchedulePage() {
             return (
               <div
                 key={day.dayIndex}
-                className={`cal-day-column ${today ? 'cal-day-column--today' : ''}`}
+                className={cn(
+                  'flex min-w-0 flex-col gap-3 rounded-[var(--radius)] px-1 py-2.5',
+                  today && 'sm:border-t-primary sm:bg-card sm:border-t-[3px]',
+                )}
               >
-                <div className="cal-day-header">
-                  <span className="cal-day-name">{day.name}</span>
-                  <span className="cal-day-date">{formatDate(day.date)}</span>
+                <div className="hidden flex-col items-center gap-2 pb-2 sm:flex">
+                  <span className="text-foreground text-[18px] font-normal">
+                    {day.name}
+                  </span>
+                  <span className="text-foreground text-[18px] font-normal">
+                    {formatDate(day.date)}
+                  </span>
                 </div>
-                <div className="cal-day-activities">
+                <div className="flex flex-col gap-3">
                   {dayActivities.map((activity) => (
                     <ActivityCard
                       key={activity.id}
@@ -518,7 +518,7 @@ export default function SchedulePage() {
         open={dialog.type !== 'none'}
         onOpenChange={(open) => !open && closeDialog()}
       >
-        <DialogContent className="cal-dialog">
+        <DialogContent className="border-border bg-card text-foreground">
           {dialog.type === 'confirm-register' && (
             <>
               <DialogHeader>
@@ -529,8 +529,11 @@ export default function SchedulePage() {
                   {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="cal-dialog-footer">
-                <Button className="cal-register-btn" onClick={confirmRegister}>
+              <DialogFooter className="border-border border-t bg-transparent">
+                <Button
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 text-[12px] font-bold uppercase"
+                  onClick={confirmRegister}
+                >
                   Register
                 </Button>
               </DialogFooter>
@@ -547,9 +550,9 @@ export default function SchedulePage() {
                   {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="cal-dialog-footer">
+              <DialogFooter className="border-border border-t bg-transparent">
                 <Button
-                  className="cal-unregister-confirm-btn"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
                   onClick={confirmUnregister}
                 >
                   Unregister
@@ -568,9 +571,9 @@ export default function SchedulePage() {
                   a member?
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="cal-dialog-footer">
+              <DialogFooter className="border-border border-t bg-transparent">
                 <Button
-                  className="cal-register-btn"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 text-[12px] font-bold uppercase"
                   onClick={handleBuyMembership}
                 >
                   Buy membership

@@ -1,8 +1,9 @@
-import { Elysia } from 'elysia';
 import { createClerkClient, verifyToken } from '@clerk/backend';
-import { db } from '../db/db';
-import { tbPerson, tbCustomer } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { Elysia } from 'elysia';
+
+import { db } from '../db/db';
+import { persons, customers } from '../db/schema';
 
 export const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
@@ -69,7 +70,11 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
     try {
       const verified = await verifyToken(token, {
         secretKey: process.env.CLERK_SECRET_KEY,
-        authorizedParties: [process.env.FRONTEND_URL ?? 'http://localhost:5173'],
+        authorizedParties: [
+          process.env.FRONTEND_URL ?? 'http://localhost:5173',
+          'http://localhost:5173',
+          'http://127.0.0.1:5173',
+        ],
       });
       const publicMetadata = (verified.publicMetadata ?? {}) as { role?: string };
       const hasRole = typeof publicMetadata.role === 'string' && publicMetadata.role.length > 0;
@@ -89,11 +94,11 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
         }
       }
 
-      // JIT provisioning: create tbPerson + tbCustomer on first authenticated request
+      // JIT provisioning: create persons + customers on first authenticated request
       const [existing] = await db
         .select()
-        .from(tbPerson)
-        .where(eq(tbPerson.clerkId, clerkId))
+        .from(persons)
+        .where(eq(persons.clerkId, clerkId))
         .limit(1);
 
       if (!existing) {
@@ -103,11 +108,11 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
         const lastName = clerkUser.lastName ?? '';
 
         const [person] = await db
-          .insert(tbPerson)
+          .insert(persons)
           .values({ clerkId, name: firstName, surname: lastName, email })
           .returning();
 
-        await db.insert(tbCustomer).values({ personId: person.id });
+        await db.insert(customers).values({ personId: person.id });
       }
 
       return {

@@ -55,10 +55,9 @@ function authHeader(role: string) {
 }
 
 function mockVerifiedToken(role: string) {
-  mockVerifyToken.mockImplementation(async () => ({
-    sub: 'user_test',
-    publicMetadata: { role },
-  }));
+  mockVerifyToken.mockImplementation(
+    async () => ({ sub: 'user_test', publicMetadata: { role } }) as never,
+  );
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────

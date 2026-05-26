@@ -1,12 +1,12 @@
 import { db, closeConnection } from './db';
-import { tbPerson } from './schema';
+import { persons } from './schema';
 
 async function testSelect() {
   console.log('🔍 Trying to select from database...');
 
   try {
     // This is Drizzle version of "SELECT * FROM TB_person"
-    const allPeople = await db.select().from(tbPerson);
+    const allPeople = await db.select().from(persons);
 
     console.log('✅ Connected succesfully!');
     console.log(`Count of people in database: ${allPeople.length}`);
@@ -20,4 +20,4 @@ async function testSelect() {
   }
 }
 
-testSelect();
+void testSelect();

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +10,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import './AddScheduleDialog.css';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -20,15 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-
-const API_URL = import.meta.env.VITE_API_URL as string;
+  useCreateSchedule,
+  useInstructors,
+  useLectures,
+  useRooms,
+} from '@/hooks/useCalendar';
 
 const formSchema = z
   .object({
@@ -56,23 +59,6 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface LectureOption {
-  id: string;
-  lectureName: string;
-  exerciseType: string;
-}
-
-interface RoomOption {
-  id: string;
-  name: string;
-  capacity: number;
-}
-
-interface InstructorOption {
-  id: string;
-  name: string;
-}
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -84,10 +70,10 @@ export default function AddScheduleDialog({
   onOpenChange,
   onCreated,
 }: Props) {
-  const [lectures, setLectures] = useState<LectureOption[]>([]);
-  const [rooms, setRooms] = useState<RoomOption[]>([]);
-  const [instructors, setInstructors] = useState<InstructorOption[]>([]);
-  const [submitError, setSubmitError] = useState('');
+  const { data: lectures = [] } = useLectures();
+  const { data: rooms = [] } = useRooms();
+  const { data: instructors = [] } = useInstructors();
+  const createSchedule = useCreateSchedule();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -101,22 +87,7 @@ export default function AddScheduleDialog({
     },
   });
 
-  useEffect(() => {
-    if (!open) return;
-    Promise.all([
-      fetch(`${API_URL}/calendar/lectures`).then((r) => r.json()),
-      fetch(`${API_URL}/calendar/rooms`).then((r) => r.json()),
-      fetch(`${API_URL}/calendar/instructors`).then((r) => r.json()),
-    ]).then(([l, r, i]) => {
-      setLectures(l);
-      setRooms(r);
-      setInstructors(i);
-    });
-  }, [open]);
-
-  async function onSubmit(values: FormValues) {
-    setSubmitError('');
-
+  function onSubmit(values: FormValues) {
     const startISO = new Date(
       `${values.date}T${values.startTime}:00Z`,
     ).toISOString();
@@ -124,10 +95,8 @@ export default function AddScheduleDialog({
       `${values.date}T${values.endTime}:00Z`,
     ).toISOString();
 
-    const res = await fetch(`${API_URL}/calendar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    createSchedule.mutate(
+      {
         lectureId: values.lectureId,
         roomId: values.roomId,
         startTime: startISO,
@@ -135,39 +104,35 @@ export default function AddScheduleDialog({
         instructors: values.leadId
           ? [{ employeeId: values.leadId, isLead: true }]
           : [],
-      }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      setSubmitError(data.error ?? 'Failed to create schedule.');
-      return;
-    }
-
-    form.reset();
-    onOpenChange(false);
-    onCreated();
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          onOpenChange(false);
+          onCreated();
+        },
+      },
+    );
   }
 
   function handleClose(v: boolean) {
-    if (!v) {
-      form.reset();
-      setSubmitError('');
-    }
+    if (!v) form.reset();
     onOpenChange(v);
   }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="add-schedule-dialog">
+      <DialogContent className="border-border bg-card text-foreground">
         <DialogHeader>
-          <DialogTitle className="add-schedule-title">Add lecture</DialogTitle>
+          <DialogTitle className="text-foreground text-lg font-bold">
+            Add lecture
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+            className="flex flex-col gap-4"
           >
             <FormField
               control={form.control}
@@ -237,12 +202,12 @@ export default function AddScheduleDialog({
               )}
             />
 
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div className="flex gap-3">
               <FormField
                 control={form.control}
                 name="startTime"
                 render={({ field }) => (
-                  <FormItem style={{ flex: 1 }}>
+                  <FormItem className="flex-1">
                     <FormLabel>Start time</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
@@ -256,7 +221,7 @@ export default function AddScheduleDialog({
                 control={form.control}
                 name="endTime"
                 render={({ field }) => (
-                  <FormItem style={{ flex: 1 }}>
+                  <FormItem className="flex-1">
                     <FormLabel>End time</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
@@ -292,25 +257,21 @@ export default function AddScheduleDialog({
               )}
             />
 
-            {submitError && (
-              <p style={{ color: '#f87171', fontSize: 12 }}>{submitError}</p>
-            )}
-
             <DialogFooter>
               <Button
                 type="button"
                 variant="ghost"
-                className="dialog-btn-cancel"
+                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground border"
                 onClick={() => handleClose(false)}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="dialog-btn-save"
-                disabled={form.formState.isSubmitting}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={createSchedule.isPending}
               >
-                {form.formState.isSubmitting ? 'Saving...' : 'Save'}
+                {createSchedule.isPending ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
           </form>

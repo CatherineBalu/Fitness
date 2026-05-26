@@ -42,8 +42,8 @@ mock.module('../src/db/db', () => ({
   },
 }));
 
-import { hasPermission } from '../src/middleware/auth';
 import { app } from '../src';
+import { hasPermission } from '../src/middleware/auth';
 
 function authHeader(role: string) {
   return { Authorization: `Bearer fake.jwt.${role}` };

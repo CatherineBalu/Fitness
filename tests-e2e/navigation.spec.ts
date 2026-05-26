@@ -6,8 +6,8 @@ test.describe('Navbar — unauthenticated', () => {
   });
 
   test('shows logo and brand name', async ({ page }) => {
-    await expect(page.locator('.navbar-logo')).toBeVisible();
-    await expect(page.locator('.logo-text')).toContainText('FITNESS');
+    await expect(page.getByTestId('navbar-logo')).toBeVisible();
+    await expect(page.getByTestId('logo-text')).toContainText('FITNESS');
   });
 
   test('shows Home, Schedule, and Contact links', async ({ page }) => {
@@ -23,14 +23,14 @@ test.describe('Navbar — unauthenticated', () => {
   test('clicking Schedule navigates to /schedule', async ({ page }) => {
     await page.getByRole('link', { name: 'Schedule' }).click();
     await expect(page).toHaveURL('/schedule');
-    await expect(page.locator('.cal-root')).toBeVisible();
+    await expect(page.getByTestId('cal-root')).toBeVisible();
   });
 
   test('clicking logo on schedule page navigates back to home', async ({ page }) => {
     await page.goto('/schedule');
-    await page.locator('.navbar-logo').click();
+    await page.getByTestId('navbar-logo').click();
     await expect(page).toHaveURL('/');
-    await expect(page.locator('.hero-section')).toBeVisible();
+    await expect(page.getByTestId('hero-section')).toBeVisible();
   });
 
   test('Contact anchor link scrolls to footer', async ({ page }) => {

@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Clock, MapPin, Users, X, Pencil } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -10,15 +11,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useApi } from '@/lib/api';
-import './AdminStaffPage.css';
+import { Input } from '@/components/ui/input';
+import { apiClient } from '@/lib/apiClient';
+import { cn } from '@/lib/utils';
+
+import AddMemberDialog from './AddMemberDialog';
+import EditStaffDialog from './EditStaffDialog';
+
+const staffListKey = ['staff', 'list'] as const;
+const exerciseTypesKey = ['exercise-types'] as const;
 
 interface Lecture {
   id: string;
@@ -52,12 +53,13 @@ interface ExerciseType {
   name: string;
 }
 
-interface EmployeeType {
-  id: string;
-  roleName: string;
-}
-
 const RECEPTION_FILTER = 'Reception';
+
+const STATUS_DOT_CLASSES: Record<string, string> = {
+  available: 'bg-success',
+  'almost-full': 'bg-warning',
+  full: 'bg-destructive',
+};
 
 interface Member {
   id: string;
@@ -93,20 +95,21 @@ function DeleteConfirmDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="delete-confirm-dialog">
+      <DialogContent className="border-border bg-card text-foreground max-w-[400px] sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="delete-confirm-title">
+          <DialogTitle className="text-foreground text-lg font-bold">
             Delete staff member
           </DialogTitle>
         </DialogHeader>
-        <p className="delete-confirm-body">
-          Are you sure you want to delete <strong>{name}</strong>? This action
+        <p className="text-muted-foreground mt-2 mb-5 text-sm leading-relaxed">
+          Are you sure you want to delete{' '}
+          <strong className="text-foreground">{name}</strong>? This action
           cannot be undone.
         </p>
-        <div className="delete-confirm-actions">
+        <div className="flex justify-end gap-2.5">
           <Button
             variant="outline"
-            className="delete-confirm-cancel"
+            className="border-border text-foreground"
             onClick={onClose}
           >
             Cancel
@@ -129,22 +132,29 @@ function LectureCard({
 }) {
   const status = getLectureStatus(lecture.registered, lecture.capacity);
   return (
-    <Card className="staff-lecture-card">
-      <CardContent className="staff-lecture-card-content">
-        <div className="staff-lecture-card-top">
-          <span className={`status-dot status-dot--${status}`} />
+    <Card className="border-border bg-background hover:border-primary transition-colors">
+      <CardContent className="flex flex-col gap-2 p-3.5">
+        <div className="flex justify-end">
+          <span
+            className={cn(
+              'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+              STATUS_DOT_CLASSES[status],
+            )}
+          />
         </div>
-        <h4 className="staff-lecture-name">{lecture.name}</h4>
-        <div className="staff-lecture-meta">
-          <div className="staff-lecture-meta-row">
+        <h4 className="text-foreground m-0 text-[0.9rem] leading-snug font-semibold">
+          {lecture.name}
+        </h4>
+        <div className="flex flex-col gap-1.5">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <Clock size={12} />
             <span>{formatLectureTime(lecture.startTime, lecture.endTime)}</span>
           </div>
-          <div className="staff-lecture-meta-row">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <MapPin size={12} />
             <span>{lecture.room}</span>
           </div>
-          <div className="staff-lecture-meta-row">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
             <Users size={12} />
             <span>
               {lecture.registered}/{lecture.capacity}
@@ -154,7 +164,7 @@ function LectureCard({
         <Button
           size="sm"
           variant="outline"
-          className="staff-lecture-view-btn"
+          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground mt-0.5 w-full bg-transparent text-[11px]"
           onClick={() => onViewMembers(lecture)}
         >
           View members
@@ -173,38 +183,41 @@ function MembersDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useApi();
-  const [members, setMembers] = useState<Member[]>([]);
-
-  useEffect(() => {
-    if (!open || !lecture) return;
-    apiRequest<Member[]>(`/api/lectures/${lecture.id}/members`)
-      .then((data) => setMembers(data))
-      .catch(() => setMembers([]));
-    // apiRequest is stable via useCallback; lecture.id and open are the real triggers
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, lecture]);
+  const { data: members = [] } = useQuery({
+    queryKey: ['lecture', lecture?.id, 'members'] as const,
+    queryFn: () => apiClient<Member[]>(`/api/lectures/${lecture!.id}/members`),
+    enabled: open && !!lecture,
+  });
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="members-dialog">
+      <DialogContent className="border-border bg-card text-foreground max-w-[420px] sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle className="members-dialog-title">
+          <DialogTitle className="text-foreground text-[1.1rem] font-bold">
             {lecture?.name} — Members
           </DialogTitle>
         </DialogHeader>
-        <div className="members-list">
+        <div className="mt-1 flex flex-col gap-2.5">
           {members.map((m) => (
-            <div key={m.id} className="members-list-row">
-              <div className="member-avatar">{m.name[0]}</div>
-              <div className="member-info">
-                <span className="member-name">{m.name}</span>
-                <span className="member-email">{m.email}</span>
+            <div
+              key={m.id}
+              className="border-border bg-background flex items-center gap-3 rounded-md border px-3.5 py-2.5"
+            >
+              <div className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-sm font-bold text-white">
+                {m.name[0]}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-foreground text-sm font-semibold">
+                  {m.name}
+                </span>
+                <span className="text-muted-foreground text-xs">{m.email}</span>
               </div>
             </div>
           ))}
           {members.length === 0 && (
-            <p className="members-empty">No members registered.</p>
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              No members registered.
+            </p>
           )}
         </div>
       </DialogContent>
@@ -221,18 +234,14 @@ function ViewClassesDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useApi();
-  const [lectures, setLectures] = useState<Lecture[]>([]);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
 
-  useEffect(() => {
-    if (!open || !staff) return;
-    apiRequest<Lecture[]>(`/api/staff/${staff.id}/lectures`)
-      .then((data) => setLectures(data))
-      .catch(() => setLectures([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, staff]);
+  const { data: lectures = [] } = useQuery({
+    queryKey: ['staff', staff?.id, 'lectures'] as const,
+    queryFn: () => apiClient<Lecture[]>(`/api/staff/${staff!.id}/lectures`),
+    enabled: open && !!staff,
+  });
 
   function handleViewMembers(lecture: Lecture) {
     setSelectedLecture(lecture);
@@ -242,28 +251,43 @@ function ViewClassesDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="classes-dialog">
+        <DialogContent className="border-border bg-card text-foreground flex max-h-[85vh] w-[90vw] max-w-[760px] flex-col overflow-hidden sm:max-w-[760px]">
           <DialogHeader>
-            <DialogTitle className="classes-dialog-title">
+            <DialogTitle className="text-foreground text-[1.2rem] font-bold">
               {staff ? `${staff.firstName} ${staff.lastName}` : ''} — Classes
             </DialogTitle>
           </DialogHeader>
-          <div className="classes-dialog-body">
-            <div className="classes-dialog-legend">
-              <span className="legend-item">
-                <span className="status-dot status-dot--available" />
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="text-muted-foreground text-xs-plus mb-5 flex gap-5">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['available'],
+                  )}
+                />
                 Available
               </span>
-              <span className="legend-item">
-                <span className="status-dot status-dot--almost-full" />
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['almost-full'],
+                  )}
+                />
                 Almost full
               </span>
-              <span className="legend-item">
-                <span className="status-dot status-dot--full" />
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                    STATUS_DOT_CLASSES['full'],
+                  )}
+                />
                 Full
               </span>
             </div>
-            <div className="classes-dialog-grid">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {lectures.map((lecture) => (
                 <LectureCard
                   key={lecture.id}
@@ -272,7 +296,9 @@ function ViewClassesDialog({
                 />
               ))}
               {lectures.length === 0 && (
-                <p className="members-empty">No classes assigned.</p>
+                <p className="text-muted-foreground py-4 text-center text-sm">
+                  No classes assigned.
+                </p>
               )}
             </div>
           </div>
@@ -287,354 +313,8 @@ function ViewClassesDialog({
   );
 }
 
-function AddMemberDialog({
-  open,
-  onClose,
-  onAdded,
-  exerciseTypes,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onAdded: () => void;
-  exerciseTypes: ExerciseType[];
-}) {
-  const { apiRequest } = useApi();
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    role: '',
-  });
-  const [specializations, setSpecializations] = useState<string[]>([]);
-  const [employeeTypes, setEmployeeTypes] = useState<EmployeeType[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    apiRequest<EmployeeType[]>('/api/employee-types')
-      .then((data) => setEmployeeTypes(data))
-      .catch(() => setEmployeeTypes([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
-
-  function toggleSpecialization(id: string) {
-    setSpecializations((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!form.role) {
-      setError('Please select a role');
-      return;
-    }
-
-    if (form.role === 'Instructor' && specializations.length === 0) {
-      setError('Please select at least one specialization');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const data = await apiRequest<{
-        success: boolean;
-        temporaryPassword: string;
-      }>('/api/staff', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...form,
-          specializations: form.role === 'Instructor' ? specializations : [],
-        }),
-      });
-      setTempPassword(data.temporaryPassword);
-      onAdded();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to create staff member',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleClose() {
-    setForm({ firstName: '', lastName: '', email: '', role: '' });
-    setSpecializations([]);
-    setError(null);
-    setTempPassword(null);
-    onClose();
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="add-member-dialog">
-        <DialogHeader>
-          <DialogTitle className="add-member-dialog-title">
-            {tempPassword ? 'Staff member created' : 'Add staff member'}
-          </DialogTitle>
-        </DialogHeader>
-
-        {tempPassword ? (
-          <div className="add-member-success">
-            <p className="add-member-success-text">
-              Account created successfully. Share this temporary password with
-              the new staff member — they can change it after first login.
-            </p>
-            <div className="add-member-temp-password">{tempPassword}</div>
-            <Button className="add-member-submit" onClick={handleClose}>
-              Done
-            </Button>
-          </div>
-        ) : (
-          <form className="add-member-form" onSubmit={handleSubmit}>
-            {error && <p className="add-member-error">{error}</p>}
-            <div className="add-member-field">
-              <label className="add-member-label">First name</label>
-              <Input
-                name="firstName"
-                placeholder="Enter first name"
-                value={form.firstName}
-                onChange={handleChange}
-                className="add-member-input"
-                required
-              />
-            </div>
-            <div className="add-member-field">
-              <label className="add-member-label">Last name</label>
-              <Input
-                name="lastName"
-                placeholder="Enter last name"
-                value={form.lastName}
-                onChange={handleChange}
-                className="add-member-input"
-                required
-              />
-            </div>
-            <div className="add-member-field">
-              <label className="add-member-label">Email</label>
-              <Input
-                name="email"
-                type="email"
-                placeholder="Enter email"
-                value={form.email}
-                onChange={handleChange}
-                className="add-member-input"
-                required
-              />
-            </div>
-            <div className="add-member-field">
-              <label className="add-member-label">Role</label>
-              <Select
-                value={form.role}
-                onValueChange={(value) => {
-                  setForm((prev) => ({ ...prev, role: value }));
-                  if (value !== 'Instructor') setSpecializations([]);
-                }}
-              >
-                <SelectTrigger className="add-member-input">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employeeTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.roleName}>
-                      {t.roleName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {form.role === 'Instructor' && (
-              <div className="add-member-field">
-                <label className="add-member-label">Specializations</label>
-                <div className="add-member-specializations">
-                  {exerciseTypes.map((et) => {
-                    const active = specializations.includes(et.id);
-                    return (
-                      <Button
-                        type="button"
-                        key={et.id}
-                        size="sm"
-                        variant={active ? 'default' : 'outline'}
-                        className={
-                          active
-                            ? 'staff-filter-btn staff-filter-btn--active'
-                            : 'staff-filter-btn'
-                        }
-                        onClick={() => toggleSpecialization(et.id)}
-                      >
-                        {et.name}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className="add-member-submit"
-              disabled={loading}
-            >
-              {loading ? 'Creating...' : 'Create'}
-            </Button>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function EditStaffDialog({
-  staff,
-  open,
-  onClose,
-  onSaved,
-  exerciseTypes,
-}: {
-  staff: StaffMember | null;
-  open: boolean;
-  onClose: () => void;
-  onSaved: () => void;
-  exerciseTypes: ExerciseType[];
-}) {
-  const { apiRequest } = useApi();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [specializations, setSpecializations] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!open || !staff) return;
-    setFirstName(staff.firstName);
-    setLastName(staff.lastName);
-    const ids = exerciseTypes
-      .filter((et) => staff.specializations.includes(et.name))
-      .map((et) => et.id);
-    setSpecializations(ids);
-    setError(null);
-  }, [open, staff, exerciseTypes]);
-
-  function toggleSpecialization(id: string) {
-    setSpecializations((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!staff) return;
-    setError(null);
-
-    if (staff.role === 'Instructor' && specializations.length === 0) {
-      setError('Please select at least one specialization');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await apiRequest(`/api/staff/${staff.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          specializations:
-            staff.role === 'Instructor' ? specializations : undefined,
-        }),
-      });
-      onSaved();
-      onClose();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to update staff member',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="add-member-dialog">
-        <DialogHeader>
-          <DialogTitle className="add-member-dialog-title">
-            Edit staff member
-          </DialogTitle>
-        </DialogHeader>
-        <form className="add-member-form" onSubmit={handleSubmit}>
-          {error && <p className="add-member-error">{error}</p>}
-          <div className="add-member-field">
-            <label className="add-member-label">First name</label>
-            <Input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="add-member-input"
-              required
-            />
-          </div>
-          <div className="add-member-field">
-            <label className="add-member-label">Last name</label>
-            <Input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="add-member-input"
-              required
-            />
-          </div>
-          {staff?.role === 'Instructor' && (
-            <div className="add-member-field">
-              <label className="add-member-label">Specializations</label>
-              <div className="add-member-specializations">
-                {exerciseTypes.map((et) => {
-                  const active = specializations.includes(et.id);
-                  return (
-                    <Button
-                      type="button"
-                      key={et.id}
-                      size="sm"
-                      variant={active ? 'default' : 'outline'}
-                      className={
-                        active
-                          ? 'staff-filter-btn staff-filter-btn--active'
-                          : 'staff-filter-btn'
-                      }
-                      onClick={() => toggleSpecialization(et.id)}
-                    >
-                      {et.name}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          <Button
-            type="submit"
-            className="add-member-submit"
-            disabled={loading}
-          >
-            {loading ? 'Saving...' : 'Save'}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function AdminStaffPage() {
-  const { apiRequest } = useApi();
-  const [staffList, setStaffList] = useState<StaffMember[]>([]);
-  const [exerciseTypes, setExerciseTypes] = useState<ExerciseType[]>([]);
-  const [loadingStaff, setLoadingStaff] = useState(true);
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [viewStaff, setViewStaff] = useState<StaffMember | null>(null);
@@ -644,40 +324,37 @@ export default function AdminStaffPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
 
-  const loadStaff = useCallback(() => {
-    setLoadingStaff(true);
-    apiRequest<StaffMember[]>('/api/staff')
-      .then((data) => {
-        setStaffList(data);
-        setLoadingStaff(false);
-      })
-      .catch(() => {
-        setStaffList([]);
-        setLoadingStaff(false);
-      });
-  }, [apiRequest]);
+  const { data: staffList = [], isLoading: loadingStaff } = useQuery({
+    queryKey: staffListKey,
+    queryFn: () => apiClient<StaffMember[]>('/api/staff'),
+  });
+  const { data: exerciseTypes = [] } = useQuery({
+    queryKey: exerciseTypesKey,
+    queryFn: () => apiClient<ExerciseType[]>('/api/exercise-types'),
+  });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadStaff();
-    apiRequest<ExerciseType[]>('/api/exercise-types')
-      .then((data) => setExerciseTypes(data))
-      .catch(() => setExerciseTypes([]));
-  }, [loadStaff, apiRequest]);
+  const deleteStaff = useMutation({
+    mutationFn: (id: string) =>
+      apiClient<void>(`/api/staff/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: staffListKey });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!deleteTarget) return;
     const target = deleteTarget;
     setDeleteTarget(null);
-    try {
-      await apiRequest(`/api/staff/${target.id}`, { method: 'DELETE' });
-      loadStaff();
-      toast.success(`${target.firstName} ${target.lastName} has been removed.`);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to delete staff member.',
-      );
-    }
+    deleteStaff.mutate(target.id, {
+      onSuccess: () => {
+        toast.success(
+          `${target.firstName} ${target.lastName} has been removed.`,
+        );
+      },
+    });
   }
 
   const filterChips = [...exerciseTypes.map((t) => t.name), RECEPTION_FILTER];
@@ -705,22 +382,27 @@ export default function AdminStaffPage() {
   }
 
   return (
-    <div className="admin-staff-page">
-      <div className="admin-staff-inner">
-        <div className="admin-staff-header">
-          <h1 className="admin-staff-title">Manage Staff</h1>
-          <div className="admin-staff-header-actions">
-            <div className="admin-staff-search-wrap">
-              <Search size={15} className="admin-staff-search-icon" />
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+      <div className="mx-auto max-w-[1200px] px-8 py-10 md:px-4 md:py-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 md:flex-col md:items-start">
+          <h1 className="text-foreground text-[2rem] font-extrabold">
+            Manage Staff
+          </h1>
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center">
+              <Search
+                size={15}
+                className="text-muted-foreground pointer-events-none absolute left-2.5"
+              />
               <Input
                 placeholder="Search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="admin-staff-search"
+                className="w-[220px] pl-8"
               />
               {search && (
                 <button
-                  className="admin-staff-search-clear"
+                  className="text-muted-foreground hover:text-foreground absolute right-2 flex cursor-pointer items-center border-none bg-transparent p-0"
                   onClick={() => setSearch('')}
                 >
                   <X size={13} />
@@ -728,7 +410,7 @@ export default function AdminStaffPage() {
               )}
             </div>
             <Button
-              className="admin-staff-add-btn"
+              className="border-border bg-secondary text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground gap-1.5 border"
               onClick={() => setAddOpen(true)}
             >
               <Plus size={14} />
@@ -737,7 +419,7 @@ export default function AdminStaffPage() {
           </div>
         </div>
 
-        <div className="admin-staff-filters">
+        <div className="mb-4 flex flex-wrap gap-2">
           {filterChips.map((chip) => (
             <Button
               key={chip}
@@ -745,8 +427,8 @@ export default function AdminStaffPage() {
               variant={activeFilter === chip ? 'default' : 'outline'}
               className={
                 activeFilter === chip
-                  ? 'staff-filter-btn staff-filter-btn--active'
-                  : 'staff-filter-btn'
+                  ? ''
+                  : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
               }
               onClick={() =>
                 setActiveFilter((prev) => (prev === chip ? null : chip))
@@ -757,42 +439,56 @@ export default function AdminStaffPage() {
           ))}
         </div>
 
-        <div className="admin-staff-counter">
+        <div className="border-border bg-card text-muted-foreground text-xs-plus mb-6 inline-block rounded-full border px-3.5 py-1">
           Employee counter: {filtered.length}
         </div>
 
-        <div className="admin-staff-list">
+        <div className="flex flex-col gap-2.5">
           {loadingStaff && (
-            <p className="admin-staff-loading">Loading staff...</p>
+            <p className="text-muted-foreground py-6 text-sm">
+              Loading staff...
+            </p>
           )}
           {!loadingStaff &&
             filtered.map((staff) => (
-              <div key={staff.id} className="staff-row">
-                <div className="staff-row-avatar">
+              <div
+                key={staff.id}
+                className="border-border bg-card hover:border-primary flex flex-wrap items-center gap-2.5 rounded-lg border px-5 py-3.5 transition-colors md:flex-nowrap md:gap-4"
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-sm font-bold text-white">
                   {getInitials(staff.firstName, staff.lastName)}
                 </div>
-                <span className="staff-row-name">
+                <span className="text-foreground min-w-0 text-[15px] font-semibold md:flex-1">
                   {staff.firstName} {staff.lastName}
                 </span>
-                <div className="staff-row-badges">
+                <div className="flex flex-wrap gap-1.5">
                   {staff.role === RECEPTION_FILTER ? (
-                    <span className="staff-row-badge">{staff.role}</span>
+                    <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap">
+                      {staff.role}
+                    </span>
                   ) : staff.specializations.length > 0 ? (
                     staff.specializations.map((spec) => (
-                      <span key={spec} className="staff-row-badge">
+                      <span
+                        key={spec}
+                        className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap"
+                      >
                         {spec}
                       </span>
                     ))
                   ) : (
-                    <span className="staff-row-badge">{staff.role}</span>
+                    <span className="border-border bg-secondary text-muted-foreground rounded-full border px-3 py-0.5 text-xs whitespace-nowrap">
+                      {staff.role}
+                    </span>
                   )}
                 </div>
-                <span className="staff-row-since">{staff.since}</span>
-                <div className="staff-row-actions">
+                <span className="text-muted-foreground text-xs-plus whitespace-nowrap">
+                  {staff.since}
+                </span>
+                <div className="flex w-full justify-end gap-2 md:ml-auto md:w-auto md:shrink-0">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="staff-row-view-btn"
+                    className="border-border text-foreground hover:border-primary hover:bg-secondary text-xs-plus bg-transparent"
                     onClick={() => handleView(staff)}
                   >
                     View
@@ -800,7 +496,7 @@ export default function AdminStaffPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="staff-row-edit-btn"
+                    className="border-border text-foreground hover:border-primary hover:bg-secondary hover:text-primary bg-transparent"
                     aria-label="Edit staff member"
                     onClick={() => {
                       setEditStaff(staff);
@@ -812,7 +508,7 @@ export default function AdminStaffPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    className="staff-row-delete-btn"
+                    className="text-xs-plus"
                     onClick={() => setDeleteTarget(staff)}
                   >
                     Delete
@@ -821,7 +517,9 @@ export default function AdminStaffPage() {
               </div>
             ))}
           {!loadingStaff && filtered.length === 0 && (
-            <p className="admin-staff-empty">No staff members found.</p>
+            <p className="text-muted-foreground py-6 text-sm">
+              No staff members found.
+            </p>
           )}
         </div>
       </div>
@@ -834,20 +532,14 @@ export default function AdminStaffPage() {
       <AddMemberDialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onAdded={() => {
-          loadStaff();
-          toast.success('Staff member added successfully.');
-        }}
+        onAdded={() => toast.success('Staff member added successfully.')}
         exerciseTypes={exerciseTypes}
       />
       <EditStaffDialog
         staff={editStaff}
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={() => {
-          loadStaff();
-          toast.success('Staff member updated successfully.');
-        }}
+        onSaved={() => toast.success('Staff member updated successfully.')}
         exerciseTypes={exerciseTypes}
       />
       <DeleteConfirmDialog

@@ -41,8 +41,8 @@ mock.module('../src/db/db', () => ({
   },
 }));
 
-import { hasPermission, type Permission } from '../src/middleware/auth';
 import { app } from '../src';
+import { hasPermission, type Permission } from '../src/middleware/auth';
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
