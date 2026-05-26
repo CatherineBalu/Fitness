@@ -40,6 +40,7 @@ export function useBuySubscription() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: authKeys.profile() });
       void qc.invalidateQueries({ queryKey: subscriptionKeys.all });
+      void qc.invalidateQueries({ queryKey: ['customer'] });
     },
     onError: (err: Error) => {
       toast.error(err.message);
