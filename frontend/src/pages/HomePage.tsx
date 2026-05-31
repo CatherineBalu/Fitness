@@ -1,5 +1,8 @@
 import { SignInButton, useAuth, useClerk } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
+import { UserCircle } from 'lucide-react';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -22,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthProfile } from '@/hooks/useAuthProfile';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { cn } from '@/lib/utils';
+import CustomerProfilePage from '@/pages/CustomerProfilePage';
 
 import heroImg from '../assets/hero.png';
 
@@ -110,6 +114,12 @@ function BuyButton({
   );
   const navigate = useNavigate();
   const { openUserProfile } = useClerk();
+  const [profilePortalEl, setProfilePortalEl] = useState<HTMLDivElement | null>(
+    null,
+  );
+  const [profileIconEl, setProfileIconEl] = useState<HTMLDivElement | null>(
+    null,
+  );
 
   if (!authReady) {
     return (
@@ -133,7 +143,20 @@ function BuyButton({
         description: 'View its details from your profile.',
         action: {
           label: 'See my subscriptions',
-          onClick: () => openUserProfile(),
+          onClick: () =>
+            openUserProfile({
+              __experimental_startPath: '/my-profile',
+              customPages: [
+                {
+                  label: 'My Profile',
+                  url: '/my-profile',
+                  mountIcon: (el) => setProfileIconEl(el),
+                  unmountIcon: () => setProfileIconEl(null),
+                  mount: (el) => setProfilePortalEl(el),
+                  unmount: () => setProfilePortalEl(null),
+                },
+              ],
+            }),
         },
       });
       return;
@@ -142,9 +165,14 @@ function BuyButton({
   };
 
   return (
-    <button type="button" className={btnClass} onClick={handleClick}>
-      Get Started
-    </button>
+    <>
+      <button type="button" className={btnClass} onClick={handleClick}>
+        Get Started
+      </button>
+      {profileIconEl && createPortal(<UserCircle size={16} />, profileIconEl)}
+      {profilePortalEl &&
+        createPortal(<CustomerProfilePage />, profilePortalEl)}
+    </>
   );
 }
 
