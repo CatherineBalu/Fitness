@@ -13,6 +13,7 @@ import {
   schedules,
   scheduleInstructors,
 } from '../db/schema';
+import { sendBookingConfirmationEmail, sendCancellationEmail } from '../lib/email';
 import {
   DomainValidationError,
   ConflictError,
@@ -162,8 +163,11 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
     .select({
       id: schedules.id,
       startTime: schedules.startTime,
+      endTime: schedules.endTime,
       forMembers: lectures.forMembers,
+      lectureName: lectures.lectureName,
       roomCapacity: rooms.capacity,
+      roomName: rooms.name,
     })
     .from(schedules)
     .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
@@ -209,10 +213,32 @@ export async function createReservation(clerkId: string, scheduleId: string): Pr
     customerId: customer.customerId,
     scheduleId,
   });
+
+  void (async () => {
+    try {
+      await sendBookingConfirmationEmail(
+        customer.email,
+        customer.firstName,
+        scheduleRow.lectureName,
+        scheduleRow.startTime.toISOString(),
+        scheduleRow.endTime.toISOString(),
+        scheduleRow.roomName,
+      );
+    } catch (err) {
+      console.error('[email] booking confirmation failed', err);
+    }
+  })();
 }
 
 export async function cancelReservation(clerkId: string, scheduleId: string): Promise<void> {
   const customer = await getCustomerByClerkIdOrThrow(clerkId);
+
+  const [scheduleRow] = await db
+    .select({ startTime: schedules.startTime, lectureName: lectures.lectureName })
+    .from(schedules)
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .where(and(eq(schedules.id, scheduleId), notDeleted(schedules), notDeleted(lectures)))
+    .limit(1);
 
   const updated = await db
     .update(customerReservations)
@@ -227,4 +253,19 @@ export async function cancelReservation(clerkId: string, scheduleId: string): Pr
     .returning({ customerId: customerReservations.customerId });
 
   if (updated.length === 0) throw new NotFoundError('Reservation not found');
+
+  if (scheduleRow) {
+    void (async () => {
+      try {
+        await sendCancellationEmail(
+          customer.email,
+          customer.firstName,
+          scheduleRow.lectureName,
+          scheduleRow.startTime.toISOString(),
+        );
+      } catch (err) {
+        console.error('[email] cancellation failed', err);
+      }
+    })();
+  }
 }

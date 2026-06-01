@@ -3,6 +3,7 @@ import { swagger } from '@elysiajs/swagger';
 import { Elysia } from 'elysia';
 
 import { DomainValidationError, HttpError } from './lib/errors';
+import { startReminderJob } from './lib/reminderJob';
 import { clerkMiddleware } from './middleware/auth';
 import { profileRoutes } from './routes/auth';
 import { calendarRoutes } from './routes/calendar';
@@ -77,3 +78,5 @@ export const app = new Elysia()
   });
 
 console.log(`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
+
+startReminderJob();
