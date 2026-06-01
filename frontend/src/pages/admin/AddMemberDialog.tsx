@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -77,8 +76,6 @@ export default function AddMemberDialog({
   exerciseTypes,
 }: Props) {
   const qc = useQueryClient();
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
-
   const { data: employeeTypes = [] } = useQuery({
     queryKey: employeeTypesKey,
     queryFn: () => apiClient<EmployeeType[]>('/api/employee-types'),
@@ -101,7 +98,7 @@ export default function AddMemberDialog({
 
   const createStaff = useMutation({
     mutationFn: (payload: FormValues) =>
-      apiClient<{ success: boolean; temporaryPassword: string }>('/api/staff', {
+      apiClient<{ success: boolean }>('/api/staff', {
         method: 'POST',
         body: JSON.stringify({
           ...payload,
@@ -109,10 +106,11 @@ export default function AddMemberDialog({
             payload.role === 'Instructor' ? payload.specializations : [],
         }),
       }),
-    onSuccess: (data) => {
-      setTempPassword(data.temporaryPassword);
+    onSuccess: () => {
+      toast.success('Staff member created. Login details sent to their email.');
       void qc.invalidateQueries({ queryKey: staffListKey });
       onAdded();
+      handleClose();
     },
     onError: (err: Error) => {
       toast.error(err.message);
@@ -121,7 +119,6 @@ export default function AddMemberDialog({
 
   function handleClose() {
     form.reset();
-    setTempPassword(null);
     onClose();
   }
 
@@ -139,176 +136,156 @@ export default function AddMemberDialog({
       <DialogContent className="border-border bg-card text-foreground max-w-[400px] sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="text-foreground text-[1.2rem] font-bold">
-            {tempPassword ? 'Staff member created' : 'Add staff member'}
+            Add staff member
           </DialogTitle>
         </DialogHeader>
 
-        {tempPassword ? (
-          <div className="mt-2 flex flex-col gap-4">
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Account created successfully. Share this temporary password with
-              the new staff member — they can change it after first login.
-            </p>
-            <div className="border-border bg-background text-foreground rounded-md border px-4 py-3 text-center font-mono text-[15px] font-bold tracking-widest">
-              {tempPassword}
-            </div>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((values) => createStaff.mutate(values))}
+            className="mt-2 flex flex-col gap-4"
+          >
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
+                    First name
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter first name"
+                      className="bg-background"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
+                    Last name
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter last name"
+                      className="bg-background"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
+                    Email
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="Enter email"
+                      className="bg-background"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
+                    Role
+                  </FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value !== 'Instructor') {
+                        form.setValue('specializations', []);
+                      }
+                    }}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {employeeTypes.map((t) => (
+                        <SelectItem key={t.id} value={t.roleName}>
+                          {t.roleName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {isInstructor && (
+              <FormField
+                control={form.control}
+                name="specializations"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
+                      Specializations
+                    </FormLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {exerciseTypes.map((et) => {
+                        const active = field.value.includes(et.id);
+                        return (
+                          <Button
+                            type="button"
+                            key={et.id}
+                            size="sm"
+                            variant={active ? 'default' : 'outline'}
+                            className={
+                              active
+                                ? ''
+                                : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                            }
+                            onClick={() => toggleSpecialization(et.id)}
+                          >
+                            {et.name}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <Button
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full font-bold"
-              onClick={handleClose}
+              type="submit"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={createStaff.isPending}
             >
-              Done
+              {createStaff.isPending ? 'Creating...' : 'Create'}
             </Button>
-          </div>
-        ) : (
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((values) =>
-                createStaff.mutate(values),
-              )}
-              className="mt-2 flex flex-col gap-4"
-            >
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
-                      First name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter first name"
-                        className="bg-background"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
-                      Last name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter last name"
-                        className="bg-background"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
-                      Email
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="Enter email"
-                        className="bg-background"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
-                      Role
-                    </FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        if (value !== 'Instructor') {
-                          form.setValue('specializations', []);
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {employeeTypes.map((t) => (
-                          <SelectItem key={t.id} value={t.roleName}>
-                            {t.roleName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {isInstructor && (
-                <FormField
-                  control={form.control}
-                  name="specializations"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
-                        Specializations
-                      </FormLabel>
-                      <div className="flex flex-wrap gap-2">
-                        {exerciseTypes.map((et) => {
-                          const active = field.value.includes(et.id);
-                          return (
-                            <Button
-                              type="button"
-                              key={et.id}
-                              size="sm"
-                              variant={active ? 'default' : 'outline'}
-                              className={
-                                active
-                                  ? ''
-                                  : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-                              }
-                              onClick={() => toggleSpecialization(et.id)}
-                            >
-                              {et.name}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <Button
-                type="submit"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 font-bold disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={createStaff.isPending}
-              >
-                {createStaff.isPending ? 'Creating...' : 'Create'}
-              </Button>
-            </form>
-          </Form>
-        )}
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
