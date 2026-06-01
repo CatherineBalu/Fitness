@@ -47,10 +47,9 @@ async function main() {
 
   // 2. Base reference data
   console.log('Inserting base data');
-  await db.insert(schema.employeeTypes).values([
-    { roleName: 'Instructor' },
-    { roleName: 'Reception' },
-  ]);
+  await db
+    .insert(schema.employeeTypes)
+    .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }]);
 
   await db.insert(schema.subscriptions).values([
     { name: 'Basic', price: '19', durationDays: 30 },
@@ -85,13 +84,54 @@ async function main() {
   const lectures = await db
     .insert(schema.lectures)
     .values([
-      { exerciseTypeId: yoga.id, lectureName: 'Vinyasa Yoga', description: 'Flowing yoga sequences', forMembers: false },
-      { exerciseTypeId: yoga.id, lectureName: 'Morning Yoga', description: 'Gentle morning stretch', forMembers: false },
-      { exerciseTypeId: power.id, lectureName: 'Power Training', description: 'Full body strength', forMembers: false },
-      { exerciseTypeId: power.id, lectureName: 'Power Lifting', description: 'Heavy compound lifts', forMembers: true },
-      { exerciseTypeId: cardio.id, lectureName: 'HIIT Cardio', description: 'High intensity intervals', forMembers: false },
-      { exerciseTypeId: spinning.id, lectureName: 'Spin Class', description: 'Indoor cycling workout', forMembers: true },
-      { exerciseTypeId: jumping.id, lectureName: 'Jumping Fitness', description: 'Trampoline-based workout', forMembers: true },
+      {
+        exerciseTypeId: yoga.id,
+        lectureName: 'Vinyasa Yoga',
+        description: 'Flowing yoga sequences',
+        forMembers: false,
+      },
+      {
+        exerciseTypeId: yoga.id,
+        lectureName: 'Morning Yoga',
+        description: 'Gentle morning stretch',
+        forMembers: false,
+      },
+      {
+        exerciseTypeId: power.id,
+        lectureName: 'Power Training',
+        description: 'Full body strength',
+        forMembers: false,
+      },
+      {
+        exerciseTypeId: power.id,
+        lectureName: 'Power Lifting',
+        description: 'Heavy compound lifts',
+        forMembers: true,
+      },
+      {
+        exerciseTypeId: cardio.id,
+        lectureName: 'HIIT Cardio',
+        description: 'High intensity intervals',
+        forMembers: false,
+      },
+      {
+        exerciseTypeId: spinning.id,
+        lectureName: 'Spin Class',
+        description: 'Indoor cycling workout',
+        forMembers: true,
+      },
+      {
+        exerciseTypeId: jumping.id,
+        lectureName: 'Jumping Fitness',
+        description: 'Trampoline-based workout',
+        forMembers: true,
+      },
+      {
+        exerciseTypeId: pilates.id,
+        lectureName: 'Pilates',
+        description: 'Core strength and flexibility',
+        forMembers: false,
+      },
     ])
     .returning();
 
@@ -108,6 +148,7 @@ async function main() {
     { lectureName: 'Vinyasa Yoga', room: roomA, day: 1, startH: 10, endH: 11 },
     { lectureName: 'Jumping Fitness', room: roomD, day: 1, startH: 18, endH: 19 },
     { lectureName: 'Power Lifting', room: roomB, day: 2, startH: 16, endH: 17 },
+    { lectureName: 'Pilates', room: roomD, day: 3, startH: 9, endH: 10 },
   ];
 
   const scheduleValues = [-1, 0, 1].flatMap((weekOffset) => {
