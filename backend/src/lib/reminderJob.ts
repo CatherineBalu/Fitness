@@ -10,33 +10,47 @@ async function sendPendingReminders(): Promise<void> {
   const from = new Date(now.getTime() + 23 * 60 * 60 * 1000);
   const to = new Date(now.getTime() + 25 * 60 * 60 * 1000);
 
-  const rows = await db
-    .select({
-      email: persons.email,
-      firstName: persons.name,
-      lectureName: lectures.lectureName,
-      startTime: schedules.startTime,
-      endTime: schedules.endTime,
-      roomName: rooms.name,
-    })
-    .from(customerReservations)
-    .innerJoin(customers, eq(customerReservations.customerId, customers.id))
-    .innerJoin(persons, eq(customers.personId, persons.id))
-    .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
-    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
-    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
-    .where(
-      and(
-        gte(schedules.startTime, from),
-        lte(schedules.startTime, to),
-        notDeleted(customerReservations),
-        notDeleted(schedules),
-        notDeleted(lectures),
-        notDeleted(rooms),
-        notDeleted(customers),
-        notDeleted(persons),
-      ),
-    );
+  let rows: {
+    email: string;
+    firstName: string;
+    lectureName: string;
+    startTime: Date;
+    endTime: Date;
+    roomName: string;
+  }[];
+
+  try {
+    rows = await db
+      .select({
+        email: persons.email,
+        firstName: persons.name,
+        lectureName: lectures.lectureName,
+        startTime: schedules.startTime,
+        endTime: schedules.endTime,
+        roomName: rooms.name,
+      })
+      .from(customerReservations)
+      .innerJoin(customers, eq(customerReservations.customerId, customers.id))
+      .innerJoin(persons, eq(customers.personId, persons.id))
+      .innerJoin(schedules, eq(customerReservations.scheduleId, schedules.id))
+      .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+      .innerJoin(rooms, eq(schedules.roomId, rooms.id))
+      .where(
+        and(
+          gte(schedules.startTime, from),
+          lte(schedules.startTime, to),
+          notDeleted(customerReservations),
+          notDeleted(schedules),
+          notDeleted(lectures),
+          notDeleted(rooms),
+          notDeleted(customers),
+          notDeleted(persons),
+        ),
+      );
+  } catch (err) {
+    console.error('[reminder] DB query failed', err);
+    return;
+  }
 
   for (const row of rows) {
     try {
