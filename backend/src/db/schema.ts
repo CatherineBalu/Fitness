@@ -147,6 +147,7 @@ export const customerReservations = pgTable('customer_reservation', {
     .references(() => schedules.id),
   attended: boolean('attended').default(false).notNull(),
   reservationDate: timestamp('reservation_date', { withTimezone: true }).defaultNow().notNull(),
+  reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true }),
   ...timestamps,
 });
 
