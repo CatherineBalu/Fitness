@@ -25,6 +25,7 @@ export async function sendTempPasswordEmail(
   firstName: string,
   tempPassword: string,
 ): Promise<void> {
+  if (process.env.NODE_ENV === 'test') return;
   await transporter.sendMail({
     from: `"FitnessXY Gym" <${process.env.GMAIL_USER}>`,
     to,
@@ -51,6 +52,7 @@ export async function sendBookingConfirmationEmail(
   endTime: string,
   roomName: string,
 ): Promise<void> {
+  if (process.env.NODE_ENV === 'test') return;
   await transporter.sendMail({
     from: `"FitnessXY Gym" <${process.env.GMAIL_USER}>`,
     to,
@@ -75,6 +77,7 @@ export async function sendCancellationEmail(
   lectureName: string,
   startTime: string,
 ): Promise<void> {
+  if (process.env.NODE_ENV === 'test') return;
   await transporter.sendMail({
     from: `"FitnessXY Gym" <${process.env.GMAIL_USER}>`,
     to,
@@ -99,6 +102,7 @@ export async function sendReminderEmail(
   endTime: string,
   roomName: string,
 ): Promise<void> {
+  if (process.env.NODE_ENV === 'test') return;
   await transporter.sendMail({
     from: `"FitnessXY Gym" <${process.env.GMAIL_USER}>`,
     to,
