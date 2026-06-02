@@ -17,6 +17,14 @@ interface Membership {
   isActive: boolean;
 }
 
+function formatBillingCycle(price: number, durationDays: number): string {
+  if (durationDays <= 30) return '';
+  const total = `€${price.toFixed(0)}`;
+  if (durationDays >= 365) return ` · billed ${total} / year`;
+  const months = Math.round(durationDays / 30);
+  return ` · billed ${total} every ${months} months`;
+}
+
 interface ProfileData {
   name: string;
   surname: string;
@@ -185,9 +193,10 @@ export default function CustomerProfilePage() {
                     (profile.membership.durationDays / 30)
                   ).toFixed(0)}{' '}
                   / month
-                  {profile.membership.durationDays > 30
-                    ? ` · billed €${profile.membership.price.toFixed(0)} / year`
-                    : ''}
+                  {formatBillingCycle(
+                    profile.membership.price,
+                    profile.membership.durationDays,
+                  )}
                 </span>
               </p>
             </div>

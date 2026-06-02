@@ -32,7 +32,6 @@ async function main() {
     console.log('Deleting old data');
     await db.delete(schema.paymentHistory);
     await db.delete(schema.customerReservations);
-    await db.delete(schema.paymentHistory);
     await db.delete(schema.scheduleInstructors);
     await db.delete(schema.schedules);
     await db.delete(schema.lectures);
