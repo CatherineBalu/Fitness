@@ -1,4 +1,4 @@
-import { SignInButton, useAuth, useClerk } from '@clerk/clerk-react';
+import { SignInButton, useAuth } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 
@@ -109,7 +109,6 @@ function BuyButton({
       : 'bg-primary text-primary-foreground hover:bg-primary/90',
   );
   const navigate = useNavigate();
-  const { openUserProfile } = useClerk();
 
   if (!authReady) {
     return (
@@ -133,7 +132,7 @@ function BuyButton({
         description: 'View its details from your profile.',
         action: {
           label: 'See my subscriptions',
-          onClick: () => openUserProfile(),
+          onClick: () => void navigate({ to: '/my-profile' }),
         },
       });
       return;
