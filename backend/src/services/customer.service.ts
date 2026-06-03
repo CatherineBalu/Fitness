@@ -5,6 +5,7 @@ import { db } from '../db/db';
 import {
   customers,
   customerReservations,
+  entryPackages,
   lectures,
   paymentHistory,
   persons,
@@ -127,20 +128,15 @@ export async function getCustomerSpending(clerkId: string) {
   const payments = await db
     .select({
       id: paymentHistory.id,
-      subscriptionName: subscriptions.name,
+      subscriptionName: sql<string>`coalesce(${subscriptions.name}, ${entryPackages.name})`,
       amount: paymentHistory.amount,
       paymentDate: paymentHistory.paymentDate,
       paymentMethod: paymentHistory.paymentMethod,
     })
     .from(paymentHistory)
-    .innerJoin(subscriptions, eq(paymentHistory.subscriptionId, subscriptions.id))
-    .where(
-      and(
-        eq(paymentHistory.customerId, customer.customerId),
-        notDeleted(paymentHistory),
-        notDeleted(subscriptions),
-      ),
-    )
+    .leftJoin(subscriptions, eq(paymentHistory.subscriptionId, subscriptions.id))
+    .leftJoin(entryPackages, eq(paymentHistory.entryPackageId, entryPackages.id))
+    .where(and(eq(paymentHistory.customerId, customer.customerId), notDeleted(paymentHistory)))
     .orderBy(desc(paymentHistory.paymentDate));
 
   const [totalRow] = await db

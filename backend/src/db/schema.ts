@@ -32,6 +32,14 @@ export const subscriptions = pgTable('subscription', {
   ...timestamps,
 });
 
+export const entryPackages = pgTable('entry_package', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  entryCount: integer('entry_count').notNull(),
+  price: numeric('price').notNull(),
+  ...timestamps,
+});
+
 export const exerciseTypes = pgTable('exercise_type', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
@@ -90,6 +98,7 @@ export const customers = pgTable('customer', {
     .references(() => persons.id),
   subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
   subscriptionValidUntil: date('subscription_valid_until'),
+  entryBalance: integer('entry_balance').notNull().default(0),
   ...timestamps,
 });
 
@@ -156,11 +165,36 @@ export const paymentHistory = pgTable('payment_history', {
   customerId: uuid('customer_id')
     .notNull()
     .references(() => customers.id),
-  subscriptionId: uuid('subscription_id')
-    .notNull()
-    .references(() => subscriptions.id),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
+  entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
   amount: numeric('amount').notNull(),
   paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
   paymentMethod: text('payment_method').notNull(),
+  ...timestamps,
+});
+
+export const qrTokens = pgTable('qr_token', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  ...timestamps,
+});
+
+export const entryLogs = pgTable('entry_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  staffId: uuid('staff_id')
+    .notNull()
+    .references(() => persons.id),
+  qrTokenId: uuid('qr_token_id')
+    .notNull()
+    .references(() => qrTokens.id),
+  scannedAt: timestamp('scanned_at', { withTimezone: true }).defaultNow().notNull(),
   ...timestamps,
 });

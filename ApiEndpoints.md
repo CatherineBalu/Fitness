@@ -34,12 +34,23 @@
 - GET `/subscriptions` — public list of subscription plans (cheapest first)
 - POST `/subscriptions/buy` — authenticated customer purchases a plan, starting today (body: `{ subscriptionId, paymentMethod? }`)
 
+### Entry packages
+
+- GET `/entry-packages` — public list of entry packages sorted by price (e.g. Single Entry, 10-Entry Bundle)
+- POST `/entry-packages/buy` — authenticated customer purchases an entry package; increments their entry balance (body: `{ entryPackageId, paymentMethod? }`); returns `201 { success: true, entryBalance: N }`
+
+### Entry (QR access)
+
+- POST `/entry/token` — authenticated customer generates a short-lived QR token (5-minute TTL); requires `entryBalance > 0`; returns `{ token, expiresAt }`
+- POST `/entry/scan` — staff scans a QR token; requires `entry:scan` permission; atomically decrements customer's `entryBalance`; logs the scan; returns `{ customerName, remainingBalance }` (body: `{ token }`)
+
 ### Customer (requires auth)
 
 - GET `/api/customer/me` — current customer's profile and active membership details
 - DELETE `/api/customer/membership` — cancel current customer's active membership
 - GET `/api/customer/registrations` — all reservations (upcoming + past) with lecture name, time, room, and schedule ID
 - GET `/api/customer/spending` — full payment history and total amount spent
+- GET `/api/customer/entries` — current entry balance and last 20 entry log entries (with staff name and scan timestamp)
 
 ### Staff (admin)
 

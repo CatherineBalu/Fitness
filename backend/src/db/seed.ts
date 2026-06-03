@@ -30,9 +30,10 @@ async function main() {
   try {
     // 1. Clearing database (Important: deletion order matters due to foreign keys)
     console.log('Deleting old data');
+    await db.delete(schema.entryLogs);
+    await db.delete(schema.qrTokens);
     await db.delete(schema.paymentHistory);
     await db.delete(schema.customerReservations);
-    await db.delete(schema.paymentHistory);
     await db.delete(schema.scheduleInstructors);
     await db.delete(schema.schedules);
     await db.delete(schema.lectures);
@@ -42,6 +43,7 @@ async function main() {
     await db.delete(schema.persons);
     await db.delete(schema.employeeTypes);
     await db.delete(schema.subscriptions);
+    await db.delete(schema.entryPackages);
     await db.delete(schema.rooms);
     await db.delete(schema.exerciseTypes);
 
@@ -60,6 +62,11 @@ async function main() {
         { name: 'Premium', price: '149', durationDays: 365 },
       ])
       .returning();
+
+    await db.insert(schema.entryPackages).values([
+      { name: 'Single Entry', entryCount: 1, price: '5.00' },
+      { name: '10-Entry Bundle', entryCount: 10, price: '40.00' },
+    ]);
 
     const rooms = await db
       .insert(schema.rooms)

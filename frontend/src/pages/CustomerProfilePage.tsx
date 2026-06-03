@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { QRCode } from 'react-qr-code';
 
 import { authKeys } from '@/hooks/useAuthProfile';
+import { useCustomerEntries, useGenerateQrToken } from '@/hooks/useEntry';
 import {
   customerRegistrationsKey,
   useUnregisterReservation,
@@ -65,12 +67,21 @@ function formatTime(iso: string) {
   });
 }
 
+const TOKEN_TTL_SECONDS = 5 * 60;
+
+// ── Main page ──────────────────────────────────────────────────────────
+
 export default function CustomerProfilePage() {
   const qc = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
     null,
   );
+  const [showQr, setShowQr] = useState(false);
+  const [qrToken, setQrToken] = useState<string | null>(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState<Date | null>(null);
+  const [qrSecondsLeft, setQrSecondsLeft] = useState(0);
+  const generateToken = useGenerateQrToken();
 
   const profileQuery = useQuery({
     queryKey: customerMeKey,
@@ -84,6 +95,7 @@ export default function CustomerProfilePage() {
     queryKey: customerSpendingKey,
     queryFn: () => apiClient<SpendingData>('/api/customer/spending'),
   });
+  const entriesQuery = useCustomerEntries();
 
   const unregister = useUnregisterReservation();
   const cancelMembership = useMutation({
@@ -96,13 +108,55 @@ export default function CustomerProfilePage() {
     },
   });
 
+  const generateQr = () => {
+    generateToken.mutate(undefined, {
+      onSuccess: (data) => {
+        setQrToken(data.token);
+        setQrExpiresAt(new Date(data.expiresAt));
+        setQrSecondsLeft(TOKEN_TTL_SECONDS);
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (!showQr) {
+      setQrToken(null);
+      setQrExpiresAt(null);
+      setQrSecondsLeft(0);
+      return;
+    }
+    generateQr();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showQr]);
+
+  useEffect(() => {
+    if (!qrExpiresAt) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.floor((qrExpiresAt.getTime() - Date.now()) / 1000),
+      );
+      setQrSecondsLeft(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [qrExpiresAt]);
+
+  const qrExpired = qrSecondsLeft <= 0 && showQr && !generateToken.isPending;
+  const qrMinutes = Math.floor(qrSecondsLeft / 60);
+  const qrSeconds = qrSecondsLeft % 60;
+
   const loading =
     profileQuery.isLoading ||
     registrationsQuery.isLoading ||
-    spendingQuery.isLoading;
+    spendingQuery.isLoading ||
+    entriesQuery.isLoading;
 
   const error =
-    profileQuery.error ?? registrationsQuery.error ?? spendingQuery.error;
+    profileQuery.error ??
+    registrationsQuery.error ??
+    spendingQuery.error ??
+    entriesQuery.error;
 
   if (loading) {
     return (
@@ -123,6 +177,7 @@ export default function CustomerProfilePage() {
   const profile = profileQuery.data ?? null;
   const registrations = registrationsQuery.data ?? [];
   const spending = spendingQuery.data ?? null;
+  const entries = entriesQuery.data ?? null;
 
   const upcoming = registrations.filter(
     (r) => new Date(r.startTime) >= new Date(),
@@ -228,6 +283,121 @@ export default function CustomerProfilePage() {
             No active membership.
           </p>
         )}
+      </section>
+
+      {/* ── Gym Entries ── */}
+      <section className="flex flex-col gap-3">
+        <p className="text-primary mb-0.5 text-[0.72rem] font-bold tracking-[0.12em] uppercase">
+          Access
+        </p>
+        <h2 className="text-foreground mb-2.5 text-[1.1rem] font-extrabold">
+          Gym Entries
+        </h2>
+
+        <div className="border-border bg-secondary flex flex-col gap-3 rounded-xl border px-5 py-[18px]">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-foreground text-base font-bold">
+              Entry Balance
+            </span>
+            <span className="text-primary text-[1.1rem] font-extrabold">
+              {entries?.entryBalance ?? 0}{' '}
+              <span className="text-muted-foreground text-[0.8rem] font-normal">
+                {(entries?.entryBalance ?? 0) === 1 ? 'entry' : 'entries'}
+              </span>
+            </span>
+          </div>
+
+          {entries && entries.logs.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-muted-foreground text-[0.72rem] font-bold tracking-[0.1em] uppercase">
+                Recent visits
+              </p>
+              {entries.logs.slice(0, 5).map((log) => (
+                <div
+                  key={log.id}
+                  className="text-muted-foreground flex items-center justify-between text-[0.78rem]"
+                >
+                  <span>{formatDate(log.scannedAt)}</span>
+                  <span>{log.staffName}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!showQr ? (
+            <div className="flex gap-2">
+              <a
+                href="/#pricing"
+                className="border-border text-foreground hover:border-primary hover:text-primary flex-1 cursor-pointer rounded-lg border bg-transparent py-2 text-center text-[0.82rem] font-semibold transition-colors"
+              >
+                Buy entries
+              </a>
+              <button
+                onClick={() => setShowQr(true)}
+                disabled={(entries?.entryBalance ?? 0) === 0}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 cursor-pointer rounded-lg py-2 text-[0.82rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Show QR code
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 pt-1">
+              {generateToken.isPending ? (
+                <div className="text-muted-foreground py-6 text-[0.85rem]">
+                  Generating QR code…
+                </div>
+              ) : qrToken && !qrExpired ? (
+                <>
+                  <div className="rounded-xl bg-white p-3">
+                    <QRCode value={qrToken} size={180} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-foreground text-[0.88rem] font-semibold">
+                      Show this to staff at the entrance
+                    </p>
+                    <p
+                      className={cn(
+                        'mt-1 text-[1.1rem] font-extrabold tabular-nums',
+                        qrSecondsLeft <= 60
+                          ? 'text-destructive'
+                          : 'text-primary',
+                      )}
+                    >
+                      {String(qrMinutes).padStart(2, '0')}:
+                      {String(qrSeconds).padStart(2, '0')}
+                    </p>
+                    <p className="text-muted-foreground text-[0.72rem]">
+                      expires in
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-muted rounded-xl p-3">
+                    <div className="flex size-[180px] items-center justify-center">
+                      <p className="text-muted-foreground text-center text-[0.82rem]">
+                        QR code expired
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={generateQr}
+                    disabled={generateToken.isPending}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-2 text-[0.82rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Regenerate
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowQr(false)}
+                className="border-border text-muted-foreground hover:text-foreground w-full cursor-pointer rounded-lg border bg-transparent py-2 text-[0.82rem] font-semibold transition-colors"
+              >
+                Hide
+              </button>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* ── Registered lectures ── */}

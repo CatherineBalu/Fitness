@@ -22,7 +22,8 @@ export type Permission =
   | 'profile:read'
   | 'profile:write'
   | 'stats:staff'
-  | 'stats:admin';
+  | 'stats:admin'
+  | 'entry:scan';
 
 // Employee permissions — admin inherits all of these
 const EMPLOYEE_PERMISSIONS: Permission[] = [
@@ -39,6 +40,7 @@ const EMPLOYEE_PERMISSIONS: Permission[] = [
   'profile:read',
   'profile:write',
   'stats:staff',
+  'entry:scan',
 ];
 
 const ROLE_PERMISSIONS: Record<string, Permission[]> = {

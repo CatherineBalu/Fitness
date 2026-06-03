@@ -8,6 +8,8 @@ import { clerkMiddleware } from './middleware/auth';
 import { profileRoutes } from './routes/auth';
 import { calendarRoutes } from './routes/calendar';
 import { customerRoutes } from './routes/customer';
+import { customerEntryRoutes, entryScanRoutes, entryTokenRoutes } from './routes/entry';
+import { entryPackageRoutes } from './routes/entryPackages';
 import { scheduleRoutes } from './routes/schedule';
 import { employeeTypeRoutes } from './routes/staff/employee-type';
 import { exerciseTypeRoutes } from './routes/staff/exercise-type';
@@ -72,6 +74,10 @@ export const app = new Elysia()
   .use(staffStatsRoutes)
   .use(customerRoutes)
   .use(subscriptionRoutes)
+  .use(entryPackageRoutes)
+  .use(entryTokenRoutes)
+  .use(entryScanRoutes)
+  .use(customerEntryRoutes)
   .listen({
     port: parseInt(process.env.PORT ?? '3001'),
     hostname: '0.0.0.0',

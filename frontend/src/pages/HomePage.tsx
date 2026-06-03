@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthProfile } from '@/hooks/useAuthProfile';
+import { useEntryPackages, type EntryPackage } from '@/hooks/useEntryPackages';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { cn } from '@/lib/utils';
 
@@ -148,6 +149,51 @@ function BuyButton({
   );
 }
 
+function EntryBuyButton({
+  pkg,
+  authReady,
+  isSignedIn,
+}: {
+  pkg: EntryPackage;
+  authReady: boolean;
+  isSignedIn: boolean;
+}) {
+  const navigate = useNavigate();
+  const btnClass =
+    'bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-[var(--radius)] border-none py-[13px] text-[15px] font-bold transition-colors';
+
+  if (!authReady) {
+    return (
+      <button className={btnClass} disabled>
+        Buy
+      </button>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <SignInButton
+        mode="modal"
+        forceRedirectUrl={`/entry-checkout?package=${pkg.id}`}
+      >
+        <button className={btnClass}>Buy</button>
+      </SignInButton>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={btnClass}
+      onClick={() =>
+        void navigate({ to: '/entry-checkout', search: { package: pkg.id } })
+      }
+    >
+      Buy
+    </button>
+  );
+}
+
 export default function HomePage() {
   const { isSignedIn, isLoaded } = useAuth();
 
@@ -156,6 +202,9 @@ export default function HomePage() {
     isLoading: plansLoading,
     isError: plansError,
   } = useSubscriptions();
+
+  const { data: entryPackages = [], isLoading: entryPackagesLoading } =
+    useEntryPackages();
 
   const { data: profile } = useAuthProfile({
     enabled: isLoaded && !!isSignedIn,
@@ -362,6 +411,64 @@ export default function HomePage() {
               );
             })}
           </div>
+
+          {/* ── Entry packages ── */}
+          {(entryPackagesLoading || entryPackages.length > 0) && (
+            <div className="mx-auto mt-16 max-w-[960px]">
+              <h3 className="text-foreground mb-2 text-center text-[22px] font-extrabold">
+                Single Entries
+              </h3>
+              <p className="text-muted-foreground mb-10 text-center text-[15px]">
+                No commitment. Pay per visit.
+              </p>
+              {entryPackagesLoading ? (
+                <div className="mx-auto grid max-w-[640px] grid-cols-1 gap-6 sm:grid-cols-2">
+                  <Skeleton className="h-48 rounded-xl" />
+                  <Skeleton className="h-48 rounded-xl" />
+                </div>
+              ) : (
+                <div className="mx-auto grid max-w-[640px] grid-cols-1 gap-6 sm:grid-cols-2">
+                  {entryPackages.map((pkg) => (
+                    <div
+                      key={pkg.id}
+                      className="border-border bg-card flex flex-col rounded-2xl border px-8 py-9"
+                    >
+                      <h4 className="mb-4 text-[20px] font-bold">{pkg.name}</h4>
+                      <div className="mb-2">
+                        <span className="text-[50px] leading-none font-extrabold">
+                          {formatPrice(pkg.price)}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground text-xs-plus mb-7">
+                        {pkg.entryCount === 1
+                          ? 'One gym visit'
+                          : `${pkg.entryCount} gym visits · €${(Number(pkg.price) / pkg.entryCount).toFixed(2)} per visit`}
+                      </p>
+                      <ul className="mb-8 flex flex-1 list-none flex-col gap-3 p-0">
+                        <li className="flex items-center gap-2.5 text-[14px]">
+                          <span className="text-primary font-bold">✓</span>
+                          Full gym access
+                        </li>
+                        <li className="flex items-center gap-2.5 text-[14px]">
+                          <span className="text-primary font-bold">✓</span>
+                          No expiry
+                        </li>
+                        <li className="flex items-center gap-2.5 text-[14px]">
+                          <span className="text-primary font-bold">✓</span>
+                          QR code entry
+                        </li>
+                      </ul>
+                      <EntryBuyButton
+                        pkg={pkg}
+                        authReady={isLoaded}
+                        isSignedIn={!!isSignedIn}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

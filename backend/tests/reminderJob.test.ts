@@ -106,7 +106,12 @@ describe('sendPendingReminders', () => {
   });
 
   test('sends emails for multiple rows and stamps each one', async () => {
-    const secondRow = { ...MOCK_ROW, reservationId: 'res-uuid-2', email: 'bob@example.com', firstName: 'Bob' };
+    const secondRow = {
+      ...MOCK_ROW,
+      reservationId: 'res-uuid-2',
+      email: 'bob@example.com',
+      firstName: 'Bob',
+    };
     mockSelect.mockImplementation(() => makeSelectChain([MOCK_ROW, secondRow]));
 
     await sendPendingReminders();
@@ -120,7 +125,9 @@ describe('sendPendingReminders', () => {
     mockSelect.mockImplementation(() => makeSelectChain([MOCK_ROW, failRow]));
     mockSendReminderEmail
       .mockImplementationOnce(async () => {}) // first row succeeds
-      .mockImplementationOnce(async () => { throw new Error('SMTP error'); }); // second fails
+      .mockImplementationOnce(async () => {
+        throw new Error('SMTP error');
+      }); // second fails
 
     await sendPendingReminders();
 
