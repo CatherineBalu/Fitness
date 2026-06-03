@@ -28,9 +28,9 @@ export const staffWriteRoutes = new Elysia({ prefix: '/api/staff' })
   .post(
     '/',
     async ({ body, set }) => {
-      const result = await createStaff(body);
+      await createStaff(body);
       set.status = 201;
-      return { success: true, ...result };
+      return { success: true };
     },
     {
       body: t.Object({

@@ -178,6 +178,7 @@ describe('POST /subscriptions/buy — logic', () => {
   });
 
   it('returns 422 when body fields are missing', async () => {
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
     const res = await app.handle(
       new Request('http://localhost/subscriptions/buy', {
         method: 'POST',

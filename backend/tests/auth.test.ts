@@ -20,6 +20,7 @@ mock.module('@clerk/backend', () => ({
         firstName: 'Test',
         lastName: 'User',
       }),
+      updateUserMetadata: async () => ({}),
     },
   }),
   verifyToken: mockVerifyToken,

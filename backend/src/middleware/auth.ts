@@ -81,17 +81,18 @@ export const clerkMiddleware = new Elysia({ name: 'clerk-auth' }).derive(
       const role = hasRole ? publicMetadata.role! : 'customer';
       const clerkId = verified.sub;
 
-      // JIT role assignment: persist 'customer' to Clerk on first authenticated
-      // request. `role` already holds 'customer' via the fallback above, so the
-      // current request proceeds even if this call fails — next request retries.
+      // JIT role assignment: best-effort, fire-and-forget. `role` already holds
+      // 'customer' via the fallback above, so the current request is not blocked.
       if (!hasRole) {
-        try {
-          await clerk.users.updateUserMetadata(clerkId, {
-            publicMetadata: { role: 'customer' },
-          });
-        } catch (err) {
-          console.error('[auth] Failed to set customer role on Clerk user', clerkId, err);
-        }
+        void (async () => {
+          try {
+            await clerk.users.updateUserMetadata(clerkId, {
+              publicMetadata: { role: 'customer' },
+            });
+          } catch (err) {
+            console.error('[auth] Failed to set customer role on Clerk user', clerkId, err);
+          }
+        })();
       }
 
       // JIT provisioning: create persons + customers on first authenticated request

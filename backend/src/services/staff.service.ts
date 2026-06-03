@@ -14,6 +14,7 @@ import {
   schedules,
   scheduleInstructors,
 } from '../db/schema';
+import { sendTempPasswordEmail } from '../lib/email';
 import { DomainValidationError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
 import { clerk } from '../middleware/auth';
@@ -146,7 +147,7 @@ export async function getEmployeeLecturesForClerkUser(clerkId: string) {
   return getEmployeeLectures(employee.id);
 }
 
-export async function createStaff(input: CreateStaffInput): Promise<{ temporaryPassword: string }> {
+export async function createStaff(input: CreateStaffInput): Promise<void> {
   const [roleRow] = await db
     .select()
     .from(employeeTypes)
@@ -217,7 +218,7 @@ export async function createStaff(input: CreateStaffInput): Promise<{ temporaryP
     throw new Error('Failed to save staff member to database', { cause: err });
   }
 
-  return { temporaryPassword: tempPassword };
+  await sendTempPasswordEmail(input.email, input.firstName, tempPassword);
 }
 
 export async function updateStaff(employeeId: string, input: UpdateStaffInput): Promise<void> {

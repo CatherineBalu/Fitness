@@ -18,6 +18,8 @@ import { notDeleted } from '../lib/notDeleted';
 export type CustomerLookup = {
   customerId: string;
   personId: string;
+  email: string;
+  firstName: string;
   subscriptionValidUntil: string | null;
 };
 
@@ -26,6 +28,8 @@ export async function findCustomerByClerkId(clerkId: string): Promise<CustomerLo
     .select({
       customerId: customers.id,
       personId: customers.personId,
+      email: persons.email,
+      firstName: persons.name,
       subscriptionValidUntil: customers.subscriptionValidUntil,
     })
     .from(customers)
