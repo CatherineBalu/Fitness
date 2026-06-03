@@ -146,6 +146,27 @@ TanStack file-based routing in `frontend/src/routes/`. Code-based `router.tsx` i
 - `ThemeProvider` (in `components/common/`) manages `light` / `dark` / `system`, syncs to `localStorage`, applies the class.
 - `ThemeToggle` lives in the Navbar (`components/layout/`). Three options: light / dark / system.
 
+## Deployment
+
+Frontend → Vercel, Backend → Railway, DB → Neon (serverless Postgres).
+Local dev: Docker Compose (unchanged). Env var docs in `backend/.env.example` and `frontend/.env.example`.
+Schema changes against prod: `DATABASE_URL=<neon-url> bunx drizzle-kit push`.
+
+### Live URLs
+- Frontend: https://pb138-frontend.vercel.app
+- Backend: https://pb138-production.up.railway.app
+
+### Deploying updates
+- **Frontend:** `git push` to the repo triggers Vercel auto-deploy (or `vercel --prod` manually from `frontend/`).
+- **Backend:** `cd backend && railway up` to push the current local build. Railway does not auto-deploy from GitLab.
+- **Schema change:** run `DATABASE_URL=<neon-url> bunx drizzle-kit push` from `backend/` before deploying the backend.
+- **Re-seed prod:** `DATABASE_URL=<neon-url> CLERK_SECRET_KEY=<key> bun run src/db/seed.prod.ts` from `backend/`. Wipes and re-creates all data.
+
+### New team member setup
+1. They sign up on the live site — JIT provisioning creates their DB record automatically.
+2. Set their role in **Clerk dashboard → Users → Edit public metadata** → `{ "role": "admin" }` (or `"employee"`).
+3. They log out and back in for the role to take effect.
+
 ## Git
 
 Use `/branch` and `/commit` skills.
