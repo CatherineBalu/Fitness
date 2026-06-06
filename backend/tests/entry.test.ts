@@ -36,9 +36,6 @@ function makeChain(resolveTo: unknown[]): any {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 let selectResponses: unknown[][] = [];
-// Controls what the customers UPDATE inside the scan transaction returns.
-// [] = 0 rows updated (no entries), [{ entryBalance: N }] = success.
-let txCustomerUpdateResult: unknown[] = [{ entryBalance: 0 }];
 
 mock.module('../src/db/db', () => ({
   db: {
@@ -46,15 +43,10 @@ mock.module('../src/db/db', () => ({
     insert: () => makeChain([]),
     update: () => makeChain([]),
     transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
-      let updateCallCount = 0;
       const tx = {
         select: () => makeChain(selectResponses.shift() ?? []),
         insert: () => makeChain([]),
-        update: () => {
-          // First update inside validateAndScan is the customers decrement
-          if (updateCallCount++ === 0) return makeChain(txCustomerUpdateResult);
-          return makeChain([]);
-        },
+        update: () => makeChain([]),
       };
       return fn(tx);
     },
@@ -110,7 +102,11 @@ describe('POST /entry/token — logic', () => {
   });
 
   test('returns 422 when customer has no entries remaining', async () => {
-    selectResponses = [[MIDDLEWARE_PERSON_ROW], [{ customerId: 'customer-1', entryBalance: 0 }]];
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ customerId: 'customer-1' }], // customer lookup
+      [{ total: 0 }], // live balance from ledger — no active credits
+    ];
     const res = await app.handle(
       new Request('http://localhost/entry/token', { method: 'POST', headers: authHeader() }),
     );
@@ -120,7 +116,11 @@ describe('POST /entry/token — logic', () => {
   });
 
   test('returns 200 with token and expiresAt when customer has balance', async () => {
-    selectResponses = [[MIDDLEWARE_PERSON_ROW], [{ customerId: 'customer-1', entryBalance: 3 }]];
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ customerId: 'customer-1' }], // customer lookup
+      [{ total: 3 }], // live balance from ledger
+    ];
     const res = await app.handle(
       new Request('http://localhost/entry/token', { method: 'POST', headers: authHeader() }),
     );
@@ -172,7 +172,6 @@ describe('POST /entry/scan — logic', () => {
     mockVerifyToken.mockReset();
     mockVerifiedToken('employee');
     selectResponses = [];
-    txCustomerUpdateResult = [{ entryBalance: 0 }];
   });
 
   test('returns 422 when body is missing token', async () => {
@@ -205,12 +204,12 @@ describe('POST /entry/scan — logic', () => {
   });
 
   test('returns 422 when customer has no entries remaining', async () => {
-    txCustomerUpdateResult = []; // 0 rows updated → balance was 0
     selectResponses = [
       [MIDDLEWARE_PERSON_ROW],
       [{ id: 'token-1', customerId: 'customer-1' }], // valid qrToken
       [{ id: 'emp-1' }], // employee lookup
       [{ name: 'Alice', surname: 'Smith' }], // customer info
+      [], // FIFO credit lookup inside tx → no active (non-expired) batch
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {
@@ -225,12 +224,13 @@ describe('POST /entry/scan — logic', () => {
   });
 
   test('returns 200 with customerName and remainingBalance on success', async () => {
-    txCustomerUpdateResult = [{ entryBalance: 2 }];
     selectResponses = [
       [MIDDLEWARE_PERSON_ROW],
       [{ id: 'token-1', customerId: 'customer-1' }],
       [{ id: 'emp-1' }],
       [{ name: 'Alice', surname: 'Smith' }],
+      [{ id: 'credit-1' }], // FIFO credit lookup → soonest-expiring batch
+      [{ total: 2 }], // recomputed live balance after decrement
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {

@@ -35,47 +35,49 @@ export default function StaffScanPage() {
     scannerRef.current = scanner;
     processingRef.current = false;
 
-    scanner
-      .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          if (processingRef.current || !mountedRef.current) return;
-          processingRef.current = true;
+    void (async () => {
+      try {
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            if (processingRef.current || !mountedRef.current) return;
+            processingRef.current = true;
 
-          void (async () => {
-            await stopScanner(scanner);
-            if (!mountedRef.current) return;
-            scanMutation.mutate(decodedText, {
-              onSuccess: (result) => {
-                if (!mountedRef.current) return;
-                setState({ status: 'success', result });
-                resetTimerRef.current = setTimeout(() => {
+            void (async () => {
+              await stopScanner(scanner);
+              if (!mountedRef.current) return;
+              scanMutation.mutate(decodedText, {
+                onSuccess: (result) => {
                   if (!mountedRef.current) return;
-                  setState({ status: 'scanning' });
-                  startScanner();
-                }, RESET_DELAY_MS);
-              },
-              onError: (err) => {
-                if (!mountedRef.current) return;
-                setState({ status: 'error', message: err.message });
-                resetTimerRef.current = setTimeout(() => {
+                  setState({ status: 'success', result });
+                  resetTimerRef.current = setTimeout(() => {
+                    if (!mountedRef.current) return;
+                    setState({ status: 'scanning' });
+                    startScanner();
+                  }, RESET_DELAY_MS);
+                },
+                onError: (err) => {
                   if (!mountedRef.current) return;
-                  setState({ status: 'scanning' });
-                  startScanner();
-                }, RESET_DELAY_MS);
-              },
-            });
-          })();
-        },
-        undefined,
-      )
-      .catch((err: unknown) => {
+                  setState({ status: 'error', message: err.message });
+                  resetTimerRef.current = setTimeout(() => {
+                    if (!mountedRef.current) return;
+                    setState({ status: 'scanning' });
+                    startScanner();
+                  }, RESET_DELAY_MS);
+                },
+              });
+            })();
+          },
+          undefined,
+        );
+      } catch (err: unknown) {
         if (!mountedRef.current) return;
         const message =
           err instanceof Error ? err.message : 'Camera access denied';
         setState({ status: 'error', message });
-      });
+      }
+    })();
   };
 
   useEffect(() => {

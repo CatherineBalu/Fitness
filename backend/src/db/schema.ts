@@ -198,3 +198,17 @@ export const entryLogs = pgTable('entry_log', {
   scannedAt: timestamp('scanned_at', { withTimezone: true }).defaultNow().notNull(),
   ...timestamps,
 });
+
+// One row per purchased batch of entries. Source of truth for the entry balance;
+// each batch expires independently, so we track remaining count + expiry per batch.
+// customers.entryBalance is a denormalized cache of the live (non-expired) sum.
+export const entryCredits = pgTable('entry_credit', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
+  remainingCount: integer('remaining_count').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  ...timestamps,
+});

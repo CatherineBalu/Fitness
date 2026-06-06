@@ -1,3 +1,4 @@
+import { useClerk } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { QRCode } from 'react-qr-code';
@@ -39,6 +40,7 @@ interface Registration {
 interface Payment {
   id: string;
   subscriptionName: string;
+  kind: 'entry' | 'subscription';
   amount: number;
   paymentDate: string;
   paymentMethod: string;
@@ -73,6 +75,9 @@ const TOKEN_TTL_SECONDS = 5 * 60;
 
 export default function CustomerProfilePage() {
   const qc = useQueryClient();
+  // This page is rendered inside the Clerk UserProfile modal (UserButton.UserProfilePage),
+  // so navigating away must also close that overlay. No-op when rendered standalone.
+  const { closeUserProfile } = useClerk();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
     null,
@@ -307,6 +312,26 @@ export default function CustomerProfilePage() {
             </span>
           </div>
 
+          {entries && entries.credits.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-muted-foreground text-[0.72rem] font-bold tracking-[0.1em] uppercase">
+                Validity
+              </p>
+              {entries.credits.map((credit) => (
+                <div
+                  key={credit.expiresAt}
+                  className="text-muted-foreground flex items-center justify-between text-[0.78rem]"
+                >
+                  <span>
+                    {credit.remainingCount}{' '}
+                    {credit.remainingCount === 1 ? 'entry' : 'entries'}
+                  </span>
+                  <span>expire {formatDate(credit.expiresAt)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {entries && entries.logs.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <p className="text-muted-foreground text-[0.72rem] font-bold tracking-[0.1em] uppercase">
@@ -328,6 +353,7 @@ export default function CustomerProfilePage() {
             <div className="flex gap-2">
               <a
                 href="/#pricing"
+                onClick={() => closeUserProfile()}
                 className="border-border text-foreground hover:border-primary hover:text-primary flex-1 cursor-pointer rounded-lg border bg-transparent py-2 text-center text-[0.82rem] font-semibold transition-colors"
               >
                 Buy entries
@@ -520,8 +546,13 @@ export default function CustomerProfilePage() {
                   className="border-border bg-secondary flex items-center justify-between gap-3 rounded-[10px] border px-4 py-3"
                 >
                   <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                    <span className="text-foreground overflow-hidden text-[0.88rem] font-semibold text-ellipsis whitespace-nowrap">
-                      {p.subscriptionName}
+                    <span className="flex items-center gap-2">
+                      <span className="text-foreground overflow-hidden text-[0.88rem] font-semibold text-ellipsis whitespace-nowrap">
+                        {p.subscriptionName}
+                      </span>
+                      <span className="border-border text-muted-foreground shrink-0 rounded-full border px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.06em] uppercase">
+                        {p.kind === 'entry' ? 'Entries' : 'Membership'}
+                      </span>
                     </span>
                     <span className="text-muted-foreground text-[0.75rem]">
                       {formatDate(p.paymentDate)} · {p.paymentMethod}

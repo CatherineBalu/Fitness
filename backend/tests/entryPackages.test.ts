@@ -179,8 +179,17 @@ describe('POST /entry-packages/buy — logic', () => {
     expect(body.error).toMatch(/package/i);
   });
 
-  test('returns 201 with updated entry balance on success', async () => {
-    selectResponses = [[MIDDLEWARE_PERSON_ROW], [customerRow()], [packageRow()]];
+  test('returns 201 and echoes the recomputed entry balance on success', async () => {
+    // DB is mocked, so the balance isn't computed from the package — it's whatever
+    // the SUM(remaining_count) query returns. We stub that and assert the endpoint
+    // surfaces it unchanged. Value is arbitrary; only the round-trip is under test.
+    const RECOMPUTED_BALANCE = 11;
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [customerRow()],
+      [packageRow()],
+      [{ total: RECOMPUTED_BALANCE }], // stubbed result of the post-purchase SUM query
+    ];
     const res = await app.handle(
       new Request('http://localhost/entry-packages/buy', {
         method: 'POST',
@@ -191,6 +200,6 @@ describe('POST /entry-packages/buy — logic', () => {
     expect(res.status).toBe(201);
     const body = (await res.json()) as { success: boolean; entryBalance: number };
     expect(body.success).toBe(true);
-    expect(typeof body.entryBalance).toBe('number');
+    expect(body.entryBalance).toBe(RECOMPUTED_BALANCE);
   });
 });

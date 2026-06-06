@@ -37,12 +37,14 @@
 ### Entry packages
 
 - GET `/entry-packages` — public list of entry packages sorted by price (e.g. Single Entry, 10-Entry Bundle)
-- POST `/entry-packages/buy` — authenticated customer purchases an entry package; increments their entry balance (body: `{ entryPackageId, paymentMethod? }`); returns `201 { success: true, entryBalance: N }`
+- POST `/entry-packages/buy` — authenticated customer purchases an entry package; adds a credit batch (valid 180 days from purchase) and returns the recomputed live balance (body: `{ entryPackageId, paymentMethod? }`); returns `201 { success: true, entryBalance: N }`
 
 ### Entry (QR access)
 
-- POST `/entry/token` — authenticated customer generates a short-lived QR token (5-minute TTL); requires `entryBalance > 0`; returns `{ token, expiresAt }`
-- POST `/entry/scan` — staff scans a QR token; requires `entry:scan` permission; atomically decrements customer's `entryBalance`; logs the scan; returns `{ customerName, remainingBalance }` (body: `{ token }`)
+Entries are tracked per purchased batch in `entry_credit` (each batch has its own `expiresAt`, valid 180 days from purchase). The live balance is the sum of non-expired batches; `customers.entryBalance` is a denormalized cache. Scans consume FIFO (soonest-expiring batch first).
+
+- POST `/entry/token` — authenticated customer generates a short-lived QR token (5-minute TTL); requires a live (non-expired) balance > 0; returns `{ token, expiresAt }`
+- POST `/entry/scan` — staff scans a QR token; requires `entry:scan` permission; atomically decrements the soonest-expiring credit batch (FIFO); logs the scan; returns `{ customerName, remainingBalance }` (body: `{ token }`)
 
 ### Customer (requires auth)
 
@@ -50,7 +52,7 @@
 - DELETE `/api/customer/membership` — cancel current customer's active membership
 - GET `/api/customer/registrations` — all reservations (upcoming + past) with lecture name, time, room, and schedule ID
 - GET `/api/customer/spending` — full payment history and total amount spent
-- GET `/api/customer/entries` — current entry balance and last 20 entry log entries (with staff name and scan timestamp)
+- GET `/api/customer/entries` — live entry balance, active credit batches (`credits: [{ remainingCount, expiresAt }]`, soonest-expiring first), and last 20 entry log entries (with staff name and scan timestamp)
 
 ### Staff (admin)
 

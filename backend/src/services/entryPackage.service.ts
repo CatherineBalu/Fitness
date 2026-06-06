@@ -1,8 +1,9 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 
 import { getCustomerByClerkIdOrThrow } from './customer.service';
+import { ENTRY_VALIDITY_MS, entryService } from './entry.service';
 import { db } from '../db/db';
-import { customers, entryPackages, paymentHistory } from '../db/schema';
+import { entryCredits, entryPackages, paymentHistory } from '../db/schema';
 import { NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
 
@@ -33,7 +34,7 @@ async function buy(
     .limit(1);
   if (!pkg) throw new NotFoundError('Entry package not found');
 
-  const [updated] = await db.transaction(async (tx) => {
+  const entryBalance = await db.transaction(async (tx) => {
     await tx.insert(paymentHistory).values({
       customerId: customer.customerId,
       entryPackageId: pkg.id,
@@ -41,15 +42,16 @@ async function buy(
       paymentMethod,
     });
 
-    return tx
-      .update(customers)
-      .set({
-        entryBalance: sql`${customers.entryBalance} + ${pkg.entryCount}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(customers.id, customer.customerId))
-      .returning({ entryBalance: customers.entryBalance });
+    // Each purchase is its own batch with its own expiry (validity counted from now).
+    await tx.insert(entryCredits).values({
+      customerId: customer.customerId,
+      entryPackageId: pkg.id,
+      remainingCount: pkg.entryCount,
+      expiresAt: new Date(Date.now() + ENTRY_VALIDITY_MS),
+    });
+
+    return entryService.recalcEntryBalanceCache(tx, customer.customerId);
   });
 
-  return { entryBalance: updated.entryBalance };
+  return { entryBalance };
 }

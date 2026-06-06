@@ -32,6 +32,7 @@ async function main() {
     console.log('Deleting old data');
     await db.delete(schema.entryLogs);
     await db.delete(schema.qrTokens);
+    await db.delete(schema.entryCredits);
     await db.delete(schema.paymentHistory);
     await db.delete(schema.customerReservations);
     await db.delete(schema.scheduleInstructors);

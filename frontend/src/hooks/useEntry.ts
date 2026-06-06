@@ -9,8 +9,14 @@ export interface EntryLog {
   staffName: string;
 }
 
+export interface EntryCredit {
+  remainingCount: number;
+  expiresAt: string;
+}
+
 export interface CustomerEntries {
   entryBalance: number;
+  credits: EntryCredit[];
   logs: EntryLog[];
 }
 

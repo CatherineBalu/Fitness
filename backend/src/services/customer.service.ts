@@ -129,6 +129,9 @@ export async function getCustomerSpending(clerkId: string) {
     .select({
       id: paymentHistory.id,
       subscriptionName: sql<string>`coalesce(${subscriptions.name}, ${entryPackages.name})`,
+      kind: sql<
+        'entry' | 'subscription'
+      >`case when ${paymentHistory.entryPackageId} is not null then 'entry' else 'subscription' end`,
       amount: paymentHistory.amount,
       paymentDate: paymentHistory.paymentDate,
       paymentMethod: paymentHistory.paymentMethod,
