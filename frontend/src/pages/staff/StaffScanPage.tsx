@@ -71,6 +71,12 @@ export default function StaffScanPage() {
           },
           undefined,
         );
+        // StrictMode double-invokes effects: cleanup nulls scannerRef before this
+        // start() resolves, so a newer scanner has already taken over — stop this stale one.
+        if (scannerRef.current !== scanner) {
+          await stopScanner(scanner);
+          return;
+        }
       } catch (err: unknown) {
         if (!mountedRef.current) return;
         const message =
