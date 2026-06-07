@@ -17,6 +17,7 @@ export interface EntryCredit {
 export interface CustomerEntries {
   entryBalance: number;
   credits: EntryCredit[];
+  membershipEnteredToday: boolean;
   logs: EntryLog[];
 }
 
@@ -27,7 +28,8 @@ export interface GenerateTokenResponse {
 
 export interface ScanResult {
   customerName: string;
-  remainingBalance: number;
+  remainingBalance: number | null;
+  kind: 'entry' | 'membership';
 }
 
 export const entryKeys = {
@@ -45,6 +47,18 @@ export function useGenerateQrToken() {
   return useMutation({
     mutationFn: () =>
       apiClient<GenerateTokenResponse>('/entry/token', { method: 'POST' }),
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+}
+
+export function useGenerateMembershipQrToken() {
+  return useMutation({
+    mutationFn: () =>
+      apiClient<GenerateTokenResponse>('/entry/membership-token', {
+        method: 'POST',
+      }),
     onError: (err: Error) => {
       toast.error(err.message);
     },

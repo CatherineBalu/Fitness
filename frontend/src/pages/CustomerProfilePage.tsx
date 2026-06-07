@@ -1,10 +1,14 @@
 import { useClerk } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { QRCode } from 'react-qr-code';
+import { useState } from 'react';
 
+import QrAccessPanel from '@/components/common/QrAccessPanel';
 import { authKeys } from '@/hooks/useAuthProfile';
-import { useCustomerEntries, useGenerateQrToken } from '@/hooks/useEntry';
+import {
+  useCustomerEntries,
+  useGenerateMembershipQrToken,
+  useGenerateQrToken,
+} from '@/hooks/useEntry';
 import {
   customerRegistrationsKey,
   useUnregisterReservation,
@@ -69,8 +73,6 @@ function formatTime(iso: string) {
   });
 }
 
-const TOKEN_TTL_SECONDS = 5 * 60;
-
 // ── Main page ──────────────────────────────────────────────────────────
 
 export default function CustomerProfilePage() {
@@ -82,11 +84,8 @@ export default function CustomerProfilePage() {
   const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
     null,
   );
-  const [showQr, setShowQr] = useState(false);
-  const [qrToken, setQrToken] = useState<string | null>(null);
-  const [qrExpiresAt, setQrExpiresAt] = useState<Date | null>(null);
-  const [qrSecondsLeft, setQrSecondsLeft] = useState(0);
   const generateToken = useGenerateQrToken();
+  const generateMembershipToken = useGenerateMembershipQrToken();
 
   const profileQuery = useQuery({
     queryKey: customerMeKey,
@@ -112,44 +111,6 @@ export default function CustomerProfilePage() {
       setConfirmCancel(false);
     },
   });
-
-  const generateQr = () => {
-    generateToken.mutate(undefined, {
-      onSuccess: (data) => {
-        setQrToken(data.token);
-        setQrExpiresAt(new Date(data.expiresAt));
-        setQrSecondsLeft(TOKEN_TTL_SECONDS);
-      },
-    });
-  };
-
-  useEffect(() => {
-    if (!showQr) {
-      setQrToken(null);
-      setQrExpiresAt(null);
-      setQrSecondsLeft(0);
-      return;
-    }
-    generateQr();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showQr]);
-
-  useEffect(() => {
-    if (!qrExpiresAt) return;
-    const interval = setInterval(() => {
-      const remaining = Math.max(
-        0,
-        Math.floor((qrExpiresAt.getTime() - Date.now()) / 1000),
-      );
-      setQrSecondsLeft(remaining);
-      if (remaining <= 0) clearInterval(interval);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [qrExpiresAt]);
-
-  const qrExpired = qrSecondsLeft <= 0 && showQr && !generateToken.isPending;
-  const qrMinutes = Math.floor(qrSecondsLeft / 60);
-  const qrSeconds = qrSecondsLeft % 60;
 
   const loading =
     profileQuery.isLoading ||
@@ -282,6 +243,22 @@ export default function CustomerProfilePage() {
                 </div>
               </div>
             )}
+
+            {profile.membership.isActive && (
+              <div className="border-border mt-1 flex flex-col gap-2 border-t pt-3">
+                <QrAccessPanel
+                  mutation={generateMembershipToken}
+                  disabled={entries?.membershipEnteredToday ?? false}
+                  triggerLabel="Show entry QR"
+                  instruction="Daily gym entry — show this to staff"
+                />
+                {entries?.membershipEnteredToday && (
+                  <p className="text-muted-foreground text-center text-[0.75rem]">
+                    You've already used today's entry. Come back tomorrow.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <p className="border-border bg-secondary text-muted-foreground rounded-xl border px-5 py-[18px] text-[0.85rem]">
@@ -349,80 +326,19 @@ export default function CustomerProfilePage() {
             </div>
           )}
 
-          {!showQr ? (
-            <div className="flex gap-2">
-              <a
-                href="/#pricing"
-                onClick={() => closeUserProfile()}
-                className="border-border text-foreground hover:border-primary hover:text-primary flex-1 cursor-pointer rounded-lg border bg-transparent py-2 text-center text-[0.82rem] font-semibold transition-colors"
-              >
-                Buy entries
-              </a>
-              <button
-                onClick={() => setShowQr(true)}
-                disabled={(entries?.entryBalance ?? 0) === 0}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 cursor-pointer rounded-lg py-2 text-[0.82rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Show QR code
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4 pt-1">
-              {generateToken.isPending ? (
-                <div className="text-muted-foreground py-6 text-[0.85rem]">
-                  Generating QR code…
-                </div>
-              ) : qrToken && !qrExpired ? (
-                <>
-                  <div className="rounded-xl bg-white p-3">
-                    <QRCode value={qrToken} size={180} />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-foreground text-[0.88rem] font-semibold">
-                      Show this to staff at the entrance
-                    </p>
-                    <p
-                      className={cn(
-                        'mt-1 text-[1.1rem] font-extrabold tabular-nums',
-                        qrSecondsLeft <= 60
-                          ? 'text-destructive'
-                          : 'text-primary',
-                      )}
-                    >
-                      {String(qrMinutes).padStart(2, '0')}:
-                      {String(qrSeconds).padStart(2, '0')}
-                    </p>
-                    <p className="text-muted-foreground text-[0.72rem]">
-                      expires in
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-muted rounded-xl p-3">
-                    <div className="flex size-[180px] items-center justify-center">
-                      <p className="text-muted-foreground text-center text-[0.82rem]">
-                        QR code expired
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={generateQr}
-                    disabled={generateToken.isPending}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-2 text-[0.82rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Regenerate
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => setShowQr(false)}
-                className="border-border text-muted-foreground hover:text-foreground w-full cursor-pointer rounded-lg border bg-transparent py-2 text-[0.82rem] font-semibold transition-colors"
-              >
-                Hide
-              </button>
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            <a
+              href="/#pricing"
+              onClick={() => closeUserProfile()}
+              className="border-border text-foreground hover:border-primary hover:text-primary cursor-pointer rounded-lg border bg-transparent py-2 text-center text-[0.82rem] font-semibold transition-colors"
+            >
+              Buy entries
+            </a>
+            <QrAccessPanel
+              mutation={generateToken}
+              disabled={(entries?.entryBalance ?? 0) === 0}
+            />
+          </div>
         </div>
       </section>
 

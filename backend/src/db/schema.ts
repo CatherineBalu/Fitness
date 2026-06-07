@@ -178,6 +178,8 @@ export const qrTokens = pgTable('qr_token', {
   customerId: uuid('customer_id')
     .notNull()
     .references(() => customers.id),
+  // 'entry' consumes a credit on scan; 'membership' is a once-per-day access pass.
+  kind: text('kind').notNull().default('entry'),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   usedAt: timestamp('used_at', { withTimezone: true }),

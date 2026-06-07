@@ -8,6 +8,10 @@ export const entryTokenRoutes = new Elysia({ prefix: '/entry' })
   .post('/token', async ({ ...rest }) => {
     const auth = (rest as unknown as { auth: { userId: string } }).auth;
     return entryService.generateToken(auth.userId);
+  })
+  .post('/membership-token', async ({ ...rest }) => {
+    const auth = (rest as unknown as { auth: { userId: string } }).auth;
+    return entryService.generateMembershipToken(auth.userId);
   });
 
 export const entryScanRoutes = new Elysia({ prefix: '/entry' })

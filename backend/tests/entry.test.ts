@@ -244,4 +244,147 @@ describe('POST /entry/scan — logic', () => {
     expect(body.customerName).toBe('Alice Smith');
     expect(body.remainingBalance).toBe(2);
   });
+
+  test('membership token scan returns null balance and kind=membership', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],
+      [{ id: 'emp-1' }],
+      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: '2999-12-31' }],
+      [{ count: 0 }], // hasMembershipEntryToday → not entered yet
+    ];
+    const res = await app.handle(
+      new Request('http://localhost/entry/scan', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'valid-membership-token' }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      customerName: string;
+      remainingBalance: number | null;
+      kind: string;
+    };
+    expect(body.customerName).toBe('Bob Jones');
+    expect(body.kind).toBe('membership');
+    expect(body.remainingBalance).toBeNull();
+  });
+
+  test('membership scan returns 422 when already entered today', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],
+      [{ id: 'emp-1' }],
+      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: '2999-12-31' }],
+      [{ count: 1 }], // already entered today
+    ];
+    const res = await app.handle(
+      new Request('http://localhost/entry/scan', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'valid-membership-token' }),
+      }),
+    );
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/already used today/i);
+  });
+
+  test('membership scan returns 422 when membership inactive', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],
+      [{ id: 'emp-1' }],
+      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: null }],
+    ];
+    const res = await app.handle(
+      new Request('http://localhost/entry/scan', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'valid-membership-token' }),
+      }),
+    );
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/no active membership/i);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// POST /entry/membership-token
+// ─────────────────────────────────────────────────────────────────────
+
+describe('POST /entry/membership-token — auth', () => {
+  beforeEach(() => {
+    mockVerifyToken.mockReset();
+    selectResponses = [];
+  });
+
+  test('returns 401 when unauthenticated', async () => {
+    const res = await app.handle(
+      new Request('http://localhost/entry/membership-token', { method: 'POST' }),
+    );
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /entry/membership-token — logic', () => {
+  beforeEach(() => {
+    mockVerifyToken.mockReset();
+    mockVerifiedToken('customer');
+    selectResponses = [];
+  });
+
+  test('returns 422 when customer has no active membership', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ customerId: 'customer-1', subscriptionValidUntil: null }],
+    ];
+    const res = await app.handle(
+      new Request('http://localhost/entry/membership-token', {
+        method: 'POST',
+        headers: authHeader(),
+      }),
+    );
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/no active membership/i);
+  });
+
+  test('returns 422 when membership entry already used today', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ customerId: 'customer-1', subscriptionValidUntil: '2999-12-31' }],
+      [{ count: 1 }],
+    ];
+    const res = await app.handle(
+      new Request('http://localhost/entry/membership-token', {
+        method: 'POST',
+        headers: authHeader(),
+      }),
+    );
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/already used your membership entry today/i);
+  });
+
+  test('returns 200 with token when membership active and unused today', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW],
+      [{ customerId: 'customer-1', subscriptionValidUntil: '2999-12-31' }],
+      [{ count: 0 }],
+    ];
+    const res = await app.handle(
+      new Request('http://localhost/entry/membership-token', {
+        method: 'POST',
+        headers: authHeader(),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { token: string; expiresAt: string };
+    expect(typeof body.token).toBe('string');
+    expect(body.token.length).toBeGreaterThan(0);
+    expect(typeof body.expiresAt).toBe('string');
+  });
 });

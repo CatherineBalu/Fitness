@@ -124,8 +124,11 @@ export default function StaffScanPage() {
               </span>
             </p>
             <p className="text-muted-foreground text-[0.8rem]">
-              {state.result.remainingBalance} entr
-              {state.result.remainingBalance === 1 ? 'y' : 'ies'} remaining
+              {state.result.kind === 'membership'
+                ? 'Membership · daily entry'
+                : `${state.result.remainingBalance} entr${
+                    state.result.remainingBalance === 1 ? 'y' : 'ies'
+                  } remaining`}
             </p>
           </div>
         )}

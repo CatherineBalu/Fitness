@@ -1,11 +1,14 @@
-import { and, asc, desc, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 
+import { isMembershipActive } from './subscription.service';
 import { db } from '../db/db';
 import { customers, entryCredits, entryLogs, persons, qrTokens } from '../db/schema';
 import { DomainValidationError, NotFoundError, UnauthorizedError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
 
 const TOKEN_TTL_MS = 5 * 60 * 1000;
+
+type QrKind = 'entry' | 'membership';
 
 // How long purchased entries stay valid, counted from the moment of purchase.
 export const ENTRY_VALIDITY_DAYS = 180;
@@ -42,8 +45,49 @@ async function recalcEntryBalanceCache(exec: Executor, customerId: string): Prom
   return total;
 }
 
+/** True if the customer has already used a membership access pass today (calendar day, server tz). */
+async function hasMembershipEntryToday(exec: Executor, customerId: string): Promise<boolean> {
+  const [row] = await exec
+    .select({ count: sql<number>`count(*)::int` })
+    .from(entryLogs)
+    .innerJoin(qrTokens, eq(entryLogs.qrTokenId, qrTokens.id))
+    .where(
+      and(
+        eq(entryLogs.customerId, customerId),
+        eq(qrTokens.kind, 'membership'),
+        gte(entryLogs.scannedAt, sql`date_trunc('day', now())`),
+        notDeleted(entryLogs),
+      ),
+    );
+  return (row?.count ?? 0) > 0;
+}
+
+async function insertToken(
+  customerId: string,
+  kind: QrKind,
+): Promise<{ token: string; expiresAt: Date }> {
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+  await db.insert(qrTokens).values({ customerId, kind, token, expiresAt });
+  return { token, expiresAt };
+}
+
+async function findCustomerIdByClerk(clerkId: string) {
+  const [row] = await db
+    .select({
+      customerId: customers.id,
+      subscriptionValidUntil: customers.subscriptionValidUntil,
+    })
+    .from(customers)
+    .innerJoin(persons, eq(customers.personId, persons.id))
+    .where(and(eq(persons.clerkId, clerkId), notDeleted(customers), notDeleted(persons)))
+    .limit(1);
+  return row ?? null;
+}
+
 export const entryService = {
   generateToken,
+  generateMembershipToken,
   validateAndScan,
   getCustomerEntries,
   sumActiveCredits,
@@ -51,39 +95,41 @@ export const entryService = {
 };
 
 async function generateToken(clerkId: string): Promise<{ token: string; expiresAt: Date }> {
-  const [row] = await db
-    .select({ customerId: customers.id })
-    .from(customers)
-    .innerJoin(persons, eq(customers.personId, persons.id))
-    .where(and(eq(persons.clerkId, clerkId), notDeleted(customers), notDeleted(persons)))
-    .limit(1);
-
+  const row = await findCustomerIdByClerk(clerkId);
   if (!row) throw new NotFoundError('Customer profile not found');
 
   // Balance is computed live from the ledger — the cache can be stale once a batch expires by time alone.
   const balance = await sumActiveCredits(db, row.customerId);
   if (balance <= 0) throw new DomainValidationError('No entries remaining');
 
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+  return insertToken(row.customerId, 'entry');
+}
 
-  await db.insert(qrTokens).values({
-    customerId: row.customerId,
-    token,
-    expiresAt,
-  });
+async function generateMembershipToken(
+  clerkId: string,
+): Promise<{ token: string; expiresAt: Date }> {
+  const row = await findCustomerIdByClerk(clerkId);
+  if (!row) throw new NotFoundError('Customer profile not found');
 
-  return { token, expiresAt };
+  if (!isMembershipActive(row.subscriptionValidUntil)) {
+    throw new DomainValidationError('No active membership');
+  }
+  if (await hasMembershipEntryToday(db, row.customerId)) {
+    throw new DomainValidationError('You have already used your membership entry today');
+  }
+
+  return insertToken(row.customerId, 'membership');
 }
 
 async function validateAndScan(
   token: string,
   staffClerkId: string,
-): Promise<{ customerName: string; remainingBalance: number }> {
+): Promise<{ customerName: string; remainingBalance: number | null; kind: QrKind }> {
   const [tokenRow] = await db
     .select({
       id: qrTokens.id,
       customerId: qrTokens.customerId,
+      kind: qrTokens.kind,
     })
     .from(qrTokens)
     .where(
@@ -107,13 +153,41 @@ async function validateAndScan(
   if (!staffPerson) throw new UnauthorizedError('Staff profile not found');
 
   const [customerInfo] = await db
-    .select({ name: persons.name, surname: persons.surname })
+    .select({
+      name: persons.name,
+      surname: persons.surname,
+      subscriptionValidUntil: customers.subscriptionValidUntil,
+    })
     .from(customers)
     .innerJoin(persons, eq(customers.personId, persons.id))
     .where(eq(customers.id, tokenRow.customerId))
     .limit(1);
 
-  const result = await db.transaction(async (tx) => {
+  const kind = tokenRow.kind as QrKind;
+  const customerName = `${customerInfo.name} ${customerInfo.surname}`;
+
+  if (kind === 'membership') {
+    await db.transaction(async (tx) => {
+      // Re-check at scan time: membership still valid and not already used today (race guard).
+      if (!isMembershipActive(customerInfo.subscriptionValidUntil)) {
+        throw new DomainValidationError('No active membership');
+      }
+      if (await hasMembershipEntryToday(tx, tokenRow.customerId)) {
+        throw new DomainValidationError('Membership entry already used today');
+      }
+
+      await tx.update(qrTokens).set({ usedAt: new Date() }).where(eq(qrTokens.id, tokenRow.id));
+      await tx.insert(entryLogs).values({
+        customerId: tokenRow.customerId,
+        staffId: staffPerson.id,
+        qrTokenId: tokenRow.id,
+      });
+    });
+
+    return { customerName, remainingBalance: null, kind };
+  }
+
+  const remainingBalance = await db.transaction(async (tx) => {
     // FIFO: consume from the batch that expires soonest, so the customer never
     // loses still-usable entries to expiry while later batches sit unused.
     const [credit] = await tx
@@ -131,7 +205,7 @@ async function validateAndScan(
       .where(eq(entryCredits.id, credit.id));
 
     // Refresh the denormalized cache from the ledger and read back the live balance.
-    const remainingBalance = await recalcEntryBalanceCache(tx, tokenRow.customerId);
+    const balance = await recalcEntryBalanceCache(tx, tokenRow.customerId);
 
     await tx.update(qrTokens).set({ usedAt: new Date() }).where(eq(qrTokens.id, tokenRow.id));
 
@@ -141,24 +215,29 @@ async function validateAndScan(
       qrTokenId: tokenRow.id,
     });
 
-    return remainingBalance;
+    return balance;
   });
 
-  return {
-    customerName: `${customerInfo.name} ${customerInfo.surname}`,
-    remainingBalance: result,
-  };
+  return { customerName, remainingBalance, kind };
 }
 
 async function getCustomerEntries(clerkId: string) {
   const [row] = await db
-    .select({ customerId: customers.id })
+    .select({
+      customerId: customers.id,
+      subscriptionValidUntil: customers.subscriptionValidUntil,
+    })
     .from(customers)
     .innerJoin(persons, eq(customers.personId, persons.id))
     .where(and(eq(persons.clerkId, clerkId), notDeleted(customers), notDeleted(persons)))
     .limit(1);
 
   if (!row) throw new NotFoundError('Customer profile not found');
+
+  const membershipActive = isMembershipActive(row.subscriptionValidUntil);
+  const membershipEnteredToday = membershipActive
+    ? await hasMembershipEntryToday(db, row.customerId)
+    : false;
 
   // Usable batches, soonest-expiring first — drives the "X entries expire on <date>" UI.
   const credits = await db
@@ -188,6 +267,7 @@ async function getCustomerEntries(clerkId: string) {
   return {
     entryBalance,
     credits,
+    membershipEnteredToday,
     logs: logs.map((l) => ({
       id: l.id,
       scannedAt: l.scannedAt,
