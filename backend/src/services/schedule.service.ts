@@ -32,7 +32,7 @@ export type ScheduleListItem = {
   roomCapacity: number;
   exerciseType: string;
   forMembers: boolean;
-  instructors: { name: string; isLead: boolean }[];
+  instructors: { name: string; isLead: boolean; phoneNumber: string | null }[];
   registered: number;
   isRegistered: boolean;
 };
@@ -100,6 +100,7 @@ export async function listSchedules(
       scheduleId: scheduleInstructors.scheduleId,
       name: persons.name,
       surname: persons.surname,
+      phoneNumber: persons.phoneNumber,
       isLead: scheduleInstructors.isLead,
     })
     .from(scheduleInstructors)
@@ -150,6 +151,7 @@ export async function listSchedules(
     instructors: (instructorsBySchedule.get(s.id) ?? []).map((i) => ({
       name: `${i.name} ${i.surname}`,
       isLead: i.isLead,
+      phoneNumber: i.phoneNumber,
     })),
     registered: countBySchedule.get(s.id) ?? 0,
     isRegistered: registeredSet.has(s.id),

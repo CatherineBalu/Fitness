@@ -1,15 +1,17 @@
-import { and, eq, desc, sql } from 'drizzle-orm';
+import { and, eq, desc, inArray, sql } from 'drizzle-orm';
 
 import { isMembershipActive } from './subscription.service';
 import { db } from '../db/db';
 import {
   customers,
   customerReservations,
+  employees,
   lectures,
   paymentHistory,
   persons,
   rooms,
   schedules,
+  scheduleInstructors,
   subscriptions,
 } from '../db/schema';
 import { NotFoundError } from '../lib/errors';
@@ -95,7 +97,7 @@ export async function cancelMembership(clerkId: string): Promise<void> {
 
 export async function getCustomerRegistrations(clerkId: string) {
   const customer = await getCustomerByClerkIdOrThrow(clerkId);
-  return db
+  const rows = await db
     .select({
       reservationId: customerReservations.id,
       scheduleId: schedules.id,
@@ -119,6 +121,48 @@ export async function getCustomerRegistrations(clerkId: string) {
       ),
     )
     .orderBy(desc(schedules.startTime));
+
+  if (rows.length === 0) return [];
+
+  const scheduleIds = rows.map((r) => r.scheduleId);
+  const instructorRows = await db
+    .select({
+      scheduleId: scheduleInstructors.scheduleId,
+      name: persons.name,
+      surname: persons.surname,
+      phoneNumber: persons.phoneNumber,
+      isLead: scheduleInstructors.isLead,
+    })
+    .from(scheduleInstructors)
+    .innerJoin(employees, eq(scheduleInstructors.employeeId, employees.id))
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .where(
+      and(
+        inArray(scheduleInstructors.scheduleId, scheduleIds),
+        notDeleted(scheduleInstructors),
+        notDeleted(employees),
+        notDeleted(persons),
+      ),
+    );
+
+  const instructorsBySchedule = new Map<
+    string,
+    { name: string; phoneNumber: string | null; isLead: boolean }[]
+  >();
+  for (const i of instructorRows) {
+    const list = instructorsBySchedule.get(i.scheduleId) ?? [];
+    list.push({
+      name: `${i.name} ${i.surname}`,
+      phoneNumber: i.phoneNumber,
+      isLead: i.isLead,
+    });
+    instructorsBySchedule.set(i.scheduleId, list);
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    instructors: instructorsBySchedule.get(r.scheduleId) ?? [],
+  }));
 }
 
 export async function getCustomerSpending(clerkId: string) {
