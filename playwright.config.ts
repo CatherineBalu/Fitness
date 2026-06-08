@@ -20,11 +20,8 @@ export default defineConfig({
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
     },
-    {
-      name: 'chromium-public',
-      use: { ...devices['Desktop Chrome'] },
-      testIgnore: [/auth\.setup\.ts/, /\.auth\.spec\.ts$/],
-    },
+    // Run auth tests immediately after setup so the Clerk session is still fresh.
+    // Clerk dev JWTs expire in ~60s; running public tests first (~4 min) kills the session.
     {
       name: 'chromium-auth',
       use: {
@@ -33,6 +30,11 @@ export default defineConfig({
       },
       testMatch: /\.auth\.spec\.ts$/,
       dependencies: ['setup'],
+    },
+    {
+      name: 'chromium-public',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: [/auth\.setup\.ts/, /\.auth\.spec\.ts$/],
     },
   ],
 
