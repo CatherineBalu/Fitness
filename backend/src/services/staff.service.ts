@@ -14,6 +14,7 @@ import {
   schedules,
   scheduleInstructors,
 } from '../db/schema';
+import { getEmailsByClerkIds } from '../lib/clerk';
 import { sendTempPasswordEmail } from '../lib/email';
 import { DomainValidationError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
@@ -328,6 +329,67 @@ export async function deleteStaff(employeeId: string): Promise<void> {
       .set({ deletedAt: now, updatedAt: now })
       .where(eq(persons.id, employee.personId));
   });
+}
+
+export async function listPublicInstructors() {
+  const rows = await db
+    .select({
+      id: employees.id,
+      firstName: persons.name,
+      lastName: persons.surname,
+      phoneNumber: persons.phoneNumber,
+      clerkId: persons.clerkId,
+    })
+    .from(employees)
+    .innerJoin(persons, eq(employees.personId, persons.id))
+    .innerJoin(employeeTypes, eq(employees.employeeTypeId, employeeTypes.id))
+    .where(
+      and(
+        eq(employeeTypes.roleName, 'Instructor'),
+        notDeleted(employees),
+        notDeleted(persons),
+        notDeleted(employeeTypes),
+      ),
+    )
+    .orderBy(asc(persons.surname));
+
+  if (rows.length === 0) return [];
+
+  const specRows = await db
+    .select({
+      employeeId: employeeSpecializations.employeeId,
+      name: exerciseTypes.name,
+    })
+    .from(employeeSpecializations)
+    .innerJoin(exerciseTypes, eq(employeeSpecializations.exerciseTypeId, exerciseTypes.id))
+    .where(
+      and(
+        inArray(
+          employeeSpecializations.employeeId,
+          rows.map((r) => r.id),
+        ),
+        notDeleted(employeeSpecializations),
+        notDeleted(exerciseTypes),
+      ),
+    );
+
+  const byEmployee = new Map<string, string[]>();
+  for (const r of specRows) {
+    const list = byEmployee.get(r.employeeId) ?? [];
+    list.push(r.name);
+    byEmployee.set(r.employeeId, list);
+  }
+
+  const emailByClerkId = await getEmailsByClerkIds(rows.map((r) => r.clerkId));
+
+  return rows.map((r) => ({
+    id: r.id,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    phoneNumber: r.phoneNumber,
+    email: emailByClerkId.get(r.clerkId) ?? null,
+    specializations: byEmployee.get(r.id) ?? [],
+  }));
 }
 
 export async function listExerciseTypes() {

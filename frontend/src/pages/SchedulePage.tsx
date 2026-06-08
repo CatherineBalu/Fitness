@@ -22,6 +22,8 @@ import {
 } from '@/hooks/useReservations';
 import { cn } from '@/lib/utils';
 
+import ContactIcons from '../components/common/ContactIcons';
+
 import type { ScheduleItem } from '@/hooks/useCalendar';
 
 const ALL_LECTURES = 'All lectures';
@@ -34,6 +36,8 @@ interface Activity {
   name: string;
   room: string;
   trainer: string;
+  trainerPhone: string | null;
+  trainerEmail: string | null;
   capacity: number;
   registered: number;
   category: string;
@@ -58,7 +62,10 @@ function toActivity(item: ScheduleItem, weekStart: Date): Activity {
   const dayIndex = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   const lead = item.instructors.find((i) => i.isLead);
-  const trainer = lead ? lead.name : (item.instructors[0]?.name ?? 'TBD');
+  const primary = lead ?? item.instructors[0] ?? null;
+  const trainer = primary?.name ?? 'TBD';
+  const trainerPhone = primary?.phoneNumber ?? null;
+  const trainerEmail = primary?.email ?? null;
 
   return {
     id: item.id,
@@ -67,6 +74,8 @@ function toActivity(item: ScheduleItem, weekStart: Date): Activity {
     name: item.lectureName,
     room: item.roomName,
     trainer,
+    trainerPhone,
+    trainerEmail,
     capacity: item.roomCapacity,
     registered: item.registered,
     category: item.exerciseType,
@@ -529,6 +538,19 @@ export default function SchedulePage() {
                   {dialog.activity.time}?
                 </DialogDescription>
               </DialogHeader>
+              {dialog.activity.trainer !== 'TBD' && (
+                <div className="flex items-center justify-between gap-3 py-2">
+                  <span className="text-muted-foreground text-sm">
+                    <span className="font-semibold">Trainer:</span>{' '}
+                    {dialog.activity.trainer}
+                  </span>
+                  <ContactIcons
+                    phone={dialog.activity.trainerPhone}
+                    email={dialog.activity.trainerEmail}
+                    size="sm"
+                  />
+                </div>
+              )}
               <DialogFooter className="border-border border-t bg-transparent">
                 <Button
                   className="bg-primary text-primary-foreground hover:bg-primary/90 text-[12px] font-bold uppercase"

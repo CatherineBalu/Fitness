@@ -55,7 +55,7 @@ async function main() {
       .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }])
       .returning();
 
-    const [basicSub, proSub] = await db
+    const [basicSub, proSub, premiumSub] = await db
       .insert(schema.subscriptions)
       .values([
         { name: 'Basic', price: '19', durationDays: 30 },
@@ -63,6 +63,7 @@ async function main() {
         { name: 'Premium', price: '149', durationDays: 365 },
       ])
       .returning();
+    const allPlans = [basicSub, proSub, premiumSub];
 
     await db.insert(schema.entryPackages).values([
       { name: 'Single Entry', entryCount: 1, price: '5.00' },
@@ -130,6 +131,19 @@ async function main() {
         .returning()
     )[0];
 
+    const e2ePerson = (
+      await db
+        .insert(schema.persons)
+        .values({
+          clerkId: process.env.SEED_E2E_CLERK_ID ?? 'user_3EZizUeA8h3uJ9nC7qb91LJ3Id2',
+          name: 'Theodard',
+          surname: 'Fitness',
+          email: 'theodard.fitnessxy@gmail.com',
+          phoneNumber: faker.phone.number(),
+        })
+        .returning()
+    )[0];
+
     const customerPersons = await db
       .insert(schema.persons)
       .values(
@@ -180,14 +194,44 @@ async function main() {
     console.log('Creating customers');
     const customers = await db
       .insert(schema.customers)
-      .values(
-        customerPersons.map((p) => ({
+      .values([
+        {
+          personId: e2ePerson.id,
+          subscriptionId: basicSub.id,
+          subscriptionValidUntil: faker.date.future().toISOString(),
+        },
+        ...customerPersons.map((p) => ({
           personId: p.id,
-          subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, null]),
+          subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, premiumSub.id, null]),
           subscriptionValidUntil: faker.date.future().toISOString(),
         })),
-      )
+      ])
       .returning();
+
+    // 5b. Payment history (so admin/staff revenue stats have data)
+    console.log('Creating payment history');
+    const paymentNow = new Date();
+    const paymentValues = customers.flatMap((c) => {
+      if (!c.subscriptionId) return [];
+      const plan = allPlans.find((p) => p.id === c.subscriptionId);
+      if (!plan) return [];
+      const count = faker.number.int({ min: 3, max: 12 });
+      return Array.from({ length: count }, (_, i) => {
+        const d = new Date(paymentNow);
+        d.setUTCMonth(d.getUTCMonth() - i);
+        d.setUTCDate(faker.number.int({ min: 1, max: 28 }));
+        return {
+          customerId: c.id,
+          subscriptionId: plan.id,
+          amount: plan.price,
+          paymentDate: d,
+          paymentMethod: faker.helpers.arrayElement(['card', 'bank']),
+        };
+      });
+    });
+    if (paymentValues.length > 0) {
+      await db.insert(schema.paymentHistory).values(paymentValues);
+    }
 
     // 6. Lectures (customers are created via Clerk signup, not seeded)
     console.log('Creating lectures');
