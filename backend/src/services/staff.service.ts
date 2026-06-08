@@ -147,7 +147,9 @@ export async function getEmployeeLecturesForClerkUser(clerkId: string) {
     .where(and(eq(persons.clerkId, clerkId), notDeleted(employees), notDeleted(persons)))
     .limit(1);
 
-  if (!employee) throw new NotFoundError('Staff profile not found');
+  // Admins (and anyone without an employee profile) simply teach no lectures —
+  // that's an empty list for the dashboard's "my upcoming lectures", not an error.
+  if (!employee) return [];
   return getEmployeeLectures(employee.id);
 }
 
