@@ -13,6 +13,7 @@ import {
   schedules,
   scheduleInstructors,
 } from '../db/schema';
+import { getEmailsByClerkIds } from '../lib/clerk';
 import { sendBookingConfirmationEmail, sendCancellationEmail } from '../lib/email';
 import {
   DomainValidationError,
@@ -32,7 +33,12 @@ export type ScheduleListItem = {
   roomCapacity: number;
   exerciseType: string;
   forMembers: boolean;
-  instructors: { name: string; isLead: boolean }[];
+  instructors: {
+    name: string;
+    isLead: boolean;
+    phoneNumber: string | null;
+    email: string | null;
+  }[];
   registered: number;
   isRegistered: boolean;
 };
@@ -100,6 +106,8 @@ export async function listSchedules(
       scheduleId: scheduleInstructors.scheduleId,
       name: persons.name,
       surname: persons.surname,
+      phoneNumber: persons.phoneNumber,
+      clerkId: persons.clerkId,
       isLead: scheduleInstructors.isLead,
     })
     .from(scheduleInstructors)
@@ -113,6 +121,8 @@ export async function listSchedules(
         notDeleted(persons),
       ),
     );
+
+  const emailByClerkId = await getEmailsByClerkIds(allInstructors.map((i) => i.clerkId));
 
   const allCounts = await db
     .select({
@@ -150,6 +160,8 @@ export async function listSchedules(
     instructors: (instructorsBySchedule.get(s.id) ?? []).map((i) => ({
       name: `${i.name} ${i.surname}`,
       isLead: i.isLead,
+      phoneNumber: i.phoneNumber,
+      email: emailByClerkId.get(i.clerkId) ?? null,
     })),
     registered: countBySchedule.get(s.id) ?? 0,
     isRegistered: registeredSet.has(s.id),

@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -20,11 +19,15 @@ import {
 } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthProfile } from '@/hooks/useAuthProfile';
+import { useInstructors } from '@/hooks/useInstructors';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { cn } from '@/lib/utils';
 
 import heroImg from '../assets/hero.png';
+import ContactIcons from '../components/common/ContactIcons';
+import EmptyState from '../components/common/EmptyState';
 
+import type { Instructor } from '@/hooks/useInstructors';
 import type { SubscriptionPlan } from '@/hooks/useSubscriptions';
 
 function formatPrice(price: string) {
@@ -46,48 +49,71 @@ function formatBillingNote(price: string, days: number) {
   return `Billed ${total} every ${days} days`;
 }
 
-const trainers = [
-  {
-    id: 1,
-    name: 'Janko Mrkvička',
-    speciality: 'Strength & HIIT',
-    bio: 'Specializing in strength training and high-intensity interval training. My goal is to push your limits, refine your form, and unlock your true physical potential.',
-    tags: ['Strength', 'HIIT', 'Nutrition'],
-    img: 'https://randomuser.me/api/portraits/men/32.jpg',
-  },
-  {
-    id: 2,
-    name: 'Katarína Nováková',
-    speciality: 'Yoga & Mobility',
-    bio: 'Dedicated to helping you find balance and flexibility. With 8 years of yoga experience I guide students of all levels toward a stronger, more mindful body.',
-    tags: ['Yoga', 'Mobility', 'Meditation'],
-    img: 'https://randomuser.me/api/portraits/women/44.jpg',
-  },
-  {
-    id: 3,
-    name: 'Martin Horváth',
-    speciality: 'Cycling & Cardio',
-    bio: 'Former professional cyclist turned coach. I bring real-world endurance experience to every session — whether you are a beginner or chasing a personal best.',
-    tags: ['Cycling', 'Cardio', 'Endurance'],
-    img: 'https://randomuser.me/api/portraits/men/76.jpg',
-  },
-  {
-    id: 4,
-    name: 'Lucia Benešová',
-    speciality: 'Pilates & Core',
-    bio: 'Core strength is the foundation of every movement. My Pilates-based approach rebuilds posture, reduces pain, and creates lasting functional strength.',
-    tags: ['Pilates', 'Core', 'Rehabilitation'],
-    img: 'https://randomuser.me/api/portraits/women/68.jpg',
-  },
-  {
-    id: 5,
-    name: 'Tomáš Kováč',
-    speciality: 'CrossFit & Olympic Lifting',
-    bio: 'Certified CrossFit coach and Olympic lifting enthusiast. I thrive on helping athletes of all levels discover what they are truly capable of.',
-    tags: ['CrossFit', 'Olympic Lifting', 'Power'],
-    img: 'https://randomuser.me/api/portraits/men/52.jpg',
-  },
-];
+function formatSpeciality(specializations: string[]) {
+  if (specializations.length === 0) return 'Instructor';
+  return specializations.slice(0, 2).join(' & ');
+}
+
+function formatBio(specializations: string[]) {
+  if (specializations.length === 0) {
+    return 'Certified instructor ready to help you reach your fitness goals.';
+  }
+  return `Certified instructor specializing in ${specializations.join(', ')}. Ready to push your limits, refine your form, and unlock your true potential.`;
+}
+
+function getInitials(first: string, last: string) {
+  return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase();
+}
+
+function TrainerCard({ instructor }: { instructor: Instructor }) {
+  const fullName = `${instructor.firstName} ${instructor.lastName}`;
+  return (
+    <Card
+      data-testid="trainer-card"
+      className="border-border bg-background text-foreground hover:border-primary flex h-full flex-col rounded-2xl border transition-colors"
+    >
+      <CardHeader className="flex justify-center pt-7">
+        <div
+          aria-label={fullName}
+          className="border-primary bg-secondary text-foreground flex h-24 w-24 items-center justify-center rounded-full border-[3px] text-2xl font-bold"
+        >
+          {getInitials(instructor.firstName, instructor.lastName)}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 px-6 pt-4 pb-2">
+        <h3
+          data-testid="trainer-name"
+          className="text-foreground mb-1 text-center text-[20px] font-bold"
+        >
+          {fullName}
+        </h3>
+        <p
+          data-testid="trainer-speciality"
+          className="text-primary text-xs-plus mb-3.5 text-center font-semibold tracking-[0.5px] uppercase"
+        >
+          {formatSpeciality(instructor.specializations)}
+        </p>
+        <p className="text-muted-foreground mb-4 text-center text-[14px] leading-[1.65]">
+          {formatBio(instructor.specializations)}
+        </p>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {instructor.specializations.map((tag) => (
+            <Badge
+              key={tag}
+              data-testid="trainer-badge"
+              className="bg-secondary text-muted-foreground border-none text-[11px] font-semibold"
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+      <CardFooter className="border-border bg-background flex justify-center border-t px-6 pt-4 pb-6">
+        <ContactIcons phone={instructor.phoneNumber} email={instructor.email} />
+      </CardFooter>
+    </Card>
+  );
+}
 
 function BuyButton({
   plan,
@@ -159,6 +185,12 @@ export default function HomePage() {
   const { data: profile } = useAuthProfile({
     enabled: isLoaded && !!isSignedIn,
   });
+
+  const {
+    data: instructors = [],
+    isLoading: instructorsLoading,
+    isError: instructorsError,
+  } = useInstructors();
 
   const hasActiveMembership = isSignedIn
     ? (profile?.hasActiveMembership ?? false)
@@ -380,70 +412,41 @@ export default function HomePage() {
             physical potential.
           </p>
           <div data-testid="trainers-carousel" className="relative px-12">
-            <Carousel opts={{ align: 'start', loop: true }}>
-              <CarouselContent>
-                {trainers.map((trainer) => (
-                  <CarouselItem
-                    key={trainer.id}
-                    className="md:basis-1/2 lg:basis-1/3"
-                  >
-                    <Card
-                      data-testid="trainer-card"
-                      className="border-border bg-background text-foreground hover:border-primary flex h-full flex-col rounded-2xl border transition-colors"
-                    >
-                      <CardHeader className="flex justify-center pt-7">
-                        <img
-                          src={trainer.img}
-                          alt={trainer.name}
-                          className="border-primary h-24 w-24 rounded-full border-[3px] object-cover"
-                        />
-                      </CardHeader>
-                      <CardContent className="flex-1 px-6 pt-4 pb-2">
-                        <h3
-                          data-testid="trainer-name"
-                          className="text-foreground mb-1 text-center text-[20px] font-bold"
-                        >
-                          {trainer.name}
-                        </h3>
-                        <p
-                          data-testid="trainer-speciality"
-                          className="text-primary text-xs-plus mb-3.5 text-center font-semibold tracking-[0.5px] uppercase"
-                        >
-                          {trainer.speciality}
-                        </p>
-                        <p className="text-muted-foreground mb-4 text-center text-[14px] leading-[1.65]">
-                          {trainer.bio}
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-1.5">
-                          {trainer.tags.map((tag) => (
-                            <Badge
-                              key={tag}
-                              data-testid="trainer-badge"
-                              className="bg-secondary text-muted-foreground border-none text-[11px] font-semibold"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="border-border bg-background justify-center border-t px-6 pt-4 pb-6">
-                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 w-full border-none font-bold">
-                          Contact Coach
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  </CarouselItem>
+            {instructorsLoading ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-[420px] rounded-2xl" />
                 ))}
-              </CarouselContent>
-              <CarouselPrevious
-                data-testid="carousel-prev"
-                className="border-border bg-card hover:border-primary hover:bg-secondary text-foreground border"
-              />
-              <CarouselNext
-                data-testid="carousel-next"
-                className="border-border bg-card hover:border-primary hover:bg-secondary text-foreground border"
-              />
-            </Carousel>
+              </div>
+            ) : instructorsError ? (
+              <Alert variant="destructive">
+                <AlertTitle>Couldn&apos;t load instructors</AlertTitle>
+                <AlertDescription>Please try again later.</AlertDescription>
+              </Alert>
+            ) : instructors.length === 0 ? (
+              <EmptyState message="No instructors are available yet. Check back soon!" />
+            ) : (
+              <Carousel opts={{ align: 'start', loop: true }}>
+                <CarouselContent>
+                  {instructors.map((instructor) => (
+                    <CarouselItem
+                      key={instructor.id}
+                      className="md:basis-1/2 lg:basis-1/3"
+                    >
+                      <TrainerCard instructor={instructor} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious
+                  data-testid="carousel-prev"
+                  className="border-border bg-card hover:border-primary hover:bg-secondary text-foreground border"
+                />
+                <CarouselNext
+                  data-testid="carousel-next"
+                  className="border-border bg-card hover:border-primary hover:bg-secondary text-foreground border"
+                />
+              </Carousel>
+            )}
           </div>
         </div>
       </section>
