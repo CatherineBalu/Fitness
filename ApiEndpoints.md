@@ -61,9 +61,9 @@ Entries are tracked per purchased batch in `entry_credit` (each batch has its ow
 
 ### Staff (admin)
 
-- GET `/api/staff` — list all employees with their `specializations: string[]` (Instructors + Reception)
-- POST `/api/staff` — create new employee; body: `{ firstName, lastName, email, role, specializations?: string[] }`; generates a temporary password, sends it to the employee via email; returns `201 { success: true }`
-- PATCH `/api/staff/:id` — update first/last name (DB + Clerk); for Instructor also replaces specializations
+- GET `/api/staff` — list all employees with their `phoneNumber` and `specializations: string[]` (Instructors + Reception)
+- POST `/api/staff` — create new employee; body: `{ firstName, lastName, email, phoneNumber, role, specializations?: string[] }` (phoneNumber required); generates a temporary password, sends it to the employee via email; returns `201 { success: true }`
+- PATCH `/api/staff/:id` — update first/last name and phone number (DB + Clerk name); body: `{ firstName, lastName, phoneNumber, specializations?: string[] }`; for Instructor also replaces specializations
 - DELETE `/api/staff/:id` — remove employee and underlying person
 - GET `/api/staff/:id/lectures` — all scheduled lectures this employee teaches
 

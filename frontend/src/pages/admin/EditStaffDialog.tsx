@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import PhoneInput from '@/components/common/PhoneInput';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { apiClient } from '@/lib/apiClient';
+import { DEFAULT_COUNTRY_CODE, normalizePhone } from '@/lib/countryCodes';
 
 interface ExerciseType {
   id: string;
@@ -33,6 +35,7 @@ interface StaffMember {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber: string | null;
   clerkId: string;
   role: string;
   since: string;
@@ -44,6 +47,7 @@ const staffListKey = ['staff', 'list'] as const;
 const baseSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required'),
   lastName: z.string().trim().min(1, 'Last name is required'),
+  phoneNumber: z.string().regex(/^\+\d{6,15}$/, 'Enter a valid phone number'),
   specializations: z.array(z.string()),
 });
 
@@ -85,6 +89,7 @@ export default function EditStaffDialog({
     defaultValues: {
       firstName: '',
       lastName: '',
+      phoneNumber: DEFAULT_COUNTRY_CODE,
       specializations: [],
     },
   });
@@ -97,6 +102,7 @@ export default function EditStaffDialog({
     form.reset({
       firstName: staff.firstName,
       lastName: staff.lastName,
+      phoneNumber: normalizePhone(staff.phoneNumber),
       specializations: ids,
     });
   }, [open, staff, exerciseTypes, form]);
@@ -108,6 +114,7 @@ export default function EditStaffDialog({
         body: JSON.stringify({
           firstName: payload.firstName,
           lastName: payload.lastName,
+          phoneNumber: payload.phoneNumber,
           specializations: isInstructor ? payload.specializations : undefined,
         }),
       }),
@@ -169,6 +176,19 @@ export default function EditStaffDialog({
                   <FormControl>
                     <Input className="bg-background" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
+                    Phone number
+                  </FormLabel>
+                  <PhoneInput value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}

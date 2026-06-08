@@ -30,6 +30,7 @@ export type CreateStaffInput = {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber: string;
   role: string;
   specializations?: string[];
 };
@@ -37,6 +38,7 @@ export type CreateStaffInput = {
 export type UpdateStaffInput = {
   firstName: string;
   lastName: string;
+  phoneNumber: string;
   specializations?: string[];
 };
 
@@ -47,6 +49,7 @@ export async function listEmployees() {
       firstName: persons.name,
       lastName: persons.surname,
       email: persons.email,
+      phoneNumber: persons.phoneNumber,
       clerkId: persons.clerkId,
       role: employeeTypes.roleName,
       since: employees.hireDate,
@@ -188,6 +191,7 @@ export async function createStaff(input: CreateStaffInput): Promise<void> {
           name: input.firstName,
           surname: input.lastName,
           email: input.email,
+          phoneNumber: input.phoneNumber,
         })
         .returning();
 
@@ -254,7 +258,12 @@ export async function updateStaff(employeeId: string, input: UpdateStaffInput): 
 
   await db
     .update(persons)
-    .set({ name: input.firstName, surname: input.lastName, updatedAt: new Date() })
+    .set({
+      name: input.firstName,
+      surname: input.lastName,
+      phoneNumber: input.phoneNumber,
+      updatedAt: new Date(),
+    })
     .where(eq(persons.id, employee.personId));
 
   if (employee.role === 'Instructor' && input.specializations) {

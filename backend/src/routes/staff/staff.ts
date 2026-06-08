@@ -37,6 +37,7 @@ export const staffWriteRoutes = new Elysia({ prefix: '/api/staff' })
         firstName: t.String({ minLength: 1 }),
         lastName: t.String({ minLength: 1 }),
         email: t.String({ pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$' }),
+        phoneNumber: t.String({ minLength: 1 }),
         role: t.String({ minLength: 1 }),
         specializations: t.Optional(t.Array(t.String())),
       }),
@@ -53,6 +54,7 @@ export const staffWriteRoutes = new Elysia({ prefix: '/api/staff' })
       body: t.Object({
         firstName: t.String({ minLength: 1 }),
         lastName: t.String({ minLength: 1 }),
+        phoneNumber: t.String({ minLength: 1 }),
         specializations: t.Optional(t.Array(t.String())),
       }),
     },

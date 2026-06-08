@@ -42,6 +42,7 @@ interface StaffMember {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber: string | null;
   clerkId: string;
   role: string;
   since: string;

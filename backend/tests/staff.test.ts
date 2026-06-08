@@ -96,6 +96,7 @@ const VALID_BODY = {
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
+  phoneNumber: '+421900123456',
   role: 'Admin',
 };
 
@@ -138,6 +139,25 @@ describe('POST /api/staff', () => {
     expect(res.status).toBe(422);
   });
 
+  test('returns 422 when phoneNumber is missing', async () => {
+    const headers = { ...authHeader('admin'), 'Content-Type': 'application/json' };
+    const withoutPhone = {
+      firstName: VALID_BODY.firstName,
+      lastName: VALID_BODY.lastName,
+      email: VALID_BODY.email,
+      role: VALID_BODY.role,
+    };
+
+    const res = await app.handle(
+      new Request(STAFF_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(withoutPhone),
+      }),
+    );
+    expect(res.status).toBe(422);
+  });
+
   test('calls createStaff and returns 201 { success: true }', async () => {
     const headers = { ...authHeader('admin'), 'Content-Type': 'application/json' };
 
@@ -154,5 +174,50 @@ describe('POST /api/staff', () => {
     expect(body).toEqual({ success: true });
     expect(mockCreateStaff).toHaveBeenCalledTimes(1);
     expect(mockCreateStaff).toHaveBeenCalledWith(VALID_BODY);
+  });
+});
+
+const PATCH_BODY = {
+  firstName: 'Jane',
+  lastName: 'Doe',
+  phoneNumber: '+421900123456',
+};
+
+describe('PATCH /api/staff/:id', () => {
+  beforeEach(() => {
+    mockVerifyToken.mockReset();
+    mockDbSelect.mockReset();
+    mockDbSelect.mockImplementationOnce(() => makeSelectChain([PERSON_ROW]));
+  });
+
+  test('returns 200 { success: true } with a valid body', async () => {
+    const headers = { ...authHeader('admin'), 'Content-Type': 'application/json' };
+
+    const res = await app.handle(
+      new Request(`${STAFF_URL}/emp-1`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(PATCH_BODY),
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+  });
+
+  test('returns 422 when phoneNumber is missing', async () => {
+    const headers = { ...authHeader('admin'), 'Content-Type': 'application/json' };
+    const withoutPhone = {
+      firstName: PATCH_BODY.firstName,
+      lastName: PATCH_BODY.lastName,
+    };
+
+    const res = await app.handle(
+      new Request(`${STAFF_URL}/emp-1`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(withoutPhone),
+      }),
+    );
+    expect(res.status).toBe(422);
   });
 });
