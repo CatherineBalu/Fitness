@@ -46,6 +46,7 @@ describe('GET /api/instructors', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         phoneNumber: '+421900000000',
+        email: 'jane@example.com',
         specializations: ['Yoga', 'Pilates'],
       },
     ];

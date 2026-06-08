@@ -14,6 +14,7 @@ import {
   scheduleInstructors,
   subscriptions,
 } from '../db/schema';
+import { getEmailsByClerkIds } from '../lib/clerk';
 import { NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
 
@@ -131,6 +132,7 @@ export async function getCustomerRegistrations(clerkId: string) {
       name: persons.name,
       surname: persons.surname,
       phoneNumber: persons.phoneNumber,
+      clerkId: persons.clerkId,
       isLead: scheduleInstructors.isLead,
     })
     .from(scheduleInstructors)
@@ -145,15 +147,18 @@ export async function getCustomerRegistrations(clerkId: string) {
       ),
     );
 
+  const emailByClerkId = await getEmailsByClerkIds(instructorRows.map((i) => i.clerkId));
+
   const instructorsBySchedule = new Map<
     string,
-    { name: string; phoneNumber: string | null; isLead: boolean }[]
+    { name: string; phoneNumber: string | null; email: string | null; isLead: boolean }[]
   >();
   for (const i of instructorRows) {
     const list = instructorsBySchedule.get(i.scheduleId) ?? [];
     list.push({
       name: `${i.name} ${i.surname}`,
       phoneNumber: i.phoneNumber,
+      email: emailByClerkId.get(i.clerkId) ?? null,
       isLead: i.isLead,
     });
     instructorsBySchedule.set(i.scheduleId, list);

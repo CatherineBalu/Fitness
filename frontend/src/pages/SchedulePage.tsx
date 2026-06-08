@@ -37,6 +37,7 @@ interface Activity {
   room: string;
   trainer: string;
   trainerPhone: string | null;
+  trainerEmail: string | null;
   capacity: number;
   registered: number;
   category: string;
@@ -64,6 +65,7 @@ function toActivity(item: ScheduleItem, weekStart: Date): Activity {
   const primary = lead ?? item.instructors[0] ?? null;
   const trainer = primary?.name ?? 'TBD';
   const trainerPhone = primary?.phoneNumber ?? null;
+  const trainerEmail = primary?.email ?? null;
 
   return {
     id: item.id,
@@ -73,6 +75,7 @@ function toActivity(item: ScheduleItem, weekStart: Date): Activity {
     room: item.roomName,
     trainer,
     trainerPhone,
+    trainerEmail,
     capacity: item.roomCapacity,
     registered: item.registered,
     category: item.exerciseType,
@@ -543,6 +546,7 @@ export default function SchedulePage() {
                   </span>
                   <ContactIcons
                     phone={dialog.activity.trainerPhone}
+                    email={dialog.activity.trainerEmail}
                     size="sm"
                   />
                 </div>

@@ -109,7 +109,7 @@ function TrainerCard({ instructor }: { instructor: Instructor }) {
         </div>
       </CardContent>
       <CardFooter className="border-border bg-background flex justify-center border-t px-6 pt-4 pb-6">
-        <ContactIcons phone={instructor.phoneNumber} />
+        <ContactIcons phone={instructor.phoneNumber} email={instructor.email} />
       </CardFooter>
     </Card>
   );

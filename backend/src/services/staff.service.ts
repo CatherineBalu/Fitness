@@ -14,6 +14,7 @@ import {
   schedules,
   scheduleInstructors,
 } from '../db/schema';
+import { getEmailsByClerkIds } from '../lib/clerk';
 import { sendTempPasswordEmail } from '../lib/email';
 import { DomainValidationError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
@@ -337,6 +338,7 @@ export async function listPublicInstructors() {
       firstName: persons.name,
       lastName: persons.surname,
       phoneNumber: persons.phoneNumber,
+      clerkId: persons.clerkId,
     })
     .from(employees)
     .innerJoin(persons, eq(employees.personId, persons.id))
@@ -378,8 +380,14 @@ export async function listPublicInstructors() {
     byEmployee.set(r.employeeId, list);
   }
 
+  const emailByClerkId = await getEmailsByClerkIds(rows.map((r) => r.clerkId));
+
   return rows.map((r) => ({
-    ...r,
+    id: r.id,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    phoneNumber: r.phoneNumber,
+    email: emailByClerkId.get(r.clerkId) ?? null,
     specializations: byEmployee.get(r.id) ?? [],
   }));
 }

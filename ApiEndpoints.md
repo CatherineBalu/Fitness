@@ -11,7 +11,7 @@
 ### Schedule
 
 #### Public / Customers (Requires Auth)
-- GET `/schedule?from=YYYY-MM-DD&to=YYYY-MM-DD` — list scheduled lectures in a date range (returns `isRegistered` status for current user). Each instructor entry includes `{ name, isLead, phoneNumber }`.
+- GET `/schedule?from=YYYY-MM-DD&to=YYYY-MM-DD` — list scheduled lectures in a date range (returns `isRegistered` status for current user). Each instructor entry includes `{ name, isLead, phoneNumber, email }` (email pulled from Clerk).
 - POST `/schedule/:id/reservations` — register current user for a lecture (requires `reservation:write`)
 - DELETE `/schedule/:id/reservations` — cancel current user's reservation
 
@@ -38,12 +38,12 @@
 
 - GET `/api/customer/me` — current customer's profile and active membership details
 - DELETE `/api/customer/membership` — cancel current customer's active membership
-- GET `/api/customer/registrations` — all reservations (upcoming + past) with lecture name, time, room, schedule ID, and `instructors: { name, phoneNumber, isLead }[]`
+- GET `/api/customer/registrations` — all reservations (upcoming + past) with lecture name, time, room, schedule ID, and `instructors: { name, phoneNumber, email, isLead }[]` (email pulled from Clerk)
 - GET `/api/customer/spending` — full payment history and total amount spent
 
 ### Instructors (public)
 
-- GET `/api/instructors` — public list of all instructors for the marketing carousel; returns `{ id, firstName, lastName, phoneNumber, specializations: string[] }[]`. No auth required, no email exposed.
+- GET `/api/instructors` — public list of all instructors for the marketing carousel; returns `{ id, firstName, lastName, phoneNumber, email, specializations: string[] }[]`. No auth required. Email is fetched per-request from Clerk.
 
 ### Staff (admin)
 

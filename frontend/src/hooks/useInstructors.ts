@@ -7,6 +7,7 @@ export interface Instructor {
   firstName: string;
   lastName: string;
   phoneNumber: string | null;
+  email: string | null;
   specializations: string[];
 }
 

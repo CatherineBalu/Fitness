@@ -38,6 +38,7 @@ interface ProfileData {
 interface RegistrationInstructor {
   name: string;
   phoneNumber: string | null;
+  email: string | null;
   isLead: boolean;
 }
 
@@ -289,6 +290,7 @@ export default function CustomerProfilePage() {
                             <span>Trainer: {primary.name}</span>
                             <ContactIcons
                               phone={primary.phoneNumber}
+                              email={primary.email}
                               size="sm"
                             />
                           </span>

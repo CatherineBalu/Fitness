@@ -30,7 +30,12 @@ export interface ScheduleItem {
   roomCapacity: number;
   exerciseType: string;
   forMembers: boolean;
-  instructors: { name: string; isLead: boolean; phoneNumber: string | null }[];
+  instructors: {
+    name: string;
+    isLead: boolean;
+    phoneNumber: string | null;
+    email: string | null;
+  }[];
   registered: number;
   isRegistered: boolean;
 }
