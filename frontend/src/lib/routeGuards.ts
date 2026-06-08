@@ -43,3 +43,8 @@ export function requirePermission(permission: Permission): () => Promise<void> {
     if (!can(getRole(), permission)) throw redirect({ to: '/' });
   };
 }
+
+export async function redirectIfEmployee(): Promise<void> {
+  await waitForClerk();
+  if (getRole() === 'employee') throw redirect({ to: '/admin' });
+}
