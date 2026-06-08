@@ -4,6 +4,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import PhoneInput from '@/components/common/PhoneInput';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { apiClient } from '@/lib/apiClient';
+import { DEFAULT_COUNTRY_CODE } from '@/lib/countryCodes';
 
 interface ExerciseType {
   id: string;
@@ -47,6 +49,7 @@ const schema = z
     firstName: z.string().trim().min(1, 'First name is required'),
     lastName: z.string().trim().min(1, 'Last name is required'),
     email: z.string().trim().email('Invalid email address'),
+    phoneNumber: z.string().regex(/^\+\d{6,15}$/, 'Enter a valid phone number'),
     role: z.string().min(1, 'Please select a role'),
     specializations: z.array(z.string()),
   })
@@ -88,6 +91,7 @@ export default function AddMemberDialog({
       firstName: '',
       lastName: '',
       email: '',
+      phoneNumber: DEFAULT_COUNTRY_CODE,
       role: '',
       specializations: [],
     },
@@ -201,6 +205,20 @@ export default function AddMemberDialog({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground text-xs-plus font-semibold">
+                    Phone number
+                  </FormLabel>
+                  <PhoneInput value={field.value} onChange={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}
