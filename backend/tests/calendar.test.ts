@@ -1,6 +1,6 @@
 import { describe, test, expect, mock, beforeEach } from 'bun:test';
 
-// ── Mock @clerk/backend ───────────────────────────────────────────────
+// ── Mock @clerk/backend (configurable token verification) ─────────────
 const mockVerifyToken = mock(async () => {
   throw new Error('verifyToken not configured for this test');
 });
@@ -64,25 +64,74 @@ mock.module('../src/db/db', () => ({
 
 import { app } from '../src';
 
+// ── Helpers ───────────────────────────────────────────────────────────
+function mockVerifiedToken(role: string) {
+  mockVerifyToken.mockImplementation(
+    async () => ({ sub: 'user_test', publicMetadata: { role } }) as never,
+  );
+}
+
+function authHeader() {
+  return { Authorization: 'Bearer fake.jwt.token' };
+}
+
+// First select feeds the clerk middleware's person lookup so JIT provisioning
+// is skipped; subsequent entries feed the service queries.
+const MIDDLEWARE_PERSON_ROW = { id: 'person-1', clerkId: 'user_test' };
+
 const SCHEDULE_ID = '00000000-0000-0000-0000-000000000001';
 const DELETE_URL = `http://localhost/calendar/${SCHEDULE_ID}`;
 
-function deleteRequest(url = DELETE_URL) {
-  return app.handle(new Request(url, { method: 'DELETE' }));
+function deleteRequest(headers?: Record<string, string>, url = DELETE_URL) {
+  return app.handle(new Request(url, { method: 'DELETE', headers }));
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// DELETE /calendar/:id — cancel lecture
+// DELETE /calendar/:id — auth (requires schedule:write)
 // ─────────────────────────────────────────────────────────────────────
 
-describe('DELETE /calendar/:id', () => {
+describe('DELETE /calendar/:id — auth', () => {
   beforeEach(() => {
+    mockVerifyToken.mockReset();
+    selectResponses = [];
+  });
+
+  test('returns 403 when unauthenticated', async () => {
+    const res = await deleteRequest();
+    expect(res.status).toBe(403);
+  });
+
+  test('returns 403 for a customer (lacks schedule:write)', async () => {
+    mockVerifiedToken('customer');
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
+    const res = await deleteRequest(authHeader());
+    expect(res.status).toBe(403);
+  });
+
+  test('does not return 401/403 for an employee', async () => {
+    mockVerifiedToken('employee');
+    selectResponses = [[MIDDLEWARE_PERSON_ROW], [], []];
+    const res = await deleteRequest(authHeader());
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// DELETE /calendar/:id — cancel lecture (authenticated as admin)
+// ─────────────────────────────────────────────────────────────────────
+
+describe('DELETE /calendar/:id — cancel lecture', () => {
+  beforeEach(() => {
+    mockVerifyToken.mockReset();
+    mockVerifiedToken('admin');
     selectResponses = [];
     sendCancellationEmail.mockReset();
   });
 
   test('soft-deletes the lecture and returns success (happy path)', async () => {
     selectResponses = [
+      [MIDDLEWARE_PERSON_ROW], // clerk middleware person lookup
       // schedule lookup — future lecture so registered members get emailed
       [
         {
@@ -90,24 +139,24 @@ describe('DELETE /calendar/:id', () => {
           startTime: new Date(Date.now() + 1000 * 60 * 60 * 24),
         },
       ],
-      // registered customers to notify
-      [{ name: 'Alice', email: 'alice@example.com' }],
+      [{ name: 'Alice', email: 'alice@example.com' }], // registered customers
     ];
 
-    const res = await deleteRequest();
+    const res = await deleteRequest(authHeader());
     expect(res.status).toBe(200);
     const body = (await res.json()) as { success: boolean };
     expect(body.success).toBe(true);
   });
 
   test('returns 404 when the schedule does not exist', async () => {
-    selectResponses = [[]]; // schedule lookup returns nothing
-    const res = await deleteRequest();
+    selectResponses = [[MIDDLEWARE_PERSON_ROW], []]; // schedule lookup empty
+    const res = await deleteRequest(authHeader());
     expect(res.status).toBe(404);
   });
 
   test('returns 422 when the id is not a valid uuid', async () => {
-    const res = await deleteRequest('http://localhost/calendar/not-a-uuid');
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
+    const res = await deleteRequest(authHeader(), 'http://localhost/calendar/not-a-uuid');
     expect(res.status).toBe(422);
   });
 });

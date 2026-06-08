@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia';
 
+import { requirePermission } from '../middleware/auth';
 import {
   addMemberByEmail,
   bulkUpdateAttendance,
@@ -14,6 +15,8 @@ import {
 } from '../services/calendar.service';
 
 export const calendarRoutes = new Elysia({ prefix: '/calendar' })
+  // All lecture-management endpoints are admin/staff only.
+  .use(requirePermission('schedule:write'))
 
   .get('/lectures', () => listLectureTemplates())
 

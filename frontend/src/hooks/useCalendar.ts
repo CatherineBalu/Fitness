@@ -1,3 +1,4 @@
+import { useAuth } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -93,32 +94,39 @@ export function useSchedule(
 }
 
 export function useLectures() {
+  const { isLoaded } = useAuth();
   return useQuery({
     queryKey: calendarKeys.lectures(),
     queryFn: () => apiClient<LectureOption[]>('/calendar/lectures'),
+    enabled: isLoaded,
   });
 }
 
 export function useRooms() {
+  const { isLoaded } = useAuth();
   return useQuery({
     queryKey: calendarKeys.rooms(),
     queryFn: () => apiClient<RoomOption[]>('/calendar/rooms'),
+    enabled: isLoaded,
   });
 }
 
 export function useInstructors() {
+  const { isLoaded } = useAuth();
   return useQuery({
     queryKey: calendarKeys.instructors(),
     queryFn: () => apiClient<InstructorOption[]>('/calendar/instructors'),
+    enabled: isLoaded,
   });
 }
 
 export function useLectureMembers(lectureId: string | null) {
+  const { isLoaded } = useAuth();
   return useQuery({
     queryKey: calendarKeys.members(lectureId),
     queryFn: () =>
       apiClient<LectureMember[]>(`/calendar/${lectureId!}/members`),
-    enabled: !!lectureId,
+    enabled: isLoaded && !!lectureId,
   });
 }
 
