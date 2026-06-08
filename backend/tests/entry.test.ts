@@ -33,6 +33,18 @@ function makeChain(resolveTo: unknown[]): any {
   };
   return chain;
 }
+
+// For UPDATE ... RETURNING: .returning() pulls from selectResponses so tests can
+// control what rows come back. Plain .set().where() resolves to [] (result ignored).
+function makeUpdateChain(): any {
+  const chain: any = {
+    set: () => chain,
+    where: () => chain,
+    returning: async () => selectResponses.shift() ?? [],
+    then: (resolve: (v: unknown) => unknown) => Promise.resolve([]).then(resolve),
+  };
+  return chain;
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 let selectResponses: unknown[][] = [];
@@ -46,7 +58,7 @@ mock.module('../src/db/db', () => ({
       const tx = {
         select: () => makeChain(selectResponses.shift() ?? []),
         insert: () => makeChain([]),
-        update: () => makeChain([]),
+        update: () => makeUpdateChain(),
       };
       return fn(tx);
     },
@@ -188,8 +200,9 @@ describe('POST /entry/scan — logic', () => {
 
   test('returns 422 when QR token is invalid or expired', async () => {
     selectResponses = [
-      [MIDDLEWARE_PERSON_ROW],
-      [], // qrToken lookup returns nothing → invalid/expired
+      [MIDDLEWARE_PERSON_ROW],     // middleware
+      [{ id: 'emp-1' }],           // staff lookup (outside tx)
+      [],                          // tx.update().returning() — no matching token row
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {
@@ -205,11 +218,11 @@ describe('POST /entry/scan — logic', () => {
 
   test('returns 422 when customer has no entries remaining', async () => {
     selectResponses = [
-      [MIDDLEWARE_PERSON_ROW],
-      [{ id: 'token-1', customerId: 'customer-1' }], // valid qrToken
-      [{ id: 'emp-1' }], // employee lookup
-      [{ name: 'Alice', surname: 'Smith' }], // customer info
-      [], // FIFO credit lookup inside tx → no active (non-expired) batch
+      [MIDDLEWARE_PERSON_ROW],                                                    // middleware
+      [{ id: 'emp-1' }],                                                          // staff lookup (outside tx)
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'entry' }],               // tx.update().returning() — token claimed
+      [{ name: 'Alice', surname: 'Smith', subscriptionValidUntil: null }],         // tx.select() — customer info
+      [],                                                                          // tx.select() — FIFO credit lookup → no active batch
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {
@@ -225,12 +238,12 @@ describe('POST /entry/scan — logic', () => {
 
   test('returns 200 with customerName and remainingBalance on success', async () => {
     selectResponses = [
-      [MIDDLEWARE_PERSON_ROW],
-      [{ id: 'token-1', customerId: 'customer-1' }],
-      [{ id: 'emp-1' }],
-      [{ name: 'Alice', surname: 'Smith' }],
-      [{ id: 'credit-1' }], // FIFO credit lookup → soonest-expiring batch
-      [{ total: 2 }], // recomputed live balance after decrement
+      [MIDDLEWARE_PERSON_ROW],                                                    // middleware
+      [{ id: 'emp-1' }],                                                          // staff lookup (outside tx)
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'entry' }],               // tx.update().returning() — token claimed
+      [{ name: 'Alice', surname: 'Smith', subscriptionValidUntil: null }],         // tx.select() — customer info
+      [{ id: 'credit-1' }],                                                        // tx.select() — FIFO credit lookup
+      [{ total: 2 }],                                                              // tx.select() — sumActiveCredits inside recalcEntryBalanceCache
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {
@@ -247,11 +260,11 @@ describe('POST /entry/scan — logic', () => {
 
   test('membership token scan returns null balance and kind=membership', async () => {
     selectResponses = [
-      [MIDDLEWARE_PERSON_ROW],
-      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],
-      [{ id: 'emp-1' }],
-      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: '2999-12-31' }],
-      [{ count: 0 }], // hasMembershipEntryToday → not entered yet
+      [MIDDLEWARE_PERSON_ROW],                                                              // middleware
+      [{ id: 'emp-1' }],                                                                    // staff lookup (outside tx)
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],                   // tx.update().returning() — token claimed
+      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: '2999-12-31' }],           // tx.select() — customer info
+      [{ count: 0 }],                                                                       // tx.select() — hasMembershipEntryToday
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {
@@ -273,11 +286,11 @@ describe('POST /entry/scan — logic', () => {
 
   test('membership scan returns 422 when already entered today', async () => {
     selectResponses = [
-      [MIDDLEWARE_PERSON_ROW],
-      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],
-      [{ id: 'emp-1' }],
-      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: '2999-12-31' }],
-      [{ count: 1 }], // already entered today
+      [MIDDLEWARE_PERSON_ROW],                                                              // middleware
+      [{ id: 'emp-1' }],                                                                    // staff lookup (outside tx)
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],                   // tx.update().returning() — token claimed
+      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: '2999-12-31' }],           // tx.select() — customer info
+      [{ count: 1 }],                                                                       // tx.select() — hasMembershipEntryToday → already entered
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {
@@ -293,10 +306,10 @@ describe('POST /entry/scan — logic', () => {
 
   test('membership scan returns 422 when membership inactive', async () => {
     selectResponses = [
-      [MIDDLEWARE_PERSON_ROW],
-      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],
-      [{ id: 'emp-1' }],
-      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: null }],
+      [MIDDLEWARE_PERSON_ROW],                                                              // middleware
+      [{ id: 'emp-1' }],                                                                    // staff lookup (outside tx)
+      [{ id: 'token-1', customerId: 'customer-1', kind: 'membership' }],                   // tx.update().returning() — token claimed
+      [{ name: 'Bob', surname: 'Jones', subscriptionValidUntil: null }],                   // tx.select() — customer info → membership inactive
     ];
     const res = await app.handle(
       new Request('http://localhost/entry/scan', {

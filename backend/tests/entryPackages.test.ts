@@ -146,6 +146,30 @@ describe('POST /entry-packages/buy — logic', () => {
     expect([400, 422]).toContain(res.status);
   });
 
+  test('returns 422 when entryPackageId is not a valid UUID', async () => {
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
+    const res = await app.handle(
+      new Request('http://localhost/entry-packages/buy', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryPackageId: 'not-a-uuid' }),
+      }),
+    );
+    expect([400, 422]).toContain(res.status);
+  });
+
+  test('returns 422 when paymentMethod is not card or cash', async () => {
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
+    const res = await app.handle(
+      new Request('http://localhost/entry-packages/buy', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryPackageId: PACKAGE_ID, paymentMethod: 'bitcoin' }),
+      }),
+    );
+    expect([400, 422]).toContain(res.status);
+  });
+
   test('returns 404 when the customer profile does not exist', async () => {
     selectResponses = [
       [MIDDLEWARE_PERSON_ROW],

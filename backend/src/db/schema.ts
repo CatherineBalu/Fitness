@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   pgTable,
+  pgEnum,
   uuid,
   text,
   numeric,
@@ -8,6 +10,7 @@ import {
   date,
   boolean,
   primaryKey,
+  check,
 } from 'drizzle-orm/pg-core';
 
 const timestamps = {
@@ -173,13 +176,15 @@ export const paymentHistory = pgTable('payment_history', {
   ...timestamps,
 });
 
+export const qrKindEnum = pgEnum('qr_kind', ['entry', 'membership']);
+
 export const qrTokens = pgTable('qr_token', {
   id: uuid('id').primaryKey().defaultRandom(),
   customerId: uuid('customer_id')
     .notNull()
     .references(() => customers.id),
   // 'entry' consumes a credit on scan; 'membership' is a once-per-day access pass.
-  kind: text('kind').notNull().default('entry'),
+  kind: qrKindEnum('kind').notNull().default('entry'),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   usedAt: timestamp('used_at', { withTimezone: true }),
@@ -204,13 +209,17 @@ export const entryLogs = pgTable('entry_log', {
 // One row per purchased batch of entries. Source of truth for the entry balance;
 // each batch expires independently, so we track remaining count + expiry per batch.
 // customers.entryBalance is a denormalized cache of the live (non-expired) sum.
-export const entryCredits = pgTable('entry_credit', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customers.id),
-  entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
-  remainingCount: integer('remaining_count').notNull(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  ...timestamps,
-});
+export const entryCredits = pgTable(
+  'entry_credit',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id),
+    entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
+    remainingCount: integer('remaining_count').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [check('entry_credit_remaining_count_non_negative', sql`${t.remainingCount} >= 0`)],
+);

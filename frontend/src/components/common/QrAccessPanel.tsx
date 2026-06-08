@@ -16,6 +16,9 @@ interface QrAccessPanelProps {
   disabled?: boolean;
   triggerLabel?: string;
   instruction?: string;
+  onVisibilityChange?: (visible: boolean) => void;
+  /** When flipped to true by the parent (scan detected), auto-closes the panel. */
+  forceClose?: boolean;
 }
 
 export default function QrAccessPanel({
@@ -23,8 +26,20 @@ export default function QrAccessPanel({
   disabled = false,
   triggerLabel = 'Show QR code',
   instruction = 'Show this to staff at the entrance',
+  onVisibilityChange,
+  forceClose = false,
 }: QrAccessPanelProps) {
   const [showQr, setShowQr] = useState(false);
+
+  const setShowQrWithCallback = (visible: boolean) => {
+    setShowQr(visible);
+    onVisibilityChange?.(visible);
+  };
+
+  useEffect(() => {
+    if (forceClose && showQr) setShowQrWithCallback(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceClose]);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [qrExpiresAt, setQrExpiresAt] = useState<Date | null>(null);
   const [qrSecondsLeft, setQrSecondsLeft] = useState(0);
@@ -50,6 +65,8 @@ export default function QrAccessPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQr]);
 
+
+
   useEffect(() => {
     if (!qrExpiresAt) return;
     const interval = setInterval(() => {
@@ -70,7 +87,7 @@ export default function QrAccessPanel({
   if (!showQr) {
     return (
       <button
-        onClick={() => setShowQr(true)}
+        onClick={() => setShowQrWithCallback(true)}
         disabled={disabled}
         className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-2 text-[0.82rem] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
       >
@@ -125,7 +142,7 @@ export default function QrAccessPanel({
         </>
       )}
       <button
-        onClick={() => setShowQr(false)}
+        onClick={() => setShowQrWithCallback(false)}
         className="border-border text-muted-foreground hover:text-foreground w-full cursor-pointer rounded-lg border bg-transparent py-2 text-[0.82rem] font-semibold transition-colors"
       >
         Hide

@@ -22,8 +22,11 @@ export const entryPackageRoutes = new Elysia({ prefix: '/entry-packages' })
       },
       {
         body: t.Object({
-          entryPackageId: t.String(),
-          paymentMethod: t.Optional(t.String()),
+          entryPackageId: t.String({
+            pattern:
+              '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+          }),
+          paymentMethod: t.Optional(t.Union([t.Literal('card'), t.Literal('cash')])),
         }),
       },
     ),

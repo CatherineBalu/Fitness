@@ -1,6 +1,6 @@
 import { useClerk } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import QrAccessPanel from '@/components/common/QrAccessPanel';
 import { authKeys } from '@/hooks/useAuthProfile';
@@ -84,6 +84,15 @@ export default function CustomerProfilePage() {
   const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
     null,
   );
+  const [entryQrOpen, setEntryQrOpen] = useState(false);
+  const [membershipQrOpen, setMembershipQrOpen] = useState(false);
+  const qrOpen = entryQrOpen || membershipQrOpen;
+
+  // Scan detection: close the panel automatically once the server confirms the token was used.
+  const prevEntryBalanceRef = useRef<number | null>(null);
+  const [closeEntryQr, setCloseEntryQr] = useState(false);
+  const [closeMembershipQr, setCloseMembershipQr] = useState(false);
+
   const generateToken = useGenerateQrToken();
   const generateMembershipToken = useGenerateMembershipQrToken();
 
@@ -99,7 +108,30 @@ export default function CustomerProfilePage() {
     queryKey: customerSpendingKey,
     queryFn: () => apiClient<SpendingData>('/api/customer/spending'),
   });
-  const entriesQuery = useCustomerEntries();
+  // Poll every 2 s while any QR panel is open so the balance updates as soon
+  // as staff scans the token on their device.
+  const entriesQuery = useCustomerEntries({ refetchInterval: qrOpen ? 2000 : false });
+
+  // Entry scan detection: close the panel when the balance drops while it is open.
+  useEffect(() => {
+    if (!entryQrOpen) {
+      prevEntryBalanceRef.current = null;
+      setCloseEntryQr(false);
+      return;
+    }
+    const balance = entriesQuery.data?.entryBalance ?? null;
+    if (balance === null) return;
+    if (prevEntryBalanceRef.current !== null && balance < prevEntryBalanceRef.current) {
+      setCloseEntryQr(true);
+    }
+    prevEntryBalanceRef.current = balance;
+  }, [entriesQuery.data?.entryBalance, entryQrOpen]);
+
+  // Membership scan detection: close the panel when today's entry is confirmed.
+  useEffect(() => {
+    if (!membershipQrOpen) { setCloseMembershipQr(false); return; }
+    if (entriesQuery.data?.membershipEnteredToday) setCloseMembershipQr(true);
+  }, [entriesQuery.data?.membershipEnteredToday, membershipQrOpen]);
 
   const unregister = useUnregisterReservation();
   const cancelMembership = useMutation({
@@ -251,6 +283,8 @@ export default function CustomerProfilePage() {
                   disabled={entries?.membershipEnteredToday ?? false}
                   triggerLabel="Show entry QR"
                   instruction="Daily gym entry — show this to staff"
+                  onVisibilityChange={setMembershipQrOpen}
+                  forceClose={closeMembershipQr}
                 />
                 {entries?.membershipEnteredToday && (
                   <p className="text-muted-foreground text-center text-[0.75rem]">
@@ -337,6 +371,8 @@ export default function CustomerProfilePage() {
             <QrAccessPanel
               mutation={generateToken}
               disabled={(entries?.entryBalance ?? 0) === 0}
+              onVisibilityChange={setEntryQrOpen}
+              forceClose={closeEntryQr}
             />
           </div>
         </div>
