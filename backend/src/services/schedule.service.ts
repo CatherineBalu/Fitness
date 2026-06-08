@@ -41,10 +41,31 @@ export async function listSchedules(
   fromIso: string,
   toIso: string,
   clerkId: string | null,
+  onlyMine = false,
 ): Promise<ScheduleListItem[]> {
   const from = new Date(fromIso);
   const to = new Date(toIso);
   to.setHours(23, 59, 59, 999);
+
+  let instructorScheduleIds: string[] | null = null;
+  if (onlyMine && clerkId) {
+    const [emp] = await db
+      .select({ id: employees.id })
+      .from(employees)
+      .innerJoin(persons, eq(employees.personId, persons.id))
+      .where(and(eq(persons.clerkId, clerkId), notDeleted(employees), notDeleted(persons)))
+      .limit(1);
+
+    if (!emp) return [];
+
+    const instrRows = await db
+      .select({ scheduleId: scheduleInstructors.scheduleId })
+      .from(scheduleInstructors)
+      .where(and(eq(scheduleInstructors.employeeId, emp.id), notDeleted(scheduleInstructors)));
+
+    instructorScheduleIds = instrRows.map((r) => r.scheduleId);
+    if (instructorScheduleIds.length === 0) return [];
+  }
 
   const scheduleRows = await db
     .select({
@@ -70,6 +91,7 @@ export async function listSchedules(
         notDeleted(lectures),
         notDeleted(rooms),
         notDeleted(exerciseTypes),
+        ...(instructorScheduleIds !== null ? [inArray(schedules.id, instructorScheduleIds)] : []),
       ),
     );
 
