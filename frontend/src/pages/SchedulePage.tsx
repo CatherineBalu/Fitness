@@ -211,14 +211,14 @@ function ActivityCard({
             {activity.forMembers && (
               <Badge
                 variant="outline"
-                className="border-primary text-primary inline-flex h-[18px] items-center gap-[3px] px-1.5 text-[10px]"
+                className="border-primary dark:bg-card text-primary inline-flex h-[18px] items-center gap-[3px] bg-white px-1.5 text-[10px] font-semibold"
               >
                 <Lock size={10} /> Members
               </Badge>
             )}
             <Badge
               variant="outline"
-              className="border-border text-muted-foreground h-[18px] px-1.5 text-[10px]"
+              className="border-border dark:bg-card text-foreground/80 h-[18px] bg-white px-1.5 text-[10px] font-semibold"
             >
               {activity.category}
             </Badge>
@@ -424,7 +424,7 @@ export default function SchedulePage() {
               className={cn(
                 'text-xs tracking-[0.5px] uppercase',
                 !activeCategories.has(cat) &&
-                  'border-border text-muted-foreground hover:text-foreground',
+                  'border-border bg-card text-muted-foreground hover:text-foreground',
               )}
               onClick={() => toggleCategory(cat)}
             >
@@ -484,7 +484,8 @@ export default function SchedulePage() {
                 key={day.dayIndex}
                 className={cn(
                   'flex min-w-0 flex-col gap-3 rounded-[var(--radius)] px-1 py-2.5',
-                  today && 'sm:border-t-primary sm:bg-card sm:border-t-[3px]',
+                  today &&
+                    'sm:border-t-primary sm:border-b-primary sm:bg-card sm:border-y-[3px]',
                 )}
               >
                 <div className="hidden flex-col items-center gap-2 pb-2 sm:flex">
