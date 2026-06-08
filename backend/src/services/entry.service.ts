@@ -2,9 +2,11 @@ import { and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 
 import { isMembershipActive } from './subscription.service';
 import { db } from '../db/db';
-import { customers, entryCredits, entryLogs, persons, qrKindEnum, qrTokens } from '../db/schema';
+import { customers, entryCredits, entryLogs, persons, qrTokens } from '../db/schema';
 import { DomainValidationError, NotFoundError, UnauthorizedError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
+
+import type { qrKindEnum } from '../db/schema';
 
 const TOKEN_TTL_MS = 5 * 60 * 1000;
 
