@@ -1,3 +1,4 @@
+import { useUser } from '@clerk/clerk-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Clock,
@@ -9,6 +10,7 @@ import {
   UserCheck,
   Pencil,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -55,6 +57,7 @@ import { Switch } from '@/components/ui/switch';
 import {
   useAddLectureMember,
   useLectureMembers,
+  useDeleteSchedule,
   useRemoveLectureMember,
   useRooms,
   useSchedule,
@@ -314,10 +317,15 @@ export default function AdminCalendarPage() {
     rangeForFilter('upcoming', getDaysAgoStr(3), getDaysAgoStr(1)),
   );
 
+  // Staff see only the lectures they teach; admins see every lecture.
+  const { user, isLoaded } = useUser();
+  const role = (user?.publicMetadata as { role?: string })?.role ?? null;
+  const isStaff = role === 'employee';
+
   const { data: scheduleItems = [], isLoading: loadingSchedule } = useSchedule(
     range.from,
     range.to,
-    { myLectures: true },
+    { myLectures: isStaff, enabled: isLoaded },
   );
   const { data: rooms = [] } = useRooms();
 
@@ -346,6 +354,7 @@ export default function AdminCalendarPage() {
   const removeMember = useRemoveLectureMember(selectedLectureId ?? '');
   const updateSchedule = useUpdateSchedule(selectedLectureId ?? '');
   const updateAttendance = useUpdateAttendance(selectedLectureId ?? '');
+  const deleteSchedule = useDeleteSchedule(selectedLectureId ?? '');
 
   const [searchEmail, setSearchEmail] = useState('');
 
@@ -356,6 +365,7 @@ export default function AdminCalendarPage() {
     defaultValues: { roomId: '', startTime: '', endTime: '' },
   });
 
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [capacityWarningOpen, setCapacityWarningOpen] = useState(false);
   const [pendingEditRoom, setPendingEditRoom] = useState<RoomOption | null>(
     null,
@@ -796,6 +806,15 @@ export default function AdminCalendarPage() {
               <DialogFooter className="mt-6">
                 <Button
                   type="button"
+                  variant="destructive"
+                  onClick={() => setCancelConfirmOpen(true)}
+                  className="mr-auto gap-2"
+                >
+                  <Trash2 size={16} />
+                  Cancel Lecture
+                </Button>
+                <Button
+                  type="button"
                   variant="ghost"
                   onClick={() => setEditDialogOpen(false)}
                   className="text-muted-foreground"
@@ -813,6 +832,54 @@ export default function AdminCalendarPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* ==========================================
+          DIALOG: CANCEL LECTURE CONFIRMATION
+      ========================================== */}
+      <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+        <AlertDialogContent className="border-border bg-background z-[70] border shadow-2xl sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2 text-xl font-semibold">
+              <Trash2 size={22} />
+              Cancel this lecture?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground mt-3 text-sm leading-relaxed">
+              This will remove{' '}
+              <strong className="text-foreground">
+                {selectedLecture?.name}
+              </strong>{' '}
+              from the calendar. All{' '}
+              <strong className="text-foreground">
+                {selectedLecture?.registered}
+              </strong>{' '}
+              registered members will have their reservation cancelled and will
+              be notified by email. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="border-border/50 mt-4 border-t pt-4">
+            <AlertDialogCancel className="border-border bg-secondary text-foreground hover:bg-muted border sm:mt-0">
+              Keep Lecture
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteSchedule.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteSchedule.mutate(undefined, {
+                  onSuccess: () => {
+                    setCancelConfirmOpen(false);
+                    setEditDialogOpen(false);
+                  },
+                });
+              }}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0 shadow-md"
+            >
+              {deleteSchedule.isPending
+                ? 'Cancelling...'
+                : 'Yes, Cancel Lecture'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ==========================================
           DIALOG: ROOM CAPACITY WARNING
