@@ -1,5 +1,4 @@
-import { eq, and, asc } from 'drizzle-orm';
-import { z } from 'zod';
+import { eq, and, asc, lt, gt, ne, inArray } from 'drizzle-orm';
 
 import { findCustomerByEmail, findCustomerByPersonId } from './customer.service';
 import { db } from '../db/db';
@@ -18,27 +17,58 @@ import { sendBookingConfirmationEmail, sendCancellationEmail } from '../lib/emai
 import { ConflictError, DomainValidationError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
 
-const createScheduleSchema = z
-  .object({
-    lectureId: z.string().uuid('lectureId must be a valid UUID'),
-    roomId: z.string().uuid('roomId must be a valid UUID'),
-    startTime: z.iso.datetime('startTime must be a valid ISO datetime'),
-    endTime: z.iso.datetime('endTime must be a valid ISO datetime'),
-    instructors: z
-      .array(
-        z.object({
-          employeeId: z.string().uuid('employeeId must be a valid UUID'),
-          isLead: z.boolean(),
-        }),
-      )
-      .optional(),
-  })
-  .refine((d) => new Date(d.endTime) > new Date(d.startTime), {
-    message: 'End time must be after start time',
-    path: ['endTime'],
-  });
+export interface CreateScheduleInput {
+  lectureId: string;
+  roomId: string;
+  startTime: string;
+  endTime: string;
+  instructors?: { employeeId: string; isLead: boolean }[];
+}
 
-export type CreateScheduleInput = z.input<typeof createScheduleSchema>;
+// Reject double-booking: a room or any assigned instructor must not already be
+// busy in an overlapping [start, end) window. `excludeScheduleId` skips the row
+// being edited so a lecture never conflicts with itself.
+async function assertNoOverlap(
+  roomId: string,
+  instructorIds: string[],
+  start: Date,
+  end: Date,
+  excludeScheduleId?: string,
+): Promise<void> {
+  const overlaps = and(
+    lt(schedules.startTime, end),
+    gt(schedules.endTime, start),
+    notDeleted(schedules),
+    ...(excludeScheduleId ? [ne(schedules.id, excludeScheduleId)] : []),
+  );
+
+  const [roomClash] = await db
+    .select({ id: schedules.id })
+    .from(schedules)
+    .where(and(eq(schedules.roomId, roomId), overlaps))
+    .limit(1);
+  if (roomClash) {
+    throw new ConflictError('Room is already booked for an overlapping time.');
+  }
+
+  if (instructorIds.length > 0) {
+    const [instructorClash] = await db
+      .select({ id: schedules.id })
+      .from(schedules)
+      .innerJoin(scheduleInstructors, eq(scheduleInstructors.scheduleId, schedules.id))
+      .where(
+        and(
+          inArray(scheduleInstructors.employeeId, instructorIds),
+          notDeleted(scheduleInstructors),
+          overlaps,
+        ),
+      )
+      .limit(1);
+    if (instructorClash) {
+      throw new ConflictError('An instructor is already booked for an overlapping time.');
+    }
+  }
+}
 
 export async function listLectureTemplates() {
   return db
@@ -77,11 +107,14 @@ export async function listInstructors() {
 }
 
 export async function createSchedule(input: CreateScheduleInput): Promise<{ id: string }> {
-  const result = createScheduleSchema.safeParse(input);
-  if (!result.success) {
-    throw new DomainValidationError('Validation failed', result.error.flatten().fieldErrors);
+  const { lectureId, roomId, startTime, endTime, instructors } = input;
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  if (end <= start) {
+    throw new DomainValidationError('End time must be after start time.');
   }
-  const { lectureId, roomId, startTime, endTime, instructors } = result.data;
+  await assertNoOverlap(roomId, instructors?.map((i) => i.employeeId) ?? [], start, end);
 
   return db.transaction(async (tx) => {
     const [schedule] = await tx
@@ -89,8 +122,8 @@ export async function createSchedule(input: CreateScheduleInput): Promise<{ id: 
       .values({
         lectureId,
         roomId,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
+        startTime: start,
+        endTime: end,
       })
       .returning();
 
@@ -327,22 +360,32 @@ export async function updateSchedule(
 
   if (!current) throw new NotFoundError('Schedule not found.');
 
-  const newStartDate = new Date(current.startTime);
-  const newEndDate = new Date(current.endTime);
+  // startTime/endTime arrive as full ISO datetimes, so editing the date moves
+  // the lecture to another day (not just its time within the original day).
+  const newStartDate = patch.startTime ? new Date(patch.startTime) : new Date(current.startTime);
+  const newEndDate = patch.endTime ? new Date(patch.endTime) : new Date(current.endTime);
+  const newRoomId = patch.roomId ?? current.roomId;
 
-  if (patch.startTime) {
-    const [hours, minutes] = patch.startTime.split(':');
-    newStartDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
+  if (newEndDate <= newStartDate) {
+    throw new DomainValidationError('End time must be after start time.');
   }
-  if (patch.endTime) {
-    const [hours, minutes] = patch.endTime.split(':');
-    newEndDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
-  }
+
+  const instructorRows = await db
+    .select({ employeeId: scheduleInstructors.employeeId })
+    .from(scheduleInstructors)
+    .where(and(eq(scheduleInstructors.scheduleId, scheduleId), notDeleted(scheduleInstructors)));
+  await assertNoOverlap(
+    newRoomId,
+    instructorRows.map((r) => r.employeeId),
+    newStartDate,
+    newEndDate,
+    scheduleId,
+  );
 
   await db
     .update(schedules)
     .set({
-      roomId: patch.roomId ?? current.roomId,
+      roomId: newRoomId,
       startTime: newStartDate,
       endTime: newEndDate,
       updatedAt: new Date(),

@@ -20,8 +20,8 @@ _All `/calendar/*` lecture-management endpoints below require the `schedule:writ
 - GET `/schedule/lectures` — list all lecture templates
 - GET `/schedule/rooms` — list all rooms with capacity
 - GET `/schedule/instructors` — list all employees available as instructors
-- POST `/schedule` — create a new scheduled lecture (body: `{ lectureId, roomId, startTime, endTime, instructors: [{ employeeId, isLead }] }`)
-- PATCH `/schedule/:id` — update room or time for a specific instance (body: `{ roomId?, startTime?, endTime? }` time format "HH:MM")
+- POST `/schedule` — create a new scheduled lecture (body: `{ lectureId, roomId, startTime, endTime, instructors: [{ employeeId, isLead }] }`; ids must be UUIDs, times must be ISO datetimes — else 422). Rejects with 422 if `endTime <= startTime`, 409 if the room or an instructor is already booked for an overlapping time.
+- PATCH `/schedule/:id` — update room, date or time for a specific instance (body: `{ roomId?, startTime?, endTime? }` where `roomId` is a UUID and `startTime`/`endTime` are full ISO datetimes — changing the date reschedules the lecture; malformed values give 422). Same 422/409 validation as create.
 - DELETE `/calendar/:id` — cancel a scheduled lecture: soft-delete with cascade to its reservations + instructors; emails registered customers for future lectures (note: this admin block is mounted at `/calendar/*`, not `/schedule/*`)
 - GET `/schedule/:id/members` — list all members registered for a schedule (includes `attended` status)
 - POST `/schedule/:id/members` — manually add a member by email (body: `{ email }`)

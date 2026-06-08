@@ -33,14 +33,14 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
     },
     {
       body: t.Object({
-        lectureId: t.String(),
-        roomId: t.String(),
-        startTime: t.String(),
-        endTime: t.String(),
+        lectureId: t.String({ format: 'uuid' }),
+        roomId: t.String({ format: 'uuid' }),
+        startTime: t.String({ format: 'date-time' }),
+        endTime: t.String({ format: 'date-time' }),
         instructors: t.Optional(
           t.Array(
             t.Object({
-              employeeId: t.String(),
+              employeeId: t.String({ format: 'uuid' }),
               isLead: t.Boolean(),
             }),
           ),
@@ -105,8 +105,8 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
       params: t.Object({ id: t.String({ format: 'uuid' }) }),
       body: t.Object({
         roomId: t.Optional(t.String({ format: 'uuid' })),
-        startTime: t.Optional(t.String()),
-        endTime: t.Optional(t.String()),
+        startTime: t.Optional(t.String({ format: 'date-time' })),
+        endTime: t.Optional(t.String({ format: 'date-time' })),
       }),
     },
   )

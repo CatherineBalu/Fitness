@@ -73,6 +73,7 @@ import type { RoomOption, ScheduleItem } from '@/hooks/useCalendar';
 const editScheduleSchema = z
   .object({
     roomId: z.string().min(1, 'Room is required'),
+    date: z.string().min(1, 'Select a date'),
     startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time'),
     endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time'),
   })
@@ -89,6 +90,7 @@ interface Lecture {
   id: string;
   name: string;
   date: string;
+  dateISO: string; // YYYY-MM-DD (UTC) — prefills the edit dialog's date picker
   time: string;
   room: string;
   capacity: number;
@@ -124,11 +126,13 @@ function scheduleItemToLecture(item: ScheduleItem, baseDate: Date): Lecture {
   const mm = String(start.getUTCMonth() + 1).padStart(2, '0');
   const dayName = DAY_ABBR[start.getUTCDay()];
   const date = `${dayName} ${dd}.${mm}.`;
+  const dateISO = `${start.getUTCFullYear()}-${mm}-${dd}`;
 
   return {
     id: item.id,
     name: item.lectureName,
     date,
+    dateISO,
     time: `${fmtTime(start)} - ${fmtTime(end)}`,
     room: item.roomName,
     capacity: item.roomCapacity,
@@ -362,7 +366,7 @@ export default function AdminCalendarPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const editScheduleForm = useForm<EditScheduleValues>({
     resolver: zodResolver(editScheduleSchema),
-    defaultValues: { roomId: '', startTime: '', endTime: '' },
+    defaultValues: { roomId: '', date: '', startTime: '', endTime: '' },
   });
 
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
@@ -441,6 +445,7 @@ export default function AdminCalendarPage() {
     const times = lecture.time.split(' - ');
     editScheduleForm.reset({
       roomId: currentRoom?.id || '',
+      date: lecture.dateISO,
       startTime: times[0] || '',
       endTime: times[1] || '',
     });
@@ -466,8 +471,10 @@ export default function AdminCalendarPage() {
     updateSchedule.mutate(
       {
         roomId: values.roomId,
-        startTime: values.startTime,
-        endTime: values.endTime,
+        startTime: new Date(
+          `${values.date}T${values.startTime}:00Z`,
+        ).toISOString(),
+        endTime: new Date(`${values.date}T${values.endTime}:00Z`).toISOString(),
       },
       {
         onSuccess: () => {
@@ -765,6 +772,22 @@ export default function AdminCalendarPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editScheduleForm.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground text-sm">
+                      Date
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

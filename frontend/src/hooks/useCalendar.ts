@@ -58,6 +58,8 @@ export interface CreateSchedulePayload {
 
 export interface UpdateSchedulePayload {
   roomId?: string;
+  // ISO datetime strings (e.g. "2026-06-10T10:00:00.000Z") — changing the date
+  // reschedules the lecture to another day, not just its time.
   startTime?: string;
   endTime?: string;
 }
