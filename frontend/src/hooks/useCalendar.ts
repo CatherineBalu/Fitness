@@ -158,6 +158,23 @@ export function useUpdateSchedule(lectureId: string) {
   });
 }
 
+export function useDeleteSchedule(lectureId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiClient<{ success: boolean }>(`/calendar/${lectureId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: calendarKeys.all });
+      toast.success('Lecture cancelled');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+}
+
 export function useUpdateAttendance(lectureId: string) {
   const qc = useQueryClient();
   return useMutation({

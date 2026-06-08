@@ -21,6 +21,7 @@
 - GET `/schedule/instructors` — list all employees available as instructors
 - POST `/schedule` — create a new scheduled lecture (body: `{ lectureId, roomId, startTime, endTime, instructors: [{ employeeId, isLead }] }`)
 - PATCH `/schedule/:id` — update room or time for a specific instance (body: `{ roomId?, startTime?, endTime? }` time format "HH:MM")
+- DELETE `/calendar/:id` — cancel a scheduled lecture: soft-delete with cascade to its reservations + instructors; emails registered customers for future lectures (note: this admin block is mounted at `/calendar/*`, not `/schedule/*`)
 - GET `/schedule/:id/members` — list all members registered for a schedule (includes `attended` status)
 - POST `/schedule/:id/members` — manually add a member by email (body: `{ email }`)
 - DELETE `/schedule/:id/members/:personId` — remove a member from a lecture

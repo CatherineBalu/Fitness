@@ -249,6 +249,68 @@ export async function removeMember(scheduleId: string, personId: string): Promis
   }
 }
 
+export async function deleteSchedule(scheduleId: string): Promise<void> {
+  const [scheduleRow] = await db
+    .select({ lectureName: lectures.lectureName, startTime: schedules.startTime })
+    .from(schedules)
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .where(and(eq(schedules.id, scheduleId), notDeleted(schedules)))
+    .limit(1);
+
+  if (!scheduleRow) throw new NotFoundError('Schedule not found.');
+
+  // Collect registered customers before the soft-delete so we can notify them.
+  const registered = await db
+    .select({ name: persons.name, email: persons.email })
+    .from(customerReservations)
+    .innerJoin(customers, eq(customerReservations.customerId, customers.id))
+    .innerJoin(persons, eq(customers.personId, persons.id))
+    .where(
+      and(
+        eq(customerReservations.scheduleId, scheduleId),
+        notDeleted(customerReservations),
+        notDeleted(customers),
+        notDeleted(persons),
+      ),
+    );
+
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schedules)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(eq(schedules.id, scheduleId));
+    await tx
+      .update(customerReservations)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(
+        and(eq(customerReservations.scheduleId, scheduleId), notDeleted(customerReservations)),
+      );
+    await tx
+      .update(scheduleInstructors)
+      .set({ deletedAt: now, updatedAt: now })
+      .where(and(eq(scheduleInstructors.scheduleId, scheduleId), notDeleted(scheduleInstructors)));
+  });
+
+  // Notify registered customers, but only for lectures that haven't happened yet.
+  if (scheduleRow.startTime > now) {
+    for (const member of registered) {
+      void (async () => {
+        try {
+          await sendCancellationEmail(
+            member.email,
+            member.name,
+            scheduleRow.lectureName,
+            scheduleRow.startTime.toISOString(),
+          );
+        } catch (err) {
+          console.error('[email] lecture cancellation failed', err);
+        }
+      })();
+    }
+  }
+}
+
 export async function updateSchedule(
   scheduleId: string,
   patch: { roomId?: string; startTime?: string; endTime?: string },

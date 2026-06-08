@@ -4,6 +4,7 @@ import {
   addMemberByEmail,
   bulkUpdateAttendance,
   createSchedule,
+  deleteSchedule,
   listInstructors,
   listLectureTemplates,
   listRooms,
@@ -74,6 +75,19 @@ export const calendarRoutes = new Elysia({ prefix: '/calendar' })
       params: t.Object({
         id: t.String({ format: 'uuid' }),
         personId: t.String({ format: 'uuid' }),
+      }),
+    },
+  )
+
+  .delete(
+    '/:id',
+    async ({ params }) => {
+      await deleteSchedule(params.id);
+      return { success: true };
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: 'uuid', error: 'Invalid schedule ID format' }),
       }),
     },
   )
