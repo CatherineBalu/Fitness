@@ -2,67 +2,15 @@ import { useNavigate, useSearch, Link } from '@tanstack/react-router';
 import { CheckIcon } from 'lucide-react';
 import { useState } from 'react';
 
+import Stepper from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useBuyEntryPackage, useEntryPackages } from '@/hooks/useEntryPackages';
-import { cn } from '@/lib/utils';
+import { formatPrice } from '@/lib/formatters';
 
 const STEPS = ['Order summary', 'Payment', 'Confirmation'] as const;
 
 type PaymentMethod = 'card' | 'bank';
-
-function formatPrice(price: string) {
-  const num = Number(price);
-  return Number.isFinite(num) ? `€${num.toFixed(2)}` : `€${price}`;
-}
-
-function Stepper({ current }: { current: number }) {
-  return (
-    <div className="relative mb-12 flex items-start justify-between">
-      {STEPS.map((label, i) => {
-        const isDone = i < current;
-        const isActive = i === current;
-        return (
-          <div
-            key={label}
-            className="relative z-[1] flex flex-1 flex-col items-center gap-2.5"
-          >
-            <div
-              className={cn(
-                'flex size-9 items-center justify-center rounded-full border-2 text-sm font-bold',
-                isDone
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : isActive
-                    ? 'border-primary bg-card text-primary'
-                    : 'border-border bg-card text-muted-foreground',
-              )}
-            >
-              {isDone ? <CheckIcon size={16} /> : i + 1}
-            </div>
-            <span
-              className={cn(
-                'text-xs-plus text-center sm:text-[11px]',
-                isDone || isActive
-                  ? 'text-foreground'
-                  : 'text-muted-foreground',
-              )}
-            >
-              {label}
-            </span>
-            {i < STEPS.length - 1 && (
-              <div
-                className={cn(
-                  'absolute top-[17px] right-[calc(-50%+18px)] left-[calc(50%+18px)] z-0 h-0.5',
-                  isDone ? 'bg-primary' : 'bg-border',
-                )}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function EntryCheckoutPage() {
   const navigate = useNavigate();
@@ -143,7 +91,7 @@ export default function EntryCheckoutPage() {
           Complete the steps below to add entries to your account.
         </p>
 
-        <Stepper current={step} />
+        <Stepper steps={STEPS} current={step} />
 
         <div className="border-border bg-card rounded-2xl border p-8">
           {step === 0 && (
