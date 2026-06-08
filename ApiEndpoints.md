@@ -16,6 +16,7 @@
 - DELETE `/schedule/:id/reservations` — cancel current user's reservation
 
 #### Admin / Reception
+_All `/calendar/*` lecture-management endpoints below require the `schedule:write` permission (employee + admin)._
 - GET `/schedule/lectures` — list all lecture templates
 - GET `/schedule/rooms` — list all rooms with capacity
 - GET `/schedule/instructors` — list all employees available as instructors
