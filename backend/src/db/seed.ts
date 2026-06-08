@@ -3,7 +3,22 @@ import { faker } from '@faker-js/faker';
 import { db, closeConnection } from './db';
 import * as schema from './schema';
 
-console.log('TESTING DB URL:', process.env.DATABASE_URL);
+/**
+ * Refuse to seed anything that isn't a local dev database. seed.ts wipes and
+ * recreates all data, so running it against production would be catastrophic.
+ * Production data is seeded separately via seed.prod.ts.
+ */
+function assertDevDatabase(): void {
+  const url = process.env.DATABASE_URL ?? '';
+  const looksLocal = /(localhost|127\.0\.0\.1|@db[:/])/.test(url);
+  if (process.env.NODE_ENV === 'production' || !looksLocal) {
+    console.error(
+      '[seed] Refusing to run: DATABASE_URL is not a local dev database ' +
+        '(or NODE_ENV=production). Use seed.prod.ts for production.',
+    );
+    process.exit(1);
+  }
+}
 
 /** Returns the Monday of the current week at 00:00 UTC */
 function getCurrentWeekMonday(): Date {
@@ -411,4 +426,5 @@ async function main() {
   }
 }
 
+assertDevDatabase();
 void main();
