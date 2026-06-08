@@ -3,7 +3,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Schedule page — authenticated interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule');
-    await page.getByTestId('cal-week-grid').waitFor({ timeout: 10_000 });
+    // Wait for Clerk to confirm the session — ensures isSignedIn is true in
+    // React so Register buttons open the app dialog, not the Clerk sign-in modal.
+    await expect(page.getByTestId('navbar-user-btn')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('cal-week-grid')).toBeVisible();
   });
 
   test('register dialog appears when clicking Register on a future lecture', async ({ page }) => {
