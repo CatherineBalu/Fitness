@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as MyProfileRouteImport } from './routes/my-profile'
+import { Route as EntryCheckoutRouteImport } from './routes/entry-checkout'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as StaffStatisticsRouteImport } from './routes/staff/statistics'
+import { Route as StaffScanRouteImport } from './routes/staff/scan'
 import { Route as AdminStatisticsRouteImport } from './routes/admin/statistics'
 import { Route as AdminStaffRouteImport } from './routes/admin/staff'
 import { Route as AdminCalendarRouteImport } from './routes/admin/calendar'
@@ -27,6 +29,11 @@ const ScheduleRoute = ScheduleRouteImport.update({
 const MyProfileRoute = MyProfileRouteImport.update({
   id: '/my-profile',
   path: '/my-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntryCheckoutRoute = EntryCheckoutRouteImport.update({
+  id: '/entry-checkout',
+  path: '/entry-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -49,6 +56,11 @@ const StaffStatisticsRoute = StaffStatisticsRouteImport.update({
   path: '/staff/statistics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffScanRoute = StaffScanRouteImport.update({
+  id: '/staff/scan',
+  path: '/staff/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminStatisticsRoute = AdminStatisticsRouteImport.update({
   id: '/admin/statistics',
   path: '/admin/statistics',
@@ -68,22 +80,26 @@ const AdminCalendarRoute = AdminCalendarRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
+  '/entry-checkout': typeof EntryCheckoutRoute
   '/my-profile': typeof MyProfileRoute
   '/schedule': typeof ScheduleRoute
   '/admin/calendar': typeof AdminCalendarRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/statistics': typeof AdminStatisticsRoute
+  '/staff/scan': typeof StaffScanRoute
   '/staff/statistics': typeof StaffStatisticsRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
+  '/entry-checkout': typeof EntryCheckoutRoute
   '/my-profile': typeof MyProfileRoute
   '/schedule': typeof ScheduleRoute
   '/admin/calendar': typeof AdminCalendarRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/statistics': typeof AdminStatisticsRoute
+  '/staff/scan': typeof StaffScanRoute
   '/staff/statistics': typeof StaffStatisticsRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -91,11 +107,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
+  '/entry-checkout': typeof EntryCheckoutRoute
   '/my-profile': typeof MyProfileRoute
   '/schedule': typeof ScheduleRoute
   '/admin/calendar': typeof AdminCalendarRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/statistics': typeof AdminStatisticsRoute
+  '/staff/scan': typeof StaffScanRoute
   '/staff/statistics': typeof StaffStatisticsRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -104,33 +122,39 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/checkout'
+    | '/entry-checkout'
     | '/my-profile'
     | '/schedule'
     | '/admin/calendar'
     | '/admin/staff'
     | '/admin/statistics'
+    | '/staff/scan'
     | '/staff/statistics'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/checkout'
+    | '/entry-checkout'
     | '/my-profile'
     | '/schedule'
     | '/admin/calendar'
     | '/admin/staff'
     | '/admin/statistics'
+    | '/staff/scan'
     | '/staff/statistics'
     | '/admin'
   id:
     | '__root__'
     | '/'
     | '/checkout'
+    | '/entry-checkout'
     | '/my-profile'
     | '/schedule'
     | '/admin/calendar'
     | '/admin/staff'
     | '/admin/statistics'
+    | '/staff/scan'
     | '/staff/statistics'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -138,11 +162,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckoutRoute: typeof CheckoutRoute
+  EntryCheckoutRoute: typeof EntryCheckoutRoute
   MyProfileRoute: typeof MyProfileRoute
   ScheduleRoute: typeof ScheduleRoute
   AdminCalendarRoute: typeof AdminCalendarRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminStatisticsRoute: typeof AdminStatisticsRoute
+  StaffScanRoute: typeof StaffScanRoute
   StaffStatisticsRoute: typeof StaffStatisticsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -161,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/my-profile'
       fullPath: '/my-profile'
       preLoaderRoute: typeof MyProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entry-checkout': {
+      id: '/entry-checkout'
+      path: '/entry-checkout'
+      fullPath: '/entry-checkout'
+      preLoaderRoute: typeof EntryCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -191,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffStatisticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/scan': {
+      id: '/staff/scan'
+      path: '/staff/scan'
+      fullPath: '/staff/scan'
+      preLoaderRoute: typeof StaffScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/statistics': {
       id: '/admin/statistics'
       path: '/admin/statistics'
@@ -218,11 +258,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckoutRoute: CheckoutRoute,
+  EntryCheckoutRoute: EntryCheckoutRoute,
   MyProfileRoute: MyProfileRoute,
   ScheduleRoute: ScheduleRoute,
   AdminCalendarRoute: AdminCalendarRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminStatisticsRoute: AdminStatisticsRoute,
+  StaffScanRoute: StaffScanRoute,
   StaffStatisticsRoute: StaffStatisticsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

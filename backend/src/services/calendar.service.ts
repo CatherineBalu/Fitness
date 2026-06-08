@@ -14,6 +14,7 @@ import {
   schedules,
   scheduleInstructors,
 } from '../db/schema';
+import { sendBookingConfirmationEmail, sendCancellationEmail } from '../lib/email';
 import { ConflictError, DomainValidationError, NotFoundError } from '../lib/errors';
 import { notDeleted } from '../lib/notDeleted';
 
@@ -161,10 +162,40 @@ export async function addMemberByEmail(scheduleId: string, email: string) {
     );
   if (existing) throw new ConflictError('Customer is already registered for this lecture.');
 
+  const [scheduleRow] = await db
+    .select({
+      lectureName: lectures.lectureName,
+      startTime: schedules.startTime,
+      endTime: schedules.endTime,
+      roomName: rooms.name,
+    })
+    .from(schedules)
+    .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+    .innerJoin(rooms, eq(schedules.roomId, rooms.id))
+    .where(and(eq(schedules.id, scheduleId), notDeleted(schedules)))
+    .limit(1);
+
   await db.insert(customerReservations).values({
     scheduleId,
     customerId: customer.customerId,
   });
+
+  if (scheduleRow) {
+    void (async () => {
+      try {
+        await sendBookingConfirmationEmail(
+          customer.email,
+          customer.name,
+          scheduleRow.lectureName,
+          scheduleRow.startTime.toISOString(),
+          scheduleRow.endTime.toISOString(),
+          scheduleRow.roomName,
+        );
+      } catch (err) {
+        console.error('[email] admin booking confirmation failed', err);
+      }
+    })();
+  }
 
   return {
     id: customer.personId,
@@ -177,6 +208,20 @@ export async function removeMember(scheduleId: string, personId: string): Promis
   const customer = await findCustomerByPersonId(personId);
   if (!customer) throw new NotFoundError('Customer not found.');
 
+  const [[personRow], [scheduleRow]] = await Promise.all([
+    db
+      .select({ name: persons.name, email: persons.email })
+      .from(persons)
+      .where(and(eq(persons.id, personId), notDeleted(persons)))
+      .limit(1),
+    db
+      .select({ lectureName: lectures.lectureName, startTime: schedules.startTime })
+      .from(schedules)
+      .innerJoin(lectures, eq(schedules.lectureId, lectures.id))
+      .where(and(eq(schedules.id, scheduleId), notDeleted(schedules)))
+      .limit(1),
+  ]);
+
   await db
     .update(customerReservations)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
@@ -187,6 +232,21 @@ export async function removeMember(scheduleId: string, personId: string): Promis
         notDeleted(customerReservations),
       ),
     );
+
+  if (personRow && scheduleRow) {
+    void (async () => {
+      try {
+        await sendCancellationEmail(
+          personRow.email,
+          personRow.name,
+          scheduleRow.lectureName,
+          scheduleRow.startTime.toISOString(),
+        );
+      } catch (err) {
+        console.error('[email] admin cancellation failed', err);
+      }
+    })();
+  }
 }
 
 export async function updateSchedule(

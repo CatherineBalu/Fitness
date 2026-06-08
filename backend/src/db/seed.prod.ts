@@ -31,6 +31,9 @@ async function main() {
 
   // 1. Clear all data
   console.log('Clearing existing data');
+  await db.delete(schema.entryLogs);
+  await db.delete(schema.entryCredits);
+  await db.delete(schema.entryPackages);
   await db.delete(schema.paymentHistory);
   await db.delete(schema.customerReservations);
   await db.delete(schema.scheduleInstructors);
@@ -50,6 +53,11 @@ async function main() {
   await db
     .insert(schema.employeeTypes)
     .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }]);
+
+  await db.insert(schema.entryPackages).values([
+    { name: 'Single Entry', entryCount: 1, price: '5.00' },
+    { name: '10-Entry Bundle', entryCount: 10, price: '40.00' },
+  ]);
 
   await db.insert(schema.subscriptions).values([
     { name: 'Basic', price: '19', durationDays: 30 },

@@ -1,7 +1,14 @@
+import { useClerk } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import QrAccessPanel from '@/components/common/QrAccessPanel';
 import { authKeys } from '@/hooks/useAuthProfile';
+import {
+  useCustomerEntries,
+  useGenerateMembershipQrToken,
+  useGenerateQrToken,
+} from '@/hooks/useEntry';
 import {
   customerRegistrationsKey,
   useUnregisterReservation,
@@ -55,6 +62,7 @@ interface Registration {
 interface Payment {
   id: string;
   subscriptionName: string;
+  kind: 'entry' | 'subscription';
   amount: number;
   paymentDate: string;
   paymentMethod: string;
@@ -83,12 +91,40 @@ function formatTime(iso: string) {
   });
 }
 
+// ── Main page ──────────────────────────────────────────────────────────
+
 export default function CustomerProfilePage() {
   const qc = useQueryClient();
+  // This page is rendered inside the Clerk UserProfile modal (UserButton.UserProfilePage),
+  // so navigating away must also close that overlay. No-op when rendered standalone.
+  const { closeUserProfile } = useClerk();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
     null,
   );
+  const [entryQrOpen, setEntryQrOpen] = useState(false);
+  const [membershipQrOpen, setMembershipQrOpen] = useState(false);
+  const qrOpen = entryQrOpen || membershipQrOpen;
+
+  // Scan detection: close the panel automatically once the server confirms the token was used.
+  // Capture the balance when the entry QR panel opens; close when balance drops below that.
+  const [openingEntryBalance, setOpeningEntryBalance] = useState<number | null>(
+    null,
+  );
+
+  function handleEntryQrVisibilityChange(open: boolean) {
+    setOpeningEntryBalance(
+      open ? (entriesQuery.data?.entryBalance ?? null) : null,
+    );
+    setEntryQrOpen(open);
+  }
+
+  function handleMembershipQrVisibilityChange(open: boolean) {
+    setMembershipQrOpen(open);
+  }
+
+  const generateToken = useGenerateQrToken();
+  const generateMembershipToken = useGenerateMembershipQrToken();
 
   const profileQuery = useQuery({
     queryKey: customerMeKey,
@@ -102,6 +138,21 @@ export default function CustomerProfilePage() {
     queryKey: customerSpendingKey,
     queryFn: () => apiClient<SpendingData>('/api/customer/spending'),
   });
+  // Poll every 2 s while any QR panel is open so the balance updates as soon
+  // as staff scans the token on their device.
+  const entriesQuery = useCustomerEntries({
+    refetchInterval: qrOpen ? 2000 : false,
+  });
+
+  const currentEntryBalance = entriesQuery.data?.entryBalance ?? null;
+  const closeEntryQr =
+    entryQrOpen &&
+    openingEntryBalance !== null &&
+    currentEntryBalance !== null &&
+    currentEntryBalance < openingEntryBalance;
+
+  const closeMembershipQr =
+    membershipQrOpen && (entriesQuery.data?.membershipEnteredToday ?? false);
 
   const unregister = useUnregisterReservation();
   const cancelMembership = useMutation({
@@ -117,10 +168,14 @@ export default function CustomerProfilePage() {
   const loading =
     profileQuery.isLoading ||
     registrationsQuery.isLoading ||
-    spendingQuery.isLoading;
+    spendingQuery.isLoading ||
+    entriesQuery.isLoading;
 
   const error =
-    profileQuery.error ?? registrationsQuery.error ?? spendingQuery.error;
+    profileQuery.error ??
+    registrationsQuery.error ??
+    spendingQuery.error ??
+    entriesQuery.error;
 
   if (loading) {
     return (
@@ -141,6 +196,7 @@ export default function CustomerProfilePage() {
   const profile = profileQuery.data ?? null;
   const registrations = registrationsQuery.data ?? [];
   const spending = spendingQuery.data ?? null;
+  const entries = entriesQuery.data ?? null;
 
   const upcoming = registrations.filter(
     (r) => new Date(r.startTime) >= new Date(),
@@ -241,12 +297,107 @@ export default function CustomerProfilePage() {
                 </div>
               </div>
             )}
+
+            {profile.membership.isActive && (
+              <div className="border-border mt-1 flex flex-col gap-2 border-t pt-3">
+                <QrAccessPanel
+                  mutation={generateMembershipToken}
+                  disabled={entries?.membershipEnteredToday ?? false}
+                  triggerLabel="Show entry QR"
+                  instruction="Daily gym entry — show this to staff"
+                  onVisibilityChange={handleMembershipQrVisibilityChange}
+                  forceClose={closeMembershipQr}
+                />
+                {entries?.membershipEnteredToday && (
+                  <p className="text-muted-foreground text-center text-[0.75rem]">
+                    You've already used today's entry. Come back tomorrow.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <p className="border-border bg-secondary text-muted-foreground rounded-xl border px-5 py-[18px] text-[0.85rem]">
             No active membership.
           </p>
         )}
+      </section>
+
+      {/* ── Gym Entries ── */}
+      <section className="flex flex-col gap-3">
+        <p className="text-primary mb-0.5 text-[0.72rem] font-bold tracking-[0.12em] uppercase">
+          Access
+        </p>
+        <h2 className="text-foreground mb-2.5 text-[1.1rem] font-extrabold">
+          Gym Entries
+        </h2>
+
+        <div className="border-border bg-secondary flex flex-col gap-3 rounded-xl border px-5 py-[18px]">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-foreground text-base font-bold">
+              Entry Balance
+            </span>
+            <span className="text-primary text-[1.1rem] font-extrabold">
+              {entries?.entryBalance ?? 0}{' '}
+              <span className="text-muted-foreground text-[0.8rem] font-normal">
+                {(entries?.entryBalance ?? 0) === 1 ? 'entry' : 'entries'}
+              </span>
+            </span>
+          </div>
+
+          {entries && entries.credits.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-muted-foreground text-[0.72rem] font-bold tracking-[0.1em] uppercase">
+                Validity
+              </p>
+              {entries.credits.map((credit) => (
+                <div
+                  key={credit.expiresAt}
+                  className="text-muted-foreground flex items-center justify-between text-[0.78rem]"
+                >
+                  <span>
+                    {credit.remainingCount}{' '}
+                    {credit.remainingCount === 1 ? 'entry' : 'entries'}
+                  </span>
+                  <span>expire {formatDate(credit.expiresAt)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {entries && entries.logs.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-muted-foreground text-[0.72rem] font-bold tracking-[0.1em] uppercase">
+                Recent visits
+              </p>
+              {entries.logs.slice(0, 5).map((log) => (
+                <div
+                  key={log.id}
+                  className="text-muted-foreground flex items-center justify-between text-[0.78rem]"
+                >
+                  <span>{formatDate(log.scannedAt)}</span>
+                  <span>{log.staffName}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <a
+              href="/#pricing"
+              onClick={() => closeUserProfile()}
+              className="border-border text-foreground hover:border-primary hover:text-primary cursor-pointer rounded-lg border bg-transparent py-2 text-center text-[0.82rem] font-semibold transition-colors"
+            >
+              Buy entries
+            </a>
+            <QrAccessPanel
+              mutation={generateToken}
+              disabled={(entries?.entryBalance ?? 0) === 0}
+              onVisibilityChange={handleEntryQrVisibilityChange}
+              forceClose={closeEntryQr}
+            />
+          </div>
+        </div>
       </section>
 
       {/* ── Registered lectures ── */}
@@ -383,8 +534,13 @@ export default function CustomerProfilePage() {
                   className="border-border bg-secondary flex items-center justify-between gap-3 rounded-[10px] border px-4 py-3"
                 >
                   <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                    <span className="text-foreground overflow-hidden text-[0.88rem] font-semibold text-ellipsis whitespace-nowrap">
-                      {p.subscriptionName}
+                    <span className="flex items-center gap-2">
+                      <span className="text-foreground overflow-hidden text-[0.88rem] font-semibold text-ellipsis whitespace-nowrap">
+                        {p.subscriptionName}
+                      </span>
+                      <span className="border-border text-muted-foreground shrink-0 rounded-full border px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.06em] uppercase">
+                        {p.kind === 'entry' ? 'Entries' : 'Membership'}
+                      </span>
                     </span>
                     <span className="text-muted-foreground text-[0.75rem]">
                       {formatDate(p.paymentDate)} · {p.paymentMethod}

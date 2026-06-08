@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuthProfile } from '@/hooks/useAuthProfile';
 import {
   useCreateSchedule,
   useInstructors,
@@ -40,7 +41,7 @@ const formSchema = z
     date: z.string().min(1, 'Select a date'),
     startTime: z.string().min(1, 'Set a start time'),
     endTime: z.string().min(1, 'Set an end time'),
-    leadId: z.string().optional(),
+    secondaryId: z.string().optional(),
   })
   .refine((d) => d.endTime > d.startTime, {
     message: 'End time must be after start time',
@@ -73,6 +74,7 @@ export default function AddScheduleDialog({
   const { data: lectures = [] } = useLectures();
   const { data: rooms = [] } = useRooms();
   const { data: instructors = [] } = useInstructors();
+  const { data: profile } = useAuthProfile();
   const createSchedule = useCreateSchedule();
 
   const form = useForm<FormValues>({
@@ -83,7 +85,7 @@ export default function AddScheduleDialog({
       date: '',
       startTime: '',
       endTime: '',
-      leadId: '',
+      secondaryId: '',
     },
   });
 
@@ -95,15 +97,22 @@ export default function AddScheduleDialog({
       `${values.date}T${values.endTime}:00Z`,
     ).toISOString();
 
+    const instructorsList = [
+      ...(profile?.employeeId
+        ? [{ employeeId: profile.employeeId, isLead: true }]
+        : []),
+      ...(values.secondaryId
+        ? [{ employeeId: values.secondaryId, isLead: false }]
+        : []),
+    ];
+
     createSchedule.mutate(
       {
         lectureId: values.lectureId,
         roomId: values.roomId,
         startTime: startISO,
         endTime: endISO,
-        instructors: values.leadId
-          ? [{ employeeId: values.leadId, isLead: true }]
-          : [],
+        instructors: instructorsList,
       },
       {
         onSuccess: () => {
@@ -119,6 +128,10 @@ export default function AddScheduleDialog({
     if (!v) form.reset();
     onOpenChange(v);
   }
+
+  const secondaryOptions = instructors.filter(
+    (i) => i.id !== profile?.employeeId,
+  );
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -234,10 +247,10 @@ export default function AddScheduleDialog({
 
             <FormField
               control={form.control}
-              name="leadId"
+              name="secondaryId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lead instructor (optional)</FormLabel>
+                  <FormLabel>Secondary instructor (optional)</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -245,7 +258,7 @@ export default function AddScheduleDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {instructors.map((i) => (
+                      {secondaryOptions.map((i) => (
                         <SelectItem key={i.id} value={i.id}>
                           {i.name}
                         </SelectItem>

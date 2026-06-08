@@ -67,8 +67,8 @@ export interface AttendancePayload {
 
 export const calendarKeys = {
   all: ['calendar'] as const,
-  schedule: (from: string, to: string) =>
-    [...calendarKeys.all, 'schedule', from, to] as const,
+  schedule: (from: string, to: string, myLectures?: boolean) =>
+    [...calendarKeys.all, 'schedule', from, to, myLectures ?? false] as const,
   lookups: () => [...calendarKeys.all, 'lookups'] as const,
   lectures: () => [...calendarKeys.lookups(), 'lectures'] as const,
   rooms: () => [...calendarKeys.lookups(), 'rooms'] as const,
@@ -80,12 +80,14 @@ export const calendarKeys = {
 export function useSchedule(
   from: string | null,
   to: string | null,
-  options: { enabled?: boolean } = {},
+  options: { enabled?: boolean; myLectures?: boolean } = {},
 ) {
   return useQuery({
-    queryKey: calendarKeys.schedule(from ?? '', to ?? ''),
-    queryFn: () =>
-      apiClient<ScheduleItem[]>(`/schedule?from=${from!}&to=${to!}`),
+    queryKey: calendarKeys.schedule(from ?? '', to ?? '', options.myLectures),
+    queryFn: () => {
+      const url = `/schedule?from=${from!}&to=${to!}${options.myLectures ? '&myLectures=true' : ''}`;
+      return apiClient<ScheduleItem[]>(url);
+    },
     enabled: !!from && !!to && (options.enabled ?? true),
   });
 }

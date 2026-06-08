@@ -317,6 +317,7 @@ export default function AdminCalendarPage() {
   const { data: scheduleItems = [], isLoading: loadingSchedule } = useSchedule(
     range.from,
     range.to,
+    { myLectures: true },
   );
   const { data: rooms = [] } = useRooms();
 

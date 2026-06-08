@@ -40,6 +40,7 @@ export default function Navbar({ className }: NavbarProps) {
 
   const canSeeAdminStats = can(role, 'stats:admin');
   const canSeeStaffStats = can(role, 'stats:staff');
+  const canScanEntry = can(role, 'entry:scan');
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -143,6 +144,15 @@ export default function Navbar({ className }: NavbarProps) {
                   Statistics
                 </Link>
               )}
+              {canScanEntry && (
+                <Link
+                  to="/staff/scan"
+                  className={navLinkClass}
+                  onClick={closeMenu}
+                >
+                  Scan Entry
+                </Link>
+              )}
               <UserButton />
             </div>
           )}
@@ -172,6 +182,15 @@ export default function Navbar({ className }: NavbarProps) {
                   onClick={closeMenu}
                 >
                   Statistics
+                </Link>
+              )}
+              {canScanEntry && (
+                <Link
+                  to="/staff/scan"
+                  className={navLinkClass}
+                  onClick={closeMenu}
+                >
+                  Scan Entry
                 </Link>
               )}
               <Button

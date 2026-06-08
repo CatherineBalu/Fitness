@@ -9,6 +9,7 @@ export interface AuthProfile {
   email: string;
   phoneNumber: string | null;
   role: string;
+  employeeId: string | null;
   hasActiveMembership: boolean;
   subscriptionValidUntil: string | null;
 }

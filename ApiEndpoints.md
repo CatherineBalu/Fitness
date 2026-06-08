@@ -34,12 +34,26 @@
 - GET `/subscriptions` — public list of subscription plans (cheapest first)
 - POST `/subscriptions/buy` — authenticated customer purchases a plan, starting today (body: `{ subscriptionId, paymentMethod? }`)
 
+### Entry packages
+
+- GET `/entry-packages` — public list of entry packages sorted by price (e.g. Single Entry, 10-Entry Bundle)
+- POST `/entry-packages/buy` — authenticated customer purchases an entry package; adds a credit batch (valid 180 days from purchase) and returns the recomputed live balance (body: `{ entryPackageId, paymentMethod? }`); returns `201 { success: true, entryBalance: N }`
+
+### Entry (QR access)
+
+Entries are tracked per purchased batch in `entry_credit` (each batch has its own `expiresAt`, valid 180 days from purchase). The live balance is the sum of non-expired batches; `customers.entryBalance` is a denormalized cache. Scans consume FIFO (soonest-expiring batch first). QR tokens carry a `kind` (`entry` | `membership`): `entry` consumes a credit, `membership` is a once-per-calendar-day access pass that consumes nothing.
+
+- POST `/entry/token` — authenticated customer generates a short-lived `entry` QR token (5-minute TTL); requires a live (non-expired) balance > 0; returns `{ token, expiresAt }`
+- POST `/entry/membership-token` — authenticated customer generates a short-lived `membership` QR token; requires an active membership and that no membership entry was used today; returns `{ token, expiresAt }`
+- POST `/entry/scan` — staff scans a QR token; requires `entry:scan` permission; for `entry` tokens decrements the soonest-expiring credit batch (FIFO), for `membership` tokens enforces the once-per-day limit; logs the scan; returns `{ customerName, remainingBalance, kind }` (`remainingBalance` is `null` for membership scans) (body: `{ token }`)
+
 ### Customer (requires auth)
 
 - GET `/api/customer/me` — current customer's profile and active membership details
 - DELETE `/api/customer/membership` — cancel current customer's active membership
 - GET `/api/customer/registrations` — all reservations (upcoming + past) with lecture name, time, room, schedule ID, and `instructors: { name, phoneNumber, email, isLead }[]` (email pulled from Clerk)
 - GET `/api/customer/spending` — full payment history and total amount spent
+- GET `/api/customer/entries` — live entry balance, active credit batches (`credits: [{ remainingCount, expiresAt }]`, soonest-expiring first), membership access state (`membershipActive`, `membershipEnteredToday`), and last 20 entry log entries (with staff name and scan timestamp)
 
 ### Instructors (public)
 

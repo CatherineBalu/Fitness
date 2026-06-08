@@ -10,12 +10,13 @@ export const scheduleRoutes = new Elysia({ prefix: '/schedule' })
     '/',
     ({ query, ...rest }) => {
       const auth = (rest as unknown as { auth: { userId: string } | null }).auth;
-      return listSchedules(query.from, query.to, auth?.userId ?? null);
+      return listSchedules(query.from, query.to, auth?.userId ?? null, query.myLectures === 'true');
     },
     {
       query: t.Object({
         from: t.String(),
         to: t.String(),
+        myLectures: t.Optional(t.String()),
       }),
     },
   )

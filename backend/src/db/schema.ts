@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   pgTable,
+  pgEnum,
   uuid,
   text,
   numeric,
@@ -8,6 +10,7 @@ import {
   date,
   boolean,
   primaryKey,
+  check,
 } from 'drizzle-orm/pg-core';
 
 const timestamps = {
@@ -29,6 +32,14 @@ export const subscriptions = pgTable('subscription', {
   name: text('name').notNull().unique(),
   price: numeric('price').notNull(),
   durationDays: integer('duration_days').notNull(),
+  ...timestamps,
+});
+
+export const entryPackages = pgTable('entry_package', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  entryCount: integer('entry_count').notNull(),
+  price: numeric('price').notNull(),
   ...timestamps,
 });
 
@@ -90,6 +101,7 @@ export const customers = pgTable('customer', {
     .references(() => persons.id),
   subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
   subscriptionValidUntil: date('subscription_valid_until'),
+  entryBalance: integer('entry_balance').notNull().default(0),
   ...timestamps,
 });
 
@@ -156,11 +168,58 @@ export const paymentHistory = pgTable('payment_history', {
   customerId: uuid('customer_id')
     .notNull()
     .references(() => customers.id),
-  subscriptionId: uuid('subscription_id')
-    .notNull()
-    .references(() => subscriptions.id),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
+  entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
   amount: numeric('amount').notNull(),
   paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
   paymentMethod: text('payment_method').notNull(),
   ...timestamps,
 });
+
+export const qrKindEnum = pgEnum('qr_kind', ['entry', 'membership']);
+
+export const qrTokens = pgTable('qr_token', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  // 'entry' consumes a credit on scan; 'membership' is a once-per-day access pass.
+  kind: qrKindEnum('kind').notNull().default('entry'),
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  ...timestamps,
+});
+
+export const entryLogs = pgTable('entry_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  staffId: uuid('staff_id')
+    .notNull()
+    .references(() => persons.id),
+  qrTokenId: uuid('qr_token_id')
+    .notNull()
+    .references(() => qrTokens.id),
+  scannedAt: timestamp('scanned_at', { withTimezone: true }).defaultNow().notNull(),
+  ...timestamps,
+});
+
+// One row per purchased batch of entries. Source of truth for the entry balance;
+// each batch expires independently, so we track remaining count + expiry per batch.
+// customers.entryBalance is a denormalized cache of the live (non-expired) sum.
+export const entryCredits = pgTable(
+  'entry_credit',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id),
+    entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
+    remainingCount: integer('remaining_count').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [check('entry_credit_remaining_count_non_negative', sql`${t.remainingCount} >= 0`)],
+);
