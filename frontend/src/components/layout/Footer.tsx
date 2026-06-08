@@ -40,7 +40,7 @@ export default function Footer({ className }: FooterProps) {
           <h4 className="text-xs-plus tracking-px text-foreground mb-1 font-bold uppercase">
             Address
           </h4>
-          <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
+          <div className="text-foreground/65 flex items-start gap-2 text-[12px] leading-[1.6]">
             <MapPin size={15} className="text-primary mt-0.5 shrink-0" />
             <span>
               Fitness Centrum XY
@@ -54,16 +54,16 @@ export default function Footer({ className }: FooterProps) {
           <h4 className="text-xs-plus tracking-px text-foreground mb-1 font-bold uppercase">
             Contact
           </h4>
-          <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
+          <div className="text-foreground/65 flex items-start gap-2 text-[12px] leading-[1.6]">
             <Phone size={15} className="text-primary mt-0.5 shrink-0" />
             <span>+420 000 111 222</span>
           </div>
-          <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
+          <div className="text-foreground/65 flex items-start gap-2 text-[12px] leading-[1.6]">
             <Mail size={15} className="text-primary mt-0.5 shrink-0" />
             <span>info@fitnessxy.cz</span>
           </div>
-          <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
-            <span className="text-muted-foreground text-xs-plus">
+          <div className="text-foreground/65 flex items-start gap-2 text-[12px] leading-[1.6]">
+            <span className="text-foreground/65 text-[12px]">
               Manager: Janko Mrkvička
             </span>
           </div>
@@ -73,7 +73,7 @@ export default function Footer({ className }: FooterProps) {
           <h4 className="text-xs-plus tracking-px text-foreground mb-1 font-bold uppercase">
             Opening Hours
           </h4>
-          <div className="text-muted-foreground text-xs-plus flex items-start gap-2 leading-[1.6]">
+          <div className="text-foreground/65 flex items-start gap-2 text-[12px] leading-[1.6]">
             <Clock size={15} className="text-primary mt-0.5 shrink-0" />
             <span>
               Mon – Fri: 6:00 – 22:00
@@ -85,28 +85,28 @@ export default function Footer({ className }: FooterProps) {
             <a
               href="#"
               aria-label="Facebook"
-              className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              className="text-foreground/70 hover:text-primary inline-flex items-center justify-center transition-colors"
             >
               <SocialIcon d={FACEBOOK_PATH} />
             </a>
             <a
               href="#"
               aria-label="Instagram"
-              className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              className="text-foreground/70 hover:text-primary inline-flex items-center justify-center transition-colors"
             >
               <SocialIcon d={INSTAGRAM_PATH} />
             </a>
             <a
               href="#"
               aria-label="TikTok"
-              className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              className="text-foreground/70 hover:text-primary inline-flex items-center justify-center transition-colors"
             >
               <SocialIcon d={TIKTOK_PATH} />
             </a>
             <a
               href="#"
               aria-label="YouTube"
-              className="text-muted-foreground hover:text-primary inline-flex items-center justify-center transition-colors"
+              className="text-foreground/70 hover:text-primary inline-flex items-center justify-center transition-colors"
             >
               <SocialIcon d={YOUTUBE_PATH} />
             </a>
@@ -123,7 +123,7 @@ export default function Footer({ className }: FooterProps) {
           />
         </div>
       </div>
-      <div className="text-muted-foreground mx-auto max-w-[1200px] py-5 text-[12px]">
+      <div className="text-foreground/65 mx-auto max-w-[1200px] py-5 text-[12px]">
         <p>© 2026 Fitness XY. All rights reserved.</p>
       </div>
     </footer>

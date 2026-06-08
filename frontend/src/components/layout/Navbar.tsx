@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import CustomerProfilePage from '@/pages/CustomerProfilePage';
 
 const navLinkClass =
-  'border-b border-border py-2 text-xs-plus text-muted-foreground no-underline transition-colors hover:text-foreground sm:border-none sm:py-0 sm:text-[15px]';
+  'border-b border-border py-2 text-xs-plus text-foreground font-semibold no-underline transition-colors hover:text-primary sm:border-none sm:py-0 sm:text-[15px]';
 
 const mobileDropdown =
   'absolute inset-x-0 top-[var(--nav-height)] z-50 flex flex-col gap-1 border-b border-border bg-background/95 px-6 pb-5 pt-4';
@@ -49,7 +49,7 @@ export default function Navbar({ className }: NavbarProps) {
   return (
     <nav
       className={cn(
-        'border-border bg-background/90 fixed inset-x-0 top-0 isolate z-[100] h-[var(--nav-height)] border-b backdrop-blur-[10px]',
+        'border-border dark:bg-background/90 fixed inset-x-0 top-0 isolate z-[100] h-[var(--nav-height)] border-b bg-white/95 backdrop-blur-[10px]',
         className,
       )}
     >
