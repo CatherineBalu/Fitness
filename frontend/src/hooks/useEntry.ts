@@ -36,7 +36,9 @@ export const entryKeys = {
   all: ['customerEntries'] as const,
 };
 
-export function useCustomerEntries(options?: { refetchInterval?: number | false }) {
+export function useCustomerEntries(options?: {
+  refetchInterval?: number | false;
+}) {
   return useQuery({
     queryKey: entryKeys.all,
     queryFn: () => apiClient<CustomerEntries>('/api/customer/entries'),

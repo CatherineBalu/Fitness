@@ -65,8 +65,6 @@ export default function QrAccessPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQr]);
 
-
-
   useEffect(() => {
     if (!qrExpiresAt) return;
     const interval = setInterval(() => {

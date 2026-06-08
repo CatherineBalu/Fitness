@@ -110,7 +110,9 @@ export default function CustomerProfilePage() {
   });
   // Poll every 2 s while any QR panel is open so the balance updates as soon
   // as staff scans the token on their device.
-  const entriesQuery = useCustomerEntries({ refetchInterval: qrOpen ? 2000 : false });
+  const entriesQuery = useCustomerEntries({
+    refetchInterval: qrOpen ? 2000 : false,
+  });
 
   // Entry scan detection: close the panel when the balance drops while it is open.
   useEffect(() => {
@@ -121,7 +123,10 @@ export default function CustomerProfilePage() {
     }
     const balance = entriesQuery.data?.entryBalance ?? null;
     if (balance === null) return;
-    if (prevEntryBalanceRef.current !== null && balance < prevEntryBalanceRef.current) {
+    if (
+      prevEntryBalanceRef.current !== null &&
+      balance < prevEntryBalanceRef.current
+    ) {
       setCloseEntryQr(true);
     }
     prevEntryBalanceRef.current = balance;
@@ -129,7 +134,10 @@ export default function CustomerProfilePage() {
 
   // Membership scan detection: close the panel when today's entry is confirmed.
   useEffect(() => {
-    if (!membershipQrOpen) { setCloseMembershipQr(false); return; }
+    if (!membershipQrOpen) {
+      setCloseMembershipQr(false);
+      return;
+    }
     if (entriesQuery.data?.membershipEnteredToday) setCloseMembershipQr(true);
   }, [entriesQuery.data?.membershipEnteredToday, membershipQrOpen]);
 
