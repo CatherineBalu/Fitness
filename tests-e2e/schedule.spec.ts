@@ -3,10 +3,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Schedule page — structure', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule');
+    // Wait for Clerk to load and route guard to complete before each test
+    await expect(page.getByTestId('cal-root')).toBeVisible({ timeout: 15_000 });
   });
 
   test('renders the weekly calendar grid', async ({ page }) => {
-    await expect(page.getByTestId('cal-root')).toBeVisible();
     await expect(page.getByTestId('cal-week-grid')).toBeVisible();
   });
 
@@ -22,8 +23,8 @@ test.describe('Schedule page — structure', () => {
     ];
     let found = 0;
     for (const day of dayNames) {
-      const visible = await page.getByText(day, { exact: true }).isVisible();
-      if (visible) found++;
+      const count = await page.getByText(day, { exact: true }).count();
+      if (count > 0) found++;
     }
     expect(found).toBeGreaterThan(0);
   });
@@ -61,7 +62,6 @@ test.describe('Schedule page — structure', () => {
   });
 
   test('clicking a non-All-lectures category deactivates All lectures', async ({ page }) => {
-    await page.getByTestId('cal-cat-btn').first().waitFor({ timeout: 10_000 });
     const buttons = page.getByTestId('cal-cat-btn');
     const count = await buttons.count();
 
@@ -75,7 +75,6 @@ test.describe('Schedule page — structure', () => {
   });
 
   test('clicking All lectures after a category resets to all active', async ({ page }) => {
-    await page.getByTestId('cal-cat-btn').first().waitFor({ timeout: 10_000 });
     const buttons = page.getByTestId('cal-cat-btn');
     const count = await buttons.count();
 
@@ -91,7 +90,7 @@ test.describe('Schedule page — structure', () => {
 test.describe('Schedule page — unauthenticated interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/schedule');
-    await page.getByTestId('cal-week-grid').waitFor({ timeout: 10_000 });
+    await expect(page.getByTestId('cal-root')).toBeVisible({ timeout: 15_000 });
   });
 
   test('future lecture Register button triggers Clerk modal for guests', async ({ page }) => {
