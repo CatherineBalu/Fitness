@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 
+import { findCustomerByClerkId } from './customer.service';
 import { isMembershipActive } from './subscription.service';
 import { db } from '../db/db';
 import { customers, entryCredits, entryLogs, persons, qrTokens } from '../db/schema';
@@ -101,19 +102,6 @@ async function invalidateActiveTokens(
     );
 }
 
-async function findCustomerIdByClerk(clerkId: string) {
-  const [row] = await db
-    .select({
-      customerId: customers.id,
-      subscriptionValidUntil: customers.subscriptionValidUntil,
-    })
-    .from(customers)
-    .innerJoin(persons, eq(customers.personId, persons.id))
-    .where(and(eq(persons.clerkId, clerkId), notDeleted(customers), notDeleted(persons)))
-    .limit(1);
-  return row ?? null;
-}
-
 export const entryService = {
   generateToken,
   generateMembershipToken,
@@ -124,7 +112,7 @@ export const entryService = {
 };
 
 async function generateToken(clerkId: string): Promise<{ token: string; expiresAt: Date }> {
-  const row = await findCustomerIdByClerk(clerkId);
+  const row = await findCustomerByClerkId(clerkId);
   if (!row) throw new NotFoundError('Customer profile not found');
 
   return db.transaction(async (tx) => {
@@ -142,7 +130,7 @@ async function generateToken(clerkId: string): Promise<{ token: string; expiresA
 async function generateMembershipToken(
   clerkId: string,
 ): Promise<{ token: string; expiresAt: Date }> {
-  const row = await findCustomerIdByClerk(clerkId);
+  const row = await findCustomerByClerkId(clerkId);
   if (!row) throw new NotFoundError('Customer profile not found');
 
   // Membership expiry is not race-sensitive — check it fast before opening a tx.
@@ -260,16 +248,7 @@ async function validateAndScan(
 }
 
 async function getCustomerEntries(clerkId: string) {
-  const [row] = await db
-    .select({
-      customerId: customers.id,
-      subscriptionValidUntil: customers.subscriptionValidUntil,
-    })
-    .from(customers)
-    .innerJoin(persons, eq(customers.personId, persons.id))
-    .where(and(eq(persons.clerkId, clerkId), notDeleted(customers), notDeleted(persons)))
-    .limit(1);
-
+  const row = await findCustomerByClerkId(clerkId);
   if (!row) throw new NotFoundError('Customer profile not found');
 
   const membershipActive = isMembershipActive(row.subscriptionValidUntil);

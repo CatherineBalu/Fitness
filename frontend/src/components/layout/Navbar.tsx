@@ -8,7 +8,7 @@ import ThemeToggle from '@/components/common/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { can } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
-import CustomerProfilePage from '@/pages/CustomerProfilePage';
+import CustomerProfilePage from '@/pages/CustomerProfilePage/CustomerProfilePage';
 
 const navLinkClass =
   'border-b border-border py-2 text-xs-plus text-foreground font-semibold no-underline transition-colors hover:text-primary sm:border-none sm:py-0 sm:text-[15px]';

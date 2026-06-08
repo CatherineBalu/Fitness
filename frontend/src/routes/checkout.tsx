@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { requireAuth } from '@/lib/routeGuards';
-import CheckoutPage from '@/pages/CheckoutPage';
+import CheckoutPage from '@/pages/CheckoutPage/CheckoutPage';
 
 export const Route = createFileRoute('/checkout')({
   validateSearch: (search: Record<string, unknown>): { plan?: string } => ({
