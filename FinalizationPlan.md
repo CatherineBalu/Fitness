@@ -4,6 +4,64 @@ Roadmap for bringing the project from "working skeleton" to "final submission". 
 
 Generated 2026-04-24 based on a repo audit. Re-check items against current state before executing — some may already be done by the time you read this.
 
+---
+
+## ⏳ Remaining work — live list (updated 2026-06-08)
+
+**Context:** Core functionality is DONE (QR codes via NUE-62, emails via NUE-44, subscriptions, deployment). Presentation is **2026-06-09** (QR + emails work on localhost; host has env issues — present on localhost). What remains is **bug fixes + cleanup**, and a **page decomposition pass last** so we still finish in time.
+
+All items below were verified against `devel @ 27e8b41` on 2026-06-08, not inherited from the stale audit further down this file.
+
+### Decisions locked (from 2026-06-08 review)
+
+- **Timezones → align everything to UTC.** Data model already stores wall-clock-as-UTC consistently (`AddScheduleDialog` appends `Z`, `seed.ts` uses `setUTCHours`, PATCH uses `setUTCHours`, `AdminCalendarPage` displays `getUTCHours`). Only the *display* drifts. Fix = switch the 3 stragglers to `getUTCHours/getUTCMinutes`. No data shifts, no re-seed.
+- **Delete lecture → via the edit dialog.** Add a delete icon in the lecture edit dialog. Soft delete (`deletedAt = now()`) with cascade. Must invalidate calendar queries so the calendar updates immediately.
+
+### Group 1 — Timezones (small, can ship standalone)
+
+- [ ] `AdminDashboardPage.tsx:43` — `getHours()/getMinutes()` → `getUTCHours()/getUTCMinutes()` (pad hours)
+- [ ] `SchedulePage.tsx:55` — same
+- [ ] `AdminStaffPage.tsx:36` — same
+- (Reference: `AdminCalendarPage.tsx:110` already does it right.)
+
+### Group 2 — Admin lectures finalization (one branch, all touches `calendar.ts` / `AdminCalendarPage`)
+
+- [ ] **Delete lecture** — new BE `DELETE /calendar/:id` (only `DELETE /:id/members/:personId` exists today). Soft delete + cascade `customerReservations` + `scheduleInstructors` in a `db.transaction`. FE: delete icon in edit dialog + invalidate `useCalendar` keys.
+- [ ] **Auth on `calendar.ts`** — all 6 endpoints are currently PUBLIC (no `requirePermission`/`beforeHandle`). Add guard. **Same gap on `customer.ts` + `subscriptions.ts` (0 guards each)** — fold in.
+  - [ ] **Clerk hydration race** — adding auth will make `AdminCalendarPage` 401 on first paint (no `useAuth().isLoaded` gate, unlike `SchedulePage`). Fix in the same branch.
+- [ ] **PATCH `/calendar/:id` validation** — POST has zod `.refine(endTime > startTime)`, PATCH has none. Admin can set end before start from the edit dialog.
+- [ ] **Edit dialog can't change date** — only time + room. No way to move a lecture to another day. (Couples with PATCH using `setUTCHours` on existing date — ignores date.)
+- [ ] **Service re-validates zod** — `createSchedule` runs `safeParse` after route validator. Move full schema to route `body:`, service trusts the type.
+- [ ] **`/api/` prefix inconsistency** — `calendar`/`schedule`/`subscriptions` bare vs `/api/customer`/`staff`/`stats`/`lectures`. Unify while we're in `calendar.ts`.
+
+### Group 3 — Correctness / perf (nice to have)
+
+- [ ] **Room/instructor overlap check** — none on create or update; double-booking possible.
+- [ ] **`bulkUpdateAttendance` N+1** — `calendar.service.ts:235` loops `findCustomerByPersonId` per record. Single `IN (...)` lookup instead.
+
+### Group 4 — App-wide polish
+
+- [ ] **`errorComponent`** in `frontend/src/routes/__root.tsx` (only `notFoundComponent` today) — render crash = white screen. Add `ErrorPage` mirroring `NotFoundPage`.
+- [ ] **Loading/error UX** — `AdminStaffPage` + `AdminDashboardPage` don't use Skeleton/Alert/EmptyState (Calendar/Statistics do).
+- [ ] **Staff public/staff view toggle** in `RootLayout` (mirror admin toggle).
+
+### Group 5 — Definition of Done (mandatory, same commit as the above)
+
+- [ ] **Tests** — `calendar.ts` and `staff.ts` have 0 tests. ≥1 happy + ≥1 error path each. `backend/tests/` is flat — split into `routes/` + `services/` per CLAUDE.md.
+- [ ] **`ApiEndpoints.md`** — admin routes documented under `/schedule/*` but live at `/calendar/*`; missing `GET /lectures/:id/members`. Update for every route change.
+
+### Group 6 — LAST (after bugs are fixed)
+
+- [ ] **Page decomposition pass** — break big pages into per-page folders (`PageName/{Page.tsx, components/, hooks/}`) per CLAUDE.md, using `AdminStatisticsPage` (NUE-55) as the pattern. Do this last so it doesn't block bug fixes before the presentation.
+
+### Branches still to merge
+
+- [x] `xkolar8/NUE-62` — QR codes + entry/credit-ledger system — **MERGED into devel** (`7926ab4`)
+- [x] `xbreja/NUE-46` — instructor email contact — **MERGED into devel** (`7c23c65`)
+- [ ] `xbreja/NUE-67` — light mode improvements (1 commit `47e1eca`, touches `index.css` + Footer/Navbar/4 pages) — **open, not merged**
+
+---
+
 ## Current state (snapshot)
 
 - Architecture: monorepo, React 19 + TS + Vite FE, Bun + Elysia BE, Drizzle + PostgreSQL, Clerk auth, shadcn/ui, TanStack Router.

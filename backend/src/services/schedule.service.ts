@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, inArray, asc } from 'drizzle-orm';
 
 import { findCustomerByClerkId, getCustomerByClerkIdOrThrow } from './customer.service';
 import { isMembershipActive } from './subscription.service';
@@ -51,7 +51,7 @@ export async function listSchedules(
 ): Promise<ScheduleListItem[]> {
   const from = new Date(fromIso);
   const to = new Date(toIso);
-  to.setHours(23, 59, 59, 999);
+  to.setUTCHours(23, 59, 59, 999);
 
   let instructorScheduleIds: string[] | null = null;
   if (onlyMine && clerkId) {
@@ -99,7 +99,8 @@ export async function listSchedules(
         notDeleted(exerciseTypes),
         ...(instructorScheduleIds !== null ? [inArray(schedules.id, instructorScheduleIds)] : []),
       ),
-    );
+    )
+    .orderBy(asc(schedules.startTime));
 
   if (scheduleRows.length === 0) return [];
 

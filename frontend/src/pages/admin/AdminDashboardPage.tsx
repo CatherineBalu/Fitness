@@ -40,7 +40,7 @@ interface StaffStats {
 
 function formatLectureTime(startIso: string, endIso: string): string {
   const fmt = (d: Date) =>
-    `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+    `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   return `${fmt(new Date(startIso))} - ${fmt(new Date(endIso))}`;
 }
 
