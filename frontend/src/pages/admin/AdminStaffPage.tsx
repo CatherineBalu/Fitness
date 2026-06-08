@@ -3,6 +3,8 @@ import { Search, Plus, Clock, MapPin, Users, X, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import EmptyState from '@/components/common/EmptyState';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -12,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/apiClient';
 import { cn } from '@/lib/utils';
 
@@ -324,7 +327,11 @@ export default function AdminStaffPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
 
-  const { data: staffList = [], isLoading: loadingStaff } = useQuery({
+  const {
+    data: staffList = [],
+    isLoading: loadingStaff,
+    isError: staffError,
+  } = useQuery({
     queryKey: staffListKey,
     queryFn: () => apiClient<StaffMember[]>('/api/staff'),
   });
@@ -444,12 +451,23 @@ export default function AdminStaffPage() {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          {loadingStaff && (
-            <p className="text-muted-foreground py-6 text-sm">
-              Loading staff...
-            </p>
+          {staffError && (
+            <Alert variant="destructive">
+              <AlertTitle>Couldn&apos;t load staff</AlertTitle>
+              <AlertDescription>
+                Something went wrong. Please try again later.
+              </AlertDescription>
+            </Alert>
           )}
-          {!loadingStaff &&
+          {!staffError && loadingStaff && (
+            <>
+              <Skeleton className="h-[68px] rounded-lg" />
+              <Skeleton className="h-[68px] rounded-lg" />
+              <Skeleton className="h-[68px] rounded-lg" />
+            </>
+          )}
+          {!staffError &&
+            !loadingStaff &&
             filtered.map((staff) => (
               <div
                 key={staff.id}
@@ -516,10 +534,8 @@ export default function AdminStaffPage() {
                 </div>
               </div>
             ))}
-          {!loadingStaff && filtered.length === 0 && (
-            <p className="text-muted-foreground py-6 text-sm">
-              No staff members found.
-            </p>
+          {!staffError && !loadingStaff && filtered.length === 0 && (
+            <EmptyState message="No staff members found." />
           )}
         </div>
       </div>

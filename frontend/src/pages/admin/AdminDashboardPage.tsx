@@ -9,8 +9,11 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+import EmptyState from '@/components/common/EmptyState';
 import StatCard from '@/components/common/StatCard';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/apiClient';
 
 interface Lecture {
@@ -103,6 +106,9 @@ export default function AdminDashboardPage() {
   const loading =
     lecturesQuery.isLoading ||
     (isAdmin ? adminOverviewQuery.isLoading : staffStatsQuery.isLoading);
+  const hasError =
+    lecturesQuery.isError ||
+    (isAdmin ? adminOverviewQuery.isError : staffStatsQuery.isError);
   const adminStats = adminOverviewQuery.data ?? null;
   const staffStats = staffStatsQuery.data ?? null;
 
@@ -199,13 +205,29 @@ export default function AdminDashboardPage() {
             <h2 className="text-foreground text-2xl font-extrabold">Next up</h2>
           </div>
           <div className="flex flex-col gap-2.5">
-            {loading && <p className="text-muted-foreground">Loading…</p>}
-            {!loading && upcoming.length === 0 && (
-              <p className="text-muted-foreground">No upcoming lectures.</p>
+            {hasError && (
+              <Alert variant="destructive">
+                <AlertTitle>Couldn&apos;t load your dashboard</AlertTitle>
+                <AlertDescription>
+                  Something went wrong. Please try again later.
+                </AlertDescription>
+              </Alert>
             )}
-            {upcoming.map((item) => (
-              <UpcomingClassRow key={item.id} item={item} />
-            ))}
+            {!hasError && loading && (
+              <>
+                <Skeleton className="h-[72px] rounded-lg" />
+                <Skeleton className="h-[72px] rounded-lg" />
+                <Skeleton className="h-[72px] rounded-lg" />
+              </>
+            )}
+            {!hasError && !loading && upcoming.length === 0 && (
+              <EmptyState message="No upcoming lectures." />
+            )}
+            {!hasError &&
+              !loading &&
+              upcoming.map((item) => (
+                <UpcomingClassRow key={item.id} item={item} />
+              ))}
           </div>
         </section>
 
