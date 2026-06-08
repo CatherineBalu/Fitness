@@ -114,10 +114,17 @@ export default function CustomerProfilePage() {
     refetchInterval: qrOpen ? 2000 : false,
   });
 
-  // Entry scan detection: close the panel when the balance drops while it is open.
+  // Cross-component sync: when the polled balance/`enteredToday` flag changes,
+  // we flip a `close*Qr` flag that flows into QrAccessPanel via `forceClose` so
+  // the child closes itself. React's `react-hooks/set-state-in-effect` rule
+  // warns against setState inside an effect, but here it is intentional and
+  // bounded — the flag is reset as soon as `*QrOpen` flips false (the only
+  // other state we touch). The idiomatic alternative `useEffectEvent` is still
+  // experimental.
   useEffect(() => {
     if (!entryQrOpen) {
       prevEntryBalanceRef.current = null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCloseEntryQr(false);
       return;
     }
@@ -132,9 +139,10 @@ export default function CustomerProfilePage() {
     prevEntryBalanceRef.current = balance;
   }, [entriesQuery.data?.entryBalance, entryQrOpen]);
 
-  // Membership scan detection: close the panel when today's entry is confirmed.
+  // Membership scan detection — same cross-component sync pattern as above.
   useEffect(() => {
     if (!membershipQrOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCloseMembershipQr(false);
       return;
     }
