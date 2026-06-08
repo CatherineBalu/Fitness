@@ -160,3 +160,88 @@ describe('DELETE /calendar/:id — cancel lecture', () => {
     expect(res.status).toBe(422);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────
+// POST /calendar — create lecture (overlap + time validation)
+// ─────────────────────────────────────────────────────────────────────
+
+describe('POST /calendar — create', () => {
+  beforeEach(() => {
+    mockVerifyToken.mockReset();
+    mockVerifiedToken('admin');
+    selectResponses = [];
+  });
+
+  const validBody = {
+    lectureId: '00000000-0000-0000-0000-0000000000aa',
+    roomId: '00000000-0000-0000-0000-0000000000bb',
+    startTime: '2026-09-01T10:00:00.000Z',
+    endTime: '2026-09-01T11:00:00.000Z',
+  };
+
+  function createRequest(body: Record<string, unknown>) {
+    return app.handle(
+      new Request('http://localhost/calendar', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    );
+  }
+
+  test('returns 409 when the room is already booked for an overlapping time', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW], // clerk middleware person lookup
+      [{ id: 'clashing-schedule' }], // room overlap query → conflict
+    ];
+    const res = await createRequest(validBody);
+    expect(res.status).toBe(409);
+  });
+
+  test('returns 422 when endTime is not after startTime', async () => {
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
+    const res = await createRequest({
+      ...validBody,
+      startTime: '2026-09-01T11:00:00.000Z',
+      endTime: '2026-09-01T10:00:00.000Z',
+    });
+    expect(res.status).toBe(422);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// PATCH /calendar/:id — reschedule validation
+// ─────────────────────────────────────────────────────────────────────
+
+describe('PATCH /calendar/:id — validation', () => {
+  beforeEach(() => {
+    mockVerifyToken.mockReset();
+    mockVerifiedToken('admin');
+    selectResponses = [];
+  });
+
+  test('returns 422 when endTime is before startTime', async () => {
+    selectResponses = [
+      [MIDDLEWARE_PERSON_ROW], // clerk middleware person lookup
+      [
+        {
+          id: SCHEDULE_ID,
+          roomId: 'room-1',
+          startTime: new Date('2026-09-01T10:00:00.000Z'),
+          endTime: new Date('2026-09-01T11:00:00.000Z'),
+        },
+      ], // current schedule lookup
+    ];
+    const res = await app.handle(
+      new Request(DELETE_URL, {
+        method: 'PATCH',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startTime: '2026-09-01T12:00:00.000Z',
+          endTime: '2026-09-01T11:00:00.000Z',
+        }),
+      }),
+    );
+    expect(res.status).toBe(422);
+  });
+});
