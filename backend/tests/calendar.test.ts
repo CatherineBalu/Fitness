@@ -207,6 +207,18 @@ describe('POST /calendar — create', () => {
     });
     expect(res.status).toBe(422);
   });
+
+  test('returns 422 when lectureId is not a valid uuid', async () => {
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
+    const res = await createRequest({ ...validBody, lectureId: 'not-a-uuid' });
+    expect(res.status).toBe(422);
+  });
+
+  test('returns 422 when startTime is not a valid datetime', async () => {
+    selectResponses = [[MIDDLEWARE_PERSON_ROW]];
+    const res = await createRequest({ ...validBody, startTime: 'not-a-date' });
+    expect(res.status).toBe(422);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────
