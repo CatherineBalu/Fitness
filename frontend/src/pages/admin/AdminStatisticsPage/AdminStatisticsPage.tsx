@@ -24,13 +24,13 @@ export default function AdminStatisticsPage() {
     <div className="min-h-svh pt-[var(--nav-height)]">
       <header className="border-border bg-admin-hero border-b px-5 py-10 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <p className="text-muted-foreground mb-1.5 text-sm font-semibold tracking-widest">
+          <p className="mb-1.5 text-sm font-semibold tracking-widest text-white/70">
             OVERVIEW
           </p>
           <h1 className="text-primary mb-3 text-5xl leading-none font-black">
             STATISTICS
           </h1>
-          <p className="text-muted-foreground text-base">
+          <p className="text-base text-white/70">
             Business health at a glance — revenue, popularity, occupancy.
           </p>
         </div>

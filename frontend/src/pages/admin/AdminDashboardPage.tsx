@@ -160,13 +160,13 @@ export default function AdminDashboardPage() {
     <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
       <div className="border-border bg-admin-hero border-b px-8 py-16 md:px-5 md:py-10">
         <div className="mx-auto max-w-[1200px]">
-          <p className="text-muted-foreground mb-1.5 text-[0.85rem] font-semibold tracking-[0.12em]">
+          <p className="mb-1.5 text-[0.85rem] font-semibold tracking-[0.12em] text-white/70">
             WELCOME BACK
           </p>
           <h1 className="text-primary mb-3 text-5xl leading-none font-black sm:text-[1.8rem] md:text-[2.2rem]">
             {isAdmin ? 'ADMIN' : 'STAFF'}
           </h1>
-          <p className="text-muted-foreground mb-7 text-base">
+          <p className="mb-7 text-base text-white/70">
             {loading
               ? '…'
               : `You have ${upcoming.length} upcoming lecture${upcoming.length !== 1 ? 's' : ''}.`}

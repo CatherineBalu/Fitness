@@ -228,16 +228,16 @@ export default function HomePage() {
           alt="Gym"
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
-        <div className="from-background/55 to-background/75 absolute inset-0 bg-gradient-to-b" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 to-black/75" />
         <div className="relative max-w-[760px] px-6">
           <p className="text-primary text-xs-plus mb-4 font-semibold tracking-[3px] uppercase">
             Welcome to our gym
           </p>
-          <h1 className="text-hero text-foreground mb-5 leading-[1.1] font-extrabold">
+          <h1 className="text-hero mb-5 leading-[1.1] font-extrabold text-white">
             Pursue Outdoor,&nbsp;
             <span className="text-primary">Fitness Performance</span>
           </h1>
-          <p className="text-foreground/70 mx-auto mb-8 max-w-[520px] text-center text-[17px] leading-[1.6]">
+          <p className="mx-auto mb-8 max-w-[520px] text-center text-[17px] leading-[1.6] text-white/70">
             Join our world-class fitness facility and transform your body.
             Expert trainers, modern equipment, and flexible membership plans.
           </p>
