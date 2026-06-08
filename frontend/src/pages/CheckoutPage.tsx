@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import Stepper from '@/components/common/Stepper';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -20,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuthProfile } from '@/hooks/useAuthProfile';
 import { useBuySubscription, useSubscriptions } from '@/hooks/useSubscriptions';
-import { cn } from '@/lib/utils';
+import { formatPrice } from '@/lib/formatters';
 
 const STEPS = [
   'Contact details',
@@ -50,65 +51,12 @@ const contactSchema = z.object({
 
 type ContactForm = z.infer<typeof contactSchema>;
 
-function formatPrice(price: string) {
-  const num = Number(price);
-  return Number.isFinite(num) ? `€${num.toFixed(2)}` : `€${price}`;
-}
-
 function formatDate(date: Date) {
   return date.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-}
-
-function Stepper({ current }: { current: number }) {
-  return (
-    <div className="relative mb-12 flex items-start justify-between">
-      {STEPS.map((label, i) => {
-        const isDone = i < current;
-        const isActive = i === current;
-        return (
-          <div
-            key={label}
-            className="relative z-[1] flex flex-1 flex-col items-center gap-2.5"
-          >
-            <div
-              className={cn(
-                'flex size-9 items-center justify-center rounded-full border-2 text-sm font-bold',
-                isDone
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : isActive
-                    ? 'border-primary bg-card text-primary'
-                    : 'border-border bg-card text-muted-foreground',
-              )}
-            >
-              {isDone ? <CheckIcon size={16} /> : i + 1}
-            </div>
-            <span
-              className={cn(
-                'text-xs-plus text-center sm:text-[11px]',
-                isDone || isActive
-                  ? 'text-foreground'
-                  : 'text-muted-foreground',
-              )}
-            >
-              {label}
-            </span>
-            {i < STEPS.length - 1 && (
-              <div
-                className={cn(
-                  'absolute top-[17px] right-[calc(-50%+18px)] left-[calc(50%+18px)] z-0 h-0.5',
-                  isDone ? 'bg-primary' : 'bg-border',
-                )}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export default function CheckoutPage() {
@@ -280,7 +228,7 @@ export default function CheckoutPage() {
           Complete the steps below to activate your plan.
         </p>
 
-        <Stepper current={step} />
+        <Stepper steps={STEPS} current={step} />
 
         <div className="border-border bg-card rounded-2xl border p-8">
           {step === 0 && (

@@ -22,6 +22,7 @@ import { useAuthProfile } from '@/hooks/useAuthProfile';
 import { useEntryPackages, type EntryPackage } from '@/hooks/useEntryPackages';
 import { useInstructors } from '@/hooks/useInstructors';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
+import { formatPrice, getInitials } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 
 import heroImg from '../assets/hero.png';
@@ -31,11 +32,6 @@ import EmptyState from '../components/common/EmptyState';
 import type { Instructor } from '@/hooks/useInstructors';
 import type { SubscriptionPlan } from '@/hooks/useSubscriptions';
 
-function formatPrice(price: string) {
-  const num = Number(price);
-  return Number.isFinite(num) ? `€${num.toFixed(0)}` : `€${price}`;
-}
-
 function formatMonthlyPrice(price: string, days: number) {
   const num = Number(price);
   if (!Number.isFinite(num) || days <= 0) return `€${price}`;
@@ -44,7 +40,7 @@ function formatMonthlyPrice(price: string, days: number) {
 }
 
 function formatBillingNote(price: string, days: number) {
-  const total = formatPrice(price);
+  const total = formatPrice(price, 0);
   if (days === 30) return `Billed ${total} each month`;
   if (days === 365) return `Billed ${total} once a year`;
   return `Billed ${total} every ${days} days`;
@@ -60,10 +56,6 @@ function formatBio(specializations: string[]) {
     return 'Certified instructor ready to help you reach your fitness goals.';
   }
   return `Certified instructor specializing in ${specializations.join(', ')}. Ready to push your limits, refine your form, and unlock your true potential.`;
-}
-
-function getInitials(first: string, last: string) {
-  return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase();
 }
 
 function TrainerCard({ instructor }: { instructor: Instructor }) {
@@ -467,7 +459,7 @@ export default function HomePage() {
                       <h4 className="mb-4 text-[20px] font-bold">{pkg.name}</h4>
                       <div className="mb-2">
                         <span className="text-[50px] leading-none font-extrabold">
-                          {formatPrice(pkg.price)}
+                          {formatPrice(pkg.price, 0)}
                         </span>
                       </div>
                       <p className="text-muted-foreground text-xs-plus mb-7">

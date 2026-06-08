@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/apiClient';
+import { getInitials } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 
 import AddMemberDialog from './AddMemberDialog';
@@ -69,11 +70,6 @@ interface Member {
   id: string;
   name: string;
   email: string;
-}
-
-function getInitials(first: string, last: string) {
-  if (last) return `${first[0]}${last[0]}`.toUpperCase();
-  return first.slice(0, 2).toUpperCase();
 }
 
 function getLectureStatus(
