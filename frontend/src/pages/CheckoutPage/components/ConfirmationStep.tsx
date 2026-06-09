@@ -18,7 +18,10 @@ interface ConfirmationStepProps {
   validUntil: Date | null;
 }
 
-export default function ConfirmationStep({ plan, validUntil }: ConfirmationStepProps) {
+export default function ConfirmationStep({
+  plan,
+  validUntil,
+}: ConfirmationStepProps) {
   return (
     <div className="px-4 pt-6 pb-2 text-center">
       <div className="bg-primary text-primary-foreground mb-5 inline-flex size-[72px] items-center justify-center rounded-full">

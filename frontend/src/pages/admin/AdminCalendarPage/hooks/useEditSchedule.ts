@@ -2,7 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { useDeleteSchedule, useRooms, useUpdateSchedule } from '@/hooks/useCalendar';
+import {
+  useDeleteSchedule,
+  useRooms,
+  useUpdateSchedule,
+} from '@/hooks/useCalendar';
 
 import { editScheduleSchema } from '../adminCalendar.types';
 
@@ -14,7 +18,9 @@ export function useEditSchedule() {
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [capacityWarningOpen, setCapacityWarningOpen] = useState(false);
-  const [pendingEditRoom, setPendingEditRoom] = useState<RoomOption | null>(null);
+  const [pendingEditRoom, setPendingEditRoom] = useState<RoomOption | null>(
+    null,
+  );
 
   const lectureId = lecture?.id ?? null;
   const { data: rooms = [] } = useRooms();
@@ -56,7 +62,9 @@ export function useEditSchedule() {
     updateSchedule.mutate(
       {
         roomId: values.roomId,
-        startTime: new Date(`${values.date}T${values.startTime}:00Z`).toISOString(),
+        startTime: new Date(
+          `${values.date}T${values.startTime}:00Z`,
+        ).toISOString(),
         endTime: new Date(`${values.date}T${values.endTime}:00Z`).toISOString(),
       },
       {

@@ -73,7 +73,11 @@ interface EntryBuyButtonProps {
   isSignedIn: boolean;
 }
 
-export function EntryBuyButton({ pkg, authReady, isSignedIn }: EntryBuyButtonProps) {
+export function EntryBuyButton({
+  pkg,
+  authReady,
+  isSignedIn,
+}: EntryBuyButtonProps) {
   const navigate = useNavigate();
   const btnClass =
     'bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-[var(--radius)] border-none py-[13px] text-[15px] font-bold transition-colors';

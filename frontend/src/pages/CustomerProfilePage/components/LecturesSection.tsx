@@ -8,7 +8,10 @@ import type { UseMutationResult } from '@tanstack/react-query';
 interface LecturesSectionProps {
   upcoming: Registration[];
   past: Registration[];
-  unregister: Pick<UseMutationResult<void, Error, string>, 'mutate' | 'isPending'>;
+  unregister: Pick<
+    UseMutationResult<void, Error, string>,
+    'mutate' | 'isPending'
+  >;
   confirmUnregister: string | null;
   setConfirmUnregister: (id: string | null) => void;
 }

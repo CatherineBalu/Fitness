@@ -129,9 +129,7 @@ export default function CheckoutPage() {
   }
 
   if (!plan || !profile) {
-    return pageShell(
-      <p className="text-muted-foreground">Loading plan…</p>,
-    );
+    return pageShell(<p className="text-muted-foreground">Loading plan…</p>);
   }
 
   if (profile.hasActiveMembership && step < 3) {

@@ -21,7 +21,6 @@ import {
 } from '@/hooks/useReservations';
 import { cn } from '@/lib/utils';
 
-
 import ActivityCard from './components/ActivityCard';
 import { useIsMobile } from './hooks/useIsMobile';
 

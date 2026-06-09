@@ -13,7 +13,10 @@ export function formatTime(iso: string) {
   });
 }
 
-export function formatBillingCycle(price: number, durationDays: number): string {
+export function formatBillingCycle(
+  price: number,
+  durationDays: number,
+): string {
   if (durationDays <= 30) return '';
   const total = `€${price.toFixed(0)}`;
   if (durationDays >= 365) return ` · billed ${total} / year`;

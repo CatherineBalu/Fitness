@@ -65,8 +65,7 @@ export default function ContactStep({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Last name{' '}
-                    <span className="text-destructive ml-0.5">*</span>
+                    Last name <span className="text-destructive ml-0.5">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input {...field} />
@@ -81,8 +80,7 @@ export default function ContactStep({
               render={({ field }) => (
                 <FormItem className="col-span-full">
                   <FormLabel>
-                    Email{' '}
-                    <span className="text-destructive ml-0.5">*</span>
+                    Email <span className="text-destructive ml-0.5">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input {...field} readOnly />

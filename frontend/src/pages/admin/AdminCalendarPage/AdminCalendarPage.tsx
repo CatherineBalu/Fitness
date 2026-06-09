@@ -7,7 +7,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSchedule } from '@/hooks/useCalendar';
 
 import AddScheduleDialog from '../AddScheduleDialog';
-import { filterLectures, getDaysAgoStr, rangeForFilter, scheduleItemToLecture, toUTCDateOnly } from './adminCalendarHelpers';
+import {
+  filterLectures,
+  getDaysAgoStr,
+  rangeForFilter,
+  scheduleItemToLecture,
+  toUTCDateOnly,
+} from './adminCalendarHelpers';
 import AttendanceDialog from './components/AttendanceDialog';
 import EditScheduleDialog from './components/EditScheduleDialog';
 import HistoryRangePicker from './components/HistoryRangePicker';

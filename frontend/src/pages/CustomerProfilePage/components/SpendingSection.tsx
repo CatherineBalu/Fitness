@@ -2,7 +2,11 @@ import { formatDate } from '../customerProfileHelpers';
 
 import type { SpendingData } from '../customerProfile.types';
 
-export default function SpendingSection({ spending }: { spending: SpendingData | null }) {
+export default function SpendingSection({
+  spending,
+}: {
+  spending: SpendingData | null;
+}) {
   return (
     <section className="flex flex-col gap-3">
       <p className="text-primary mb-0.5 text-[0.72rem] font-bold tracking-[0.12em] uppercase">

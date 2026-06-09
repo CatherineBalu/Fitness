@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/carousel';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
 import TrainerCard from './TrainerCard';
 
 import type { Instructor } from '@/hooks/useInstructors';

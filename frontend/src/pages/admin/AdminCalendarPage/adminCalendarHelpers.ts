@@ -2,12 +2,17 @@ import type { Filter, Lecture } from './adminCalendar.types';
 import type { ScheduleItem } from '@/hooks/useCalendar';
 
 export function toUTCDateOnly(date: Date): Date {
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  return new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
 }
 
 const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function scheduleItemToLecture(item: ScheduleItem, baseDate: Date): Lecture {
+export function scheduleItemToLecture(
+  item: ScheduleItem,
+  baseDate: Date,
+): Lecture {
   const start = new Date(item.startTime);
   const end = new Date(item.endTime);
   const fmtTime = (d: Date) =>

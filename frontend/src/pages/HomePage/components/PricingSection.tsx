@@ -116,7 +116,9 @@ export default function PricingSection({
                     <span
                       className={cn(
                         'font-bold',
-                        highlighted ? 'text-primary-foreground' : 'text-primary',
+                        highlighted
+                          ? 'text-primary-foreground'
+                          : 'text-primary',
                       )}
                     >
                       ✓
@@ -127,7 +129,9 @@ export default function PricingSection({
                     <span
                       className={cn(
                         'font-bold',
-                        highlighted ? 'text-primary-foreground' : 'text-primary',
+                        highlighted
+                          ? 'text-primary-foreground'
+                          : 'text-primary',
                       )}
                     >
                       ✓
@@ -138,7 +142,9 @@ export default function PricingSection({
                     <span
                       className={cn(
                         'font-bold',
-                        highlighted ? 'text-primary-foreground' : 'text-primary',
+                        highlighted
+                          ? 'text-primary-foreground'
+                          : 'text-primary',
                       )}
                     >
                       ✓
@@ -149,7 +155,9 @@ export default function PricingSection({
                     <span
                       className={cn(
                         'font-bold',
-                        highlighted ? 'text-primary-foreground' : 'text-primary',
+                        highlighted
+                          ? 'text-primary-foreground'
+                          : 'text-primary',
                       )}
                     >
                       ✓

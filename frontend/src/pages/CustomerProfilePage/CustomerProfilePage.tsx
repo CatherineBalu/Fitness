@@ -19,7 +19,11 @@ import LecturesSection from './components/LecturesSection';
 import MembershipSection from './components/MembershipSection';
 import SpendingSection from './components/SpendingSection';
 
-import type { ProfileData, Registration, SpendingData } from './customerProfile.types';
+import type {
+  ProfileData,
+  Registration,
+  SpendingData,
+} from './customerProfile.types';
 
 const customerMeKey = ['customer', 'me'] as const;
 const customerSpendingKey = ['customer', 'spending'] as const;
@@ -28,12 +32,16 @@ export default function CustomerProfilePage() {
   const qc = useQueryClient();
   const { closeUserProfile } = useClerk();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [confirmUnregister, setConfirmUnregister] = useState<string | null>(null);
+  const [confirmUnregister, setConfirmUnregister] = useState<string | null>(
+    null,
+  );
   const [entryQrOpen, setEntryQrOpen] = useState(false);
   const [membershipQrOpen, setMembershipQrOpen] = useState(false);
   const qrOpen = entryQrOpen || membershipQrOpen;
 
-  const [openingEntryBalance, setOpeningEntryBalance] = useState<number | null>(null);
+  const [openingEntryBalance, setOpeningEntryBalance] = useState<number | null>(
+    null,
+  );
 
   function handleEntryQrVisibilityChange(open: boolean) {
     setOpeningEntryBalance(

@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/card';
 import { getInitials } from '@/lib/formatters';
 
-
 import type { Instructor } from '@/hooks/useInstructors';
 
 function formatSpeciality(specializations: string[]) {
@@ -23,7 +22,11 @@ function formatBio(specializations: string[]) {
   return `Certified instructor specializing in ${specializations.join(', ')}. Ready to push your limits, refine your form, and unlock your true potential.`;
 }
 
-export default function TrainerCard({ instructor }: { instructor: Instructor }) {
+export default function TrainerCard({
+  instructor,
+}: {
+  instructor: Instructor;
+}) {
   const fullName = `${instructor.firstName} ${instructor.lastName}`;
   return (
     <Card

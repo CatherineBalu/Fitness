@@ -5,7 +5,6 @@ import { useEntryPackages } from '@/hooks/useEntryPackages';
 import { useInstructors } from '@/hooks/useInstructors';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 
-
 import PricingSection from './components/PricingSection';
 import TrainersSection from './components/TrainersSection';
 import heroImg from '../../assets/hero.png';

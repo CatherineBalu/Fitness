@@ -223,13 +223,18 @@ export default function EditScheduleDialog({
               }}
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0 shadow-md"
             >
-              {deleteSchedule.isPending ? 'Cancelling...' : 'Yes, Cancel Lecture'}
+              {deleteSchedule.isPending
+                ? 'Cancelling...'
+                : 'Yes, Cancel Lecture'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={capacityWarningOpen} onOpenChange={setCapacityWarningOpen}>
+      <AlertDialog
+        open={capacityWarningOpen}
+        onOpenChange={setCapacityWarningOpen}
+      >
         <AlertDialogContent className="border-border bg-background z-[70] border shadow-2xl sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-destructive flex items-center gap-2 text-xl font-semibold">
@@ -238,7 +243,9 @@ export default function EditScheduleDialog({
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground mt-3 text-sm leading-relaxed">
               You are trying to change the room to{' '}
-              <strong className="text-foreground">{pendingEditRoom?.name}</strong>
+              <strong className="text-foreground">
+                {pendingEditRoom?.name}
+              </strong>
               , which has a capacity of only{' '}
               <strong className="text-destructive">
                 {pendingEditRoom?.capacity}
@@ -247,7 +254,9 @@ export default function EditScheduleDialog({
               <br />
               <br />
               There are currently{' '}
-              <strong className="text-foreground">{lecture?.registered}</strong>{' '}
+              <strong className="text-foreground">
+                {lecture?.registered}
+              </strong>{' '}
               members registered. If you proceed, the registered members will
               remain, resulting in an overbooked room. Are you sure you want to
               proceed?
