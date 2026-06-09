@@ -16,20 +16,20 @@ export function scheduleItemToLecture(
   const start = new Date(item.startTime);
   const end = new Date(item.endTime);
   const fmtTime = (d: Date) =>
-    `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   const itemDay = new Date(
-    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()),
+    Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()),
   );
   const dayOffset = Math.round(
     (itemDay.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  const dd = String(start.getUTCDate()).padStart(2, '0');
-  const mm = String(start.getUTCMonth() + 1).padStart(2, '0');
-  const dayName = DAY_ABBR[start.getUTCDay()];
+  const dd = String(start.getDate()).padStart(2, '0');
+  const mm = String(start.getMonth() + 1).padStart(2, '0');
+  const dayName = DAY_ABBR[start.getDay()];
   const date = `${dayName} ${dd}.${mm}.`;
-  const dateISO = `${start.getUTCFullYear()}-${mm}-${dd}`;
+  const dateISO = `${start.getFullYear()}-${mm}-${dd}`;
 
   return {
     id: item.id,

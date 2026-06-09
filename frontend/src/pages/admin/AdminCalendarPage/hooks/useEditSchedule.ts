@@ -63,9 +63,9 @@ export function useEditSchedule() {
       {
         roomId: values.roomId,
         startTime: new Date(
-          `${values.date}T${values.startTime}:00Z`,
+          `${values.date}T${values.startTime}:00`,
         ).toISOString(),
-        endTime: new Date(`${values.date}T${values.endTime}:00Z`).toISOString(),
+        endTime: new Date(`${values.date}T${values.endTime}:00`).toISOString(),
       },
       {
         onSuccess: () => {
