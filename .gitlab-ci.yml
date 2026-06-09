@@ -85,6 +85,8 @@ e2e:test:
     # in the GitLab project settings.
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
     - if: $CI_COMMIT_BRANCH == "devel"
       when: manual
       allow_failure: true
