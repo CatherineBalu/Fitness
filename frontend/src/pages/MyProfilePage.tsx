@@ -1,4 +1,4 @@
-import CustomerProfilePage from './CustomerProfilePage';
+import CustomerProfilePage from './CustomerProfilePage/CustomerProfilePage';
 
 export default function MyProfilePage() {
   return (

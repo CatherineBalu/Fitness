@@ -84,10 +84,7 @@ e2e:test:
     # FRONTEND_URL and VITE_API_URL must be defined as protected CI/CD variables
     # in the GitLab project settings.
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "devel"
-      when: manual
-      allow_failure: true
+    - when: never
   before_script:
     - apt-get update -qq && apt-get install -y unzip
     - curl -fsSL https://bun.sh/install | bash

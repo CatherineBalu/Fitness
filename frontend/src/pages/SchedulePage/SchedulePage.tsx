@@ -1,11 +1,10 @@
-import { useAuth, SignInButton } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
-import { Badge } from '@/components/ui/badge';
+import ContactIcons from '@/components/common/ContactIcons';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -22,29 +21,14 @@ import {
 } from '@/hooks/useReservations';
 import { cn } from '@/lib/utils';
 
-import ContactIcons from '../components/common/ContactIcons';
+import ActivityCard from './components/ActivityCard';
+import { useIsMobile } from './hooks/useIsMobile';
 
+import type { Activity } from './components/ActivityCard';
 import type { ScheduleItem } from '@/hooks/useCalendar';
 
 const ALL_LECTURES = 'All lectures';
 type Category = string;
-
-interface Activity {
-  id: string;
-  time: string;
-  startTimeISO: string;
-  name: string;
-  room: string;
-  trainer: string;
-  trainerPhone: string | null;
-  trainerEmail: string | null;
-  capacity: number;
-  registered: number;
-  category: string;
-  dayIndex: number;
-  forMembers: boolean;
-  isRegistered: boolean;
-}
 
 type DialogState =
   | { type: 'none' }
@@ -127,138 +111,6 @@ function isToday(date: Date): boolean {
   );
 }
 
-interface ActivityCardProps {
-  activity: Activity;
-  isSignedIn: boolean;
-  busy: boolean;
-  onRegisterClick: (activity: Activity) => void;
-  onUnregisterClick: (activity: Activity) => void;
-}
-
-function ActivityCard({
-  activity,
-  isSignedIn,
-  busy,
-  onRegisterClick,
-  onUnregisterClick,
-}: ActivityCardProps) {
-  const isFull = activity.registered >= activity.capacity;
-  const isPast = new Date(activity.startTimeISO) < new Date();
-
-  const renderButton = () => {
-    if (isPast) return null;
-
-    if (activity.isRegistered) {
-      return (
-        <Button
-          data-testid="cal-unregister-btn"
-          size="sm"
-          variant="outline"
-          className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mt-1 w-full bg-transparent text-[12px] font-semibold uppercase disabled:opacity-50"
-          disabled={busy}
-          onClick={() => onUnregisterClick(activity)}
-        >
-          Unregister
-        </Button>
-      );
-    }
-
-    if (!isSignedIn) {
-      return (
-        <SignInButton mode="modal">
-          <Button
-            data-testid="cal-register-btn"
-            size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 w-full text-[12px] font-bold uppercase"
-          >
-            Register
-          </Button>
-        </SignInButton>
-      );
-    }
-
-    if (isFull) {
-      return (
-        <Button
-          size="sm"
-          className="bg-primary text-primary-foreground disabled:bg-card disabled:text-muted-foreground mt-1 w-full text-[12px] font-bold uppercase disabled:opacity-70"
-          disabled
-        >
-          Full
-        </Button>
-      );
-    }
-
-    return (
-      <Button
-        data-testid="cal-register-btn"
-        size="sm"
-        className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-card disabled:text-muted-foreground mt-1 w-full text-[12px] font-bold uppercase disabled:opacity-70"
-        disabled={busy}
-        onClick={() => onRegisterClick(activity)}
-      >
-        Register
-      </Button>
-    );
-  };
-
-  return (
-    <Card className="border-border bg-secondary shadow-none ring-0">
-      <CardContent className="flex flex-col gap-1.5 p-2.5">
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-muted-foreground text-xs">{activity.time}</span>
-          <div className="flex flex-wrap items-center justify-end gap-1">
-            {activity.forMembers && (
-              <Badge
-                variant="outline"
-                className="border-primary dark:bg-card text-primary inline-flex h-[18px] items-center gap-[3px] bg-white px-1.5 text-[10px] font-semibold"
-              >
-                <Lock size={10} /> Members
-              </Badge>
-            )}
-            <Badge
-              variant="outline"
-              className="border-border dark:bg-card text-foreground/80 h-[18px] bg-white px-1.5 text-[10px] font-semibold"
-            >
-              {activity.category}
-            </Badge>
-          </div>
-        </div>
-        <h4
-          data-testid="cal-activity-name"
-          className="text-foreground m-0 text-[15px] leading-[1.2] font-semibold"
-        >
-          {activity.name}
-        </h4>
-        <div className="text-muted-foreground flex items-center justify-between gap-1 text-[11px]">
-          <span>
-            {activity.room} | Trainer: {activity.trainer}
-          </span>
-          <span className="whitespace-nowrap">
-            {activity.registered}/{activity.capacity}
-          </span>
-        </div>
-        {renderButton()}
-      </CardContent>
-    </Card>
-  );
-}
-
-function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(max-width: 700px)').matches
-      : false,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 700px)');
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  return isMobile;
-}
-
 export default function SchedulePage() {
   const isMobile = useIsMobile();
   const { isSignedIn, isLoaded } = useAuth();
@@ -284,10 +136,6 @@ export default function SchedulePage() {
   toDate.setUTCDate(toDate.getUTCDate() + 6);
   const to = fmtISO(toDate);
 
-  // Gate on isLoaded so the schedule fetch waits for Clerk to hydrate.
-  // Otherwise apiClient reads window.Clerk?.session before it exists, fires
-  // unauthenticated, and the grid renders before isSignedIn flips true —
-  // making the Register button still wrap in <SignInButton>.
   const { data: scheduleItems = [], isLoading: loading } = useSchedule(
     from,
     to,
