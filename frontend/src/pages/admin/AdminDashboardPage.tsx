@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/clerk-react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
   Calendar,
   Users,
@@ -6,12 +8,13 @@ import {
   CalendarCheck,
   ArrowRight,
 } from 'lucide-react';
+
+import EmptyState from '@/components/common/EmptyState';
+import StatCard from '@/components/common/StatCard';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Link } from '@tanstack/react-router';
-import { useUser } from '@clerk/clerk-react';
-import { useApi } from '@/lib/api';
-import { StatCard } from '@/components/stats/StatCard';
-import './AdminDashboardPage.css';
+import { Skeleton } from '@/components/ui/skeleton';
+import { apiClient } from '@/lib/apiClient';
 
 interface Lecture {
   id: string;
@@ -40,7 +43,7 @@ interface StaffStats {
 
 function formatLectureTime(startIso: string, endIso: string): string {
   const fmt = (d: Date) =>
-    `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+    `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   return `${fmt(new Date(startIso))} - ${fmt(new Date(endIso))}`;
 }
 
@@ -54,19 +57,25 @@ function formatDate(iso: string): string {
 
 function UpcomingClassRow({ item }: { item: Lecture }) {
   return (
-    <div className="dash-class-row">
-      <div className="dash-class-info">
-        <span className="dash-class-name">{item.name}</span>
-        <span className="dash-class-meta">
+    <div className="border-border bg-card hover:border-primary flex items-center gap-5 rounded-lg border px-5 py-4 transition-colors md:flex-wrap md:gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="text-foreground text-[15px] font-semibold">
+          {item.name}
+        </span>
+        <span className="text-muted-foreground text-xs">
           {formatDate(item.startTime)} ·{' '}
           {formatLectureTime(item.startTime, item.endTime)} · {item.room}
         </span>
       </div>
-      <span className="dash-class-capacity">
+      <span className="border-border bg-secondary text-muted-foreground text-xs-plus rounded-full border px-3 py-0.5 font-semibold whitespace-nowrap">
         {item.registered}/{item.capacity}
       </span>
       <Link to="/admin/calendar">
-        <Button size="sm" variant="outline" className="dash-class-manage-btn">
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-border text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground text-xs-plus shrink-0 bg-transparent md:w-full"
+        >
           Manage
         </Button>
       </Link>
@@ -75,49 +84,38 @@ function UpcomingClassRow({ item }: { item: Lecture }) {
 }
 
 export default function AdminDashboardPage() {
-  const { apiRequest } = useApi();
   const { user } = useUser();
   const role = (user?.publicMetadata as { role?: string })?.role ?? null;
   const isAdmin = role === 'admin';
 
-  const [upcoming, setUpcoming] = useState<Lecture[]>([]);
-  const [adminStats, setAdminStats] = useState<AdminOverview | null>(null);
-  const [staffStats, setStaffStats] = useState<StaffStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const lecturesQuery = useQuery({
+    queryKey: ['staff', 'me', 'lectures'],
+    queryFn: () => apiClient<Lecture[]>('/api/staff/me/lectures'),
+  });
+  const adminOverviewQuery = useQuery({
+    queryKey: ['stats', 'admin', 'overview'],
+    queryFn: () => apiClient<AdminOverview>('/api/stats/admin/overview'),
+    enabled: isAdmin,
+  });
+  const staffStatsQuery = useQuery({
+    queryKey: ['stats', 'staff', 'me'],
+    queryFn: () => apiClient<StaffStats>('/api/stats/staff/me'),
+    enabled: !isAdmin,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    const now = new Date();
+  const loading =
+    lecturesQuery.isLoading ||
+    (isAdmin ? adminOverviewQuery.isLoading : staffStatsQuery.isLoading);
+  const hasError =
+    lecturesQuery.isError ||
+    (isAdmin ? adminOverviewQuery.isError : staffStatsQuery.isError);
+  const adminStats = adminOverviewQuery.data ?? null;
+  const staffStats = staffStatsQuery.data ?? null;
 
-    const requests: Promise<unknown>[] = [
-      apiRequest<Lecture[]>('/api/staff/me/lectures'),
-      isAdmin
-        ? apiRequest<AdminOverview>('/api/stats/admin/overview')
-        : apiRequest<StaffStats>('/api/stats/staff/me'),
-    ];
-
-    Promise.all(requests)
-      .then(([lectures, stats]) => {
-        if (cancelled) return;
-        const upcomingLectures = (lectures as Lecture[])
-          .filter((l) => new Date(l.startTime) > now)
-          .slice(0, 3);
-        setUpcoming(upcomingLectures);
-        if (isAdmin) {
-          setAdminStats(stats as AdminOverview);
-        } else {
-          setStaffStats(stats as StaffStats);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiRequest, isAdmin]);
+  const now = new Date();
+  const upcoming = (lecturesQuery.data ?? [])
+    .filter((l) => new Date(l.startTime) > now)
+    .slice(0, 3);
 
   const statCards = isAdmin
     ? [
@@ -165,26 +163,30 @@ export default function AdminDashboardPage() {
       : [];
 
   return (
-    <div className="admin-dash-page">
-      <div className="admin-dash-hero">
-        <div className="admin-dash-hero-inner">
-          <p className="admin-dash-welcome-label">WELCOME BACK</p>
-          <h1 className="admin-dash-name">{isAdmin ? 'ADMIN' : 'STAFF'}</h1>
-          <p className="admin-dash-subtitle">
+    <div className="bg-background text-foreground min-h-[calc(100svh-var(--nav-height))] pt-[var(--nav-height)]">
+      <div className="border-border bg-admin-hero border-b px-8 py-16 md:px-5 md:py-10">
+        <div className="mx-auto max-w-[1200px]">
+          <p className="mb-1.5 text-[0.85rem] font-semibold tracking-[0.12em] text-white/70">
+            WELCOME BACK
+          </p>
+          <h1 className="text-primary mb-3 text-5xl leading-none font-black sm:text-[1.8rem] md:text-[2.2rem]">
+            {isAdmin ? 'ADMIN' : 'STAFF'}
+          </h1>
+          <p className="mb-7 text-base text-white/70">
             {loading
               ? '…'
               : `You have ${upcoming.length} upcoming lecture${upcoming.length !== 1 ? 's' : ''}.`}
           </p>
-          <div className="admin-dash-hero-actions">
+          <div className="flex flex-wrap gap-3">
             <Link to="/admin/calendar">
-              <Button className="dash-hero-btn dash-hero-btn--primary">
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
                 My lectures
               </Button>
             </Link>
             <Link to="/schedule">
               <Button
                 variant="outline"
-                className="dash-hero-btn dash-hero-btn--outline"
+                className="border-border text-foreground hover:border-primary hover:text-primary gap-1.5 font-semibold"
               >
                 Show schedule
                 <ArrowRight size={15} />
@@ -194,29 +196,49 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="admin-dash-inner">
-        <section className="admin-dash-section">
-          <div className="admin-dash-section-header">
-            <p className="admin-dash-section-label">Upcoming classes</p>
-            <h2 className="admin-dash-section-title">Next up</h2>
+      <div className="mx-auto max-w-[1200px] px-8 py-12 md:px-5 md:py-8">
+        <section className="mb-12">
+          <div className="mb-5">
+            <p className="text-primary mb-1 text-[0.78rem] font-semibold tracking-[0.1em] uppercase">
+              Upcoming classes
+            </p>
+            <h2 className="text-foreground text-2xl font-extrabold">Next up</h2>
           </div>
-          <div className="dash-classes-list">
-            {loading && <p style={{ color: 'var(--c-muted)' }}>Loading…</p>}
-            {!loading && upcoming.length === 0 && (
-              <p style={{ color: 'var(--c-muted)' }}>No upcoming lectures.</p>
+          <div className="flex flex-col gap-2.5">
+            {hasError && (
+              <Alert variant="destructive">
+                <AlertTitle>Couldn&apos;t load your dashboard</AlertTitle>
+                <AlertDescription>
+                  Something went wrong. Please try again later.
+                </AlertDescription>
+              </Alert>
             )}
-            {upcoming.map((item) => (
-              <UpcomingClassRow key={item.id} item={item} />
-            ))}
+            {!hasError && loading && (
+              <>
+                <Skeleton className="h-[72px] rounded-lg" />
+                <Skeleton className="h-[72px] rounded-lg" />
+                <Skeleton className="h-[72px] rounded-lg" />
+              </>
+            )}
+            {!hasError && !loading && upcoming.length === 0 && (
+              <EmptyState message="No upcoming lectures." />
+            )}
+            {!hasError &&
+              !loading &&
+              upcoming.map((item) => (
+                <UpcomingClassRow key={item.id} item={item} />
+              ))}
           </div>
         </section>
 
         {statCards.length > 0 && (
           <>
-            <div className="admin-dash-divider" />
-            <section className="admin-dash-section">
-              <h2 className="admin-dash-section-title">This month</h2>
-              <div className="dash-stats-grid">
+            <div className="bg-border mb-12 h-px" />
+            <section className="mb-12">
+              <h2 className="text-foreground text-2xl font-extrabold">
+                This month
+              </h2>
+              <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {statCards.map((stat) => (
                   <StatCard
                     key={stat.label}

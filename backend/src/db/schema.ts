@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   pgTable,
+  pgEnum,
   uuid,
   text,
   numeric,
@@ -8,140 +10,216 @@ import {
   date,
   boolean,
   primaryKey,
+  check,
 } from 'drizzle-orm/pg-core';
+
+const timestamps = {
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+};
 
 // --- NUMERALS AND TYPES ---
 
-export const tbEmployeeType = pgTable('TB_employee_type', {
-  id: uuid('ID_employee_type').primaryKey().defaultRandom(),
+export const employeeTypes = pgTable('employee_type', {
+  id: uuid('id').primaryKey().defaultRandom(),
   roleName: text('role_name').notNull().unique(),
+  ...timestamps,
 });
 
-export const tbSubscription = pgTable('TB_subscription', {
-  id: uuid('ID_subscription').primaryKey().defaultRandom(),
+export const subscriptions = pgTable('subscription', {
+  id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   price: numeric('price').notNull(),
   durationDays: integer('duration_days').notNull(),
+  ...timestamps,
 });
 
-export const tbExerciseType = pgTable('TB_exercise_type', {
-  id: uuid('ID_exercise_type').primaryKey().defaultRandom(),
+export const entryPackages = pgTable('entry_package', {
+  id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
+  entryCount: integer('entry_count').notNull(),
+  price: numeric('price').notNull(),
+  ...timestamps,
 });
 
-export const tbRoom = pgTable('TB_room', {
-  id: uuid('ID_room').primaryKey().defaultRandom(),
+export const exerciseTypes = pgTable('exercise_type', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  ...timestamps,
+});
+
+export const rooms = pgTable('room', {
+  id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   capacity: integer('capacity').notNull(),
+  ...timestamps,
 });
 
 // --- USERS ---
 
-export const tbPerson = pgTable('TB_person', {
-  id: uuid('ID_person').primaryKey().defaultRandom(),
-  clerkId: text('clerk_id').notNull().unique(), // Managed by Clerk
+export const persons = pgTable('person', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clerkId: text('clerk_id').notNull().unique(),
   name: text('name').notNull(),
   surname: text('surname').notNull(),
   email: text('email').notNull().unique(),
-  phoneNumber: text('phone_number'), // Optional now, often handled by Clerk depending on setup
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  phoneNumber: text('phone_number'),
+  ...timestamps,
 });
 
-export const tbEmployee = pgTable('TB_employee', {
-  id: uuid('ID_employee').primaryKey().defaultRandom(),
-  personId: uuid('ID_person_fk')
+export const employees = pgTable('employee', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  personId: uuid('person_id')
     .notNull()
-    .references(() => tbPerson.id),
-  employeeTypeId: uuid('ID_employee_type_fk')
+    .references(() => persons.id),
+  employeeTypeId: uuid('employee_type_id')
     .notNull()
-    .references(() => tbEmployeeType.id),
+    .references(() => employeeTypes.id),
   hireDate: date('hire_date').notNull(),
+  ...timestamps,
 });
 
-export const tbEmployeeSpecialization = pgTable(
-  'TB_employee_specialization',
+export const employeeSpecializations = pgTable(
+  'employee_specialization',
   {
-    employeeId: uuid('ID_employee_fk')
+    employeeId: uuid('employee_id')
       .notNull()
-      .references(() => tbEmployee.id),
-    exerciseTypeId: uuid('ID_exercise_type_fk')
+      .references(() => employees.id),
+    exerciseTypeId: uuid('exercise_type_id')
       .notNull()
-      .references(() => tbExerciseType.id),
+      .references(() => exerciseTypes.id),
+    ...timestamps,
   },
   (t) => [primaryKey({ columns: [t.employeeId, t.exerciseTypeId] })],
 );
 
-export const tbCustomer = pgTable('TB_customer', {
-  id: uuid('ID_customer').primaryKey().defaultRandom(),
-  personId: uuid('ID_person_fk')
+export const customers = pgTable('customer', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  personId: uuid('person_id')
     .notNull()
-    .references(() => tbPerson.id),
-  subscriptionId: uuid('ID_subscription_fk').references(() => tbSubscription.id),
+    .references(() => persons.id),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
   subscriptionValidUntil: date('subscription_valid_until'),
+  entryBalance: integer('entry_balance').notNull().default(0),
+  ...timestamps,
 });
 
 // --- LECTURES AND SCHEDULE ---
 
-export const tbLecture = pgTable('TB_lecture', {
-  id: uuid('ID_lecture').primaryKey().defaultRandom(),
-  exerciseTypeId: uuid('ID_exercise_type_fk')
+export const lectures = pgTable('lecture', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  exerciseTypeId: uuid('exercise_type_id')
     .notNull()
-    .references(() => tbExerciseType.id),
+    .references(() => exerciseTypes.id),
   lectureName: text('lecture_name').notNull(),
   description: text('description').notNull(),
-  forMembers: boolean('for_members').default(false).notNull(), // Added membership requirement
+  forMembers: boolean('for_members').default(false).notNull(),
+  ...timestamps,
 });
 
-export const tbSchedule = pgTable('TB_schedule', {
-  id: uuid('ID_schedule').primaryKey().defaultRandom(),
-  lectureId: uuid('ID_lecture_fk')
+export const schedules = pgTable('schedule', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  lectureId: uuid('lecture_id')
     .notNull()
-    .references(() => tbLecture.id),
-  roomId: uuid('ID_room_fk')
+    .references(() => lectures.id),
+  roomId: uuid('room_id')
     .notNull()
-    .references(() => tbRoom.id),
+    .references(() => rooms.id),
   startTime: timestamp('start_time', { withTimezone: true }).notNull(),
   endTime: timestamp('end_time', { withTimezone: true }).notNull(),
-  forMembers: boolean('for_members').default(false).notNull(), // Added membership requirement
+  forMembers: boolean('for_members').default(false).notNull(),
+  ...timestamps,
 });
 
-export const tbScheduleInstructor = pgTable(
-  'TB_schedule_instructor',
+export const scheduleInstructors = pgTable(
+  'schedule_instructor',
   {
-    scheduleId: uuid('ID_schedule_fk')
+    scheduleId: uuid('schedule_id')
       .notNull()
-      .references(() => tbSchedule.id),
-    employeeId: uuid('ID_employee_fk')
+      .references(() => schedules.id),
+    employeeId: uuid('employee_id')
       .notNull()
-      .references(() => tbEmployee.id),
+      .references(() => employees.id),
     isLead: boolean('is_lead').default(false).notNull(),
+    ...timestamps,
   },
   (t) => [primaryKey({ columns: [t.scheduleId, t.employeeId] })],
 );
 
 // --- RESERVATION AND PAYMENT HISTORY ---
 
-export const tbCustomerReservation = pgTable('TB_customer_reservation', {
-  id: uuid('ID_reservation').primaryKey().defaultRandom(),
-  customerId: uuid('ID_customer_fk')
+export const customerReservations = pgTable('customer_reservation', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
     .notNull()
-    .references(() => tbCustomer.id),
-  scheduleId: uuid('ID_schedule_fk')
+    .references(() => customers.id),
+  scheduleId: uuid('schedule_id')
     .notNull()
-    .references(() => tbSchedule.id),
+    .references(() => schedules.id),
   attended: boolean('attended').default(false).notNull(),
   reservationDate: timestamp('reservation_date', { withTimezone: true }).defaultNow().notNull(),
+  reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true }),
+  ...timestamps,
 });
 
-export const tbPaymentHistory = pgTable('TB_payment_history', {
-  id: uuid('ID_payment').primaryKey().defaultRandom(),
-  customerId: uuid('ID_customer_fk')
+export const paymentHistory = pgTable('payment_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
     .notNull()
-    .references(() => tbCustomer.id),
-  subscriptionId: uuid('ID_subscription_fk')
-    .notNull()
-    .references(() => tbSubscription.id),
+    .references(() => customers.id),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
+  entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
   amount: numeric('amount').notNull(),
   paymentDate: timestamp('payment_date', { withTimezone: true }).defaultNow().notNull(),
   paymentMethod: text('payment_method').notNull(),
+  ...timestamps,
 });
+
+export const qrKindEnum = pgEnum('qr_kind', ['entry', 'membership']);
+
+export const qrTokens = pgTable('qr_token', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  // 'entry' consumes a credit on scan; 'membership' is a once-per-day access pass.
+  kind: qrKindEnum('kind').notNull().default('entry'),
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  ...timestamps,
+});
+
+export const entryLogs = pgTable('entry_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  staffId: uuid('staff_id')
+    .notNull()
+    .references(() => persons.id),
+  qrTokenId: uuid('qr_token_id')
+    .notNull()
+    .references(() => qrTokens.id),
+  scannedAt: timestamp('scanned_at', { withTimezone: true }).defaultNow().notNull(),
+  ...timestamps,
+});
+
+// One row per purchased batch of entries. Source of truth for the entry balance;
+// each batch expires independently, so we track remaining count + expiry per batch.
+// customers.entryBalance is a denormalized cache of the live (non-expired) sum.
+export const entryCredits = pgTable(
+  'entry_credit',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id),
+    entryPackageId: uuid('entry_package_id').references(() => entryPackages.id),
+    remainingCount: integer('remaining_count').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [check('entry_credit_remaining_count_non_negative', sql`${t.remainingCount} >= 0`)],
+);

@@ -1,14 +1,27 @@
 import { test, expect } from '@playwright/test';
 
+import { login } from './helpers/auth';
+
 test.describe('Schedule page — authenticated interactions', () => {
   test.beforeEach(async ({ page }) => {
+    // Wait for Clerk to settle on the homepage — it will show either the
+    // UserButton (valid session) or the Log in button (expired/no session).
+    // Only re-login if the session wasn't recognised.
+    await page.goto('/');
+    const loginBtn = page.getByRole('button', { name: 'Log in' });
+    const userTrigger = page.locator('.cl-userButtonTrigger');
+    await expect(loginBtn.or(userTrigger)).toBeVisible({ timeout: 15_000 });
+    if (await loginBtn.isVisible()) {
+      await login(page);
+    }
     await page.goto('/schedule');
-    await page.waitForSelector('.cal-week-grid', { timeout: 10_000 });
+    await expect(page.locator('.cl-userButtonTrigger')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('cal-week-grid')).toBeVisible();
   });
 
   test('register dialog appears when clicking Register on a future lecture', async ({ page }) => {
     const registerBtn = page
-      .locator('.cal-register-btn')
+      .getByTestId('cal-register-btn')
       .filter({ hasText: 'Register' })
       .first();
 
@@ -26,7 +39,7 @@ test.describe('Schedule page — authenticated interactions', () => {
 
   test('register dialog shows lecture name', async ({ page }) => {
     const registerBtn = page
-      .locator('.cal-register-btn')
+      .getByTestId('cal-register-btn')
       .filter({ hasText: 'Register' })
       .first();
 
@@ -37,7 +50,7 @@ test.describe('Schedule page — authenticated interactions', () => {
     }
 
     const card = registerBtn.locator('..').locator('..');
-    const lectureName = await card.locator('.cal-activity-name').textContent();
+    const lectureName = await card.getByTestId('cal-activity-name').textContent();
 
     await registerBtn.click();
     if (lectureName) {
@@ -47,7 +60,7 @@ test.describe('Schedule page — authenticated interactions', () => {
 
   test('closing register dialog via Escape removes it', async ({ page }) => {
     const registerBtn = page
-      .locator('.cal-register-btn')
+      .getByTestId('cal-register-btn')
       .filter({ hasText: 'Register' })
       .first();
 
@@ -65,7 +78,7 @@ test.describe('Schedule page — authenticated interactions', () => {
 
   test('unregister dialog appears for already-registered lecture', async ({ page }) => {
     const unregisterBtn = page
-      .locator('.cal-unregister-btn')
+      .getByTestId('cal-unregister-btn')
       .filter({ hasText: 'Unregister' })
       .first();
 

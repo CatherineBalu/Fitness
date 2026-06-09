@@ -1,20 +1,7 @@
 import { faker } from '@faker-js/faker';
+
 import { db, closeConnection } from './db';
-import {
-  tbEmployeeType,
-  tbSubscription,
-  tbRoom,
-  tbExerciseType,
-  tbPerson,
-  tbEmployee,
-  tbEmployeeSpecialization,
-  tbCustomer,
-  tbLecture,
-  tbSchedule,
-  tbScheduleInstructor,
-  tbCustomerReservation,
-  tbPaymentHistory,
-} from './schema';
+import * as schema from './schema';
 
 console.log('TESTING DB URL:', process.env.DATABASE_URL);
 
@@ -43,39 +30,48 @@ async function main() {
   try {
     // 1. Clearing database (Important: deletion order matters due to foreign keys)
     console.log('Deleting old data');
-    await db.delete(tbPaymentHistory);
-    await db.delete(tbCustomerReservation);
-    await db.delete(tbPaymentHistory);
-    await db.delete(tbScheduleInstructor);
-    await db.delete(tbSchedule);
-    await db.delete(tbLecture);
-    await db.delete(tbCustomer);
-    await db.delete(tbEmployeeSpecialization);
-    await db.delete(tbEmployee);
-    await db.delete(tbPerson);
-    await db.delete(tbEmployeeType);
-    await db.delete(tbSubscription);
-    await db.delete(tbRoom);
-    await db.delete(tbExerciseType);
+    await db.delete(schema.entryLogs);
+    await db.delete(schema.qrTokens);
+    await db.delete(schema.entryCredits);
+    await db.delete(schema.paymentHistory);
+    await db.delete(schema.customerReservations);
+    await db.delete(schema.scheduleInstructors);
+    await db.delete(schema.schedules);
+    await db.delete(schema.lectures);
+    await db.delete(schema.customers);
+    await db.delete(schema.employeeSpecializations);
+    await db.delete(schema.employees);
+    await db.delete(schema.persons);
+    await db.delete(schema.employeeTypes);
+    await db.delete(schema.subscriptions);
+    await db.delete(schema.entryPackages);
+    await db.delete(schema.rooms);
+    await db.delete(schema.exerciseTypes);
 
     // 2. Base data
     console.log('Creating base data');
     const [trainerRole, receptionRole] = await db
-      .insert(tbEmployeeType)
+      .insert(schema.employeeTypes)
       .values([{ roleName: 'Instructor' }, { roleName: 'Reception' }])
       .returning();
 
-    const [basicSub, proSub] = await db
-      .insert(tbSubscription)
+    const [basicSub, proSub, premiumSub] = await db
+      .insert(schema.subscriptions)
       .values([
         { name: 'Basic', price: '19', durationDays: 30 },
         { name: 'Standard', price: '45', durationDays: 90 },
         { name: 'Premium', price: '149', durationDays: 365 },
       ])
       .returning();
+    const allPlans = [basicSub, proSub, premiumSub];
+
+    await db.insert(schema.entryPackages).values([
+      { name: 'Single Entry', entryCount: 1, price: '5.00' },
+      { name: '10-Entry Bundle', entryCount: 10, price: '40.00' },
+    ]);
 
     const rooms = await db
-      .insert(tbRoom)
+      .insert(schema.rooms)
       .values([
         { name: 'Room A', capacity: 15 },
         { name: 'Room B', capacity: 20 },
@@ -86,7 +82,7 @@ async function main() {
     const [roomA, roomB, roomC, roomD] = rooms;
 
     const exerciseTypes = await db
-      .insert(tbExerciseType)
+      .insert(schema.exerciseTypes)
       .values([
         { name: 'Yoga' },
         { name: 'Power' },
@@ -110,7 +106,7 @@ async function main() {
 
     // Seed persons use placeholder clerkIds — real users are created via Clerk signup
     const trainerPersons = await db
-      .insert(tbPerson)
+      .insert(schema.persons)
       .values(
         trainerNames.map((t, i) => ({
           clerkId: `seed_instructor_${i + 1}`,
@@ -124,7 +120,7 @@ async function main() {
 
     const receptionPerson = (
       await db
-        .insert(tbPerson)
+        .insert(schema.persons)
         .values({
           clerkId: 'seed_reception_1',
           name: 'Admin',
@@ -135,8 +131,21 @@ async function main() {
         .returning()
     )[0];
 
+    const e2ePerson = (
+      await db
+        .insert(schema.persons)
+        .values({
+          clerkId: process.env.SEED_E2E_CLERK_ID ?? 'user_3EZizUeA8h3uJ9nC7qb91LJ3Id2',
+          name: 'Theodard',
+          surname: 'Fitness',
+          email: 'theodard.fitnessxy@gmail.com',
+          phoneNumber: faker.phone.number(),
+        })
+        .returning()
+    )[0];
+
     const customerPersons = await db
-      .insert(tbPerson)
+      .insert(schema.persons)
       .values(
         Array.from({ length: 15 }).map(() => ({
           clerkId: `user_${faker.string.uuid()}`,
@@ -151,7 +160,7 @@ async function main() {
     // 4. Employees — trainers + reception
     console.log('Creating employees');
     const trainers = await db
-      .insert(tbEmployee)
+      .insert(schema.employees)
       .values(
         trainerPersons.map((p) => ({
           personId: p.id,
@@ -161,7 +170,7 @@ async function main() {
       )
       .returning();
 
-    await db.insert(tbEmployee).values({
+    await db.insert(schema.employees).values({
       personId: receptionPerson.id,
       employeeTypeId: receptionRole.id,
       hireDate: new Date().toISOString(),
@@ -171,7 +180,7 @@ async function main() {
 
     // 4.5 Assign specializations to instructors
     console.log('Assigning specializations to trainers');
-    await db.insert(tbEmployeeSpecialization).values([
+    await db.insert(schema.employeeSpecializations).values([
       { employeeId: sarah.id, exerciseTypeId: yoga.id },
       { employeeId: mike.id, exerciseTypeId: power.id },
       { employeeId: jana.id, exerciseTypeId: cardio.id },
@@ -184,20 +193,50 @@ async function main() {
     // 5. Customers
     console.log('Creating customers');
     const customers = await db
-      .insert(tbCustomer)
-      .values(
-        customerPersons.map((p) => ({
+      .insert(schema.customers)
+      .values([
+        {
+          personId: e2ePerson.id,
+          subscriptionId: basicSub.id,
+          subscriptionValidUntil: faker.date.future().toISOString(),
+        },
+        ...customerPersons.map((p) => ({
           personId: p.id,
-          subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, null]),
+          subscriptionId: faker.helpers.arrayElement([basicSub.id, proSub.id, premiumSub.id, null]),
           subscriptionValidUntil: faker.date.future().toISOString(),
         })),
-      )
+      ])
       .returning();
+
+    // 5b. Payment history (so admin/staff revenue stats have data)
+    console.log('Creating payment history');
+    const paymentNow = new Date();
+    const paymentValues = customers.flatMap((c) => {
+      if (!c.subscriptionId) return [];
+      const plan = allPlans.find((p) => p.id === c.subscriptionId);
+      if (!plan) return [];
+      const count = faker.number.int({ min: 3, max: 12 });
+      return Array.from({ length: count }, (_, i) => {
+        const d = new Date(paymentNow);
+        d.setUTCMonth(d.getUTCMonth() - i);
+        d.setUTCDate(faker.number.int({ min: 1, max: 28 }));
+        return {
+          customerId: c.id,
+          subscriptionId: plan.id,
+          amount: plan.price,
+          paymentDate: d,
+          paymentMethod: faker.helpers.arrayElement(['card', 'bank']),
+        };
+      });
+    });
+    if (paymentValues.length > 0) {
+      await db.insert(schema.paymentHistory).values(paymentValues);
+    }
 
     // 6. Lectures (customers are created via Clerk signup, not seeded)
     console.log('Creating lectures');
     const lectures = await db
-      .insert(tbLecture)
+      .insert(schema.lectures)
       .values([
         {
           exerciseTypeId: yoga.id,
@@ -335,7 +374,7 @@ async function main() {
       }));
     });
 
-    const createdSchedules = await db.insert(tbSchedule).values(scheduleValues).returning();
+    const createdSchedules = await db.insert(schema.schedules).values(scheduleValues).returning();
 
     // 8. Assign instructors
     console.log('Assigning instructors');
@@ -343,7 +382,7 @@ async function main() {
       const entry = scheduleEntries[i % scheduleEntries.length];
       return [{ scheduleId: schedule.id, employeeId: entry.lead.id, isLead: true }];
     });
-    await db.insert(tbScheduleInstructor).values(instructorValues);
+    await db.insert(schema.scheduleInstructors).values(instructorValues);
 
     // 9. Reservations
     console.log('Creating reservations');
@@ -361,7 +400,7 @@ async function main() {
     });
 
     if (reservationValues.length > 0) {
-      await db.insert(tbCustomerReservation).values(reservationValues);
+      await db.insert(schema.customerReservations).values(reservationValues);
     }
 
     console.log(`Seed complete: ${createdSchedules.length} scheduled lectures with reservations`);
@@ -372,4 +411,4 @@ async function main() {
   }
 }
 
-main();
+void main();

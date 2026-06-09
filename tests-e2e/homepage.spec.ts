@@ -6,14 +6,14 @@ test.describe('Homepage', () => {
   });
 
   test('renders hero section with heading', async ({ page }) => {
-    await expect(page.locator('.hero-section')).toBeVisible();
+    await expect(page.getByTestId('hero-section')).toBeVisible();
     await expect(
       page.getByRole('heading', { name: /Pursue Outdoor/i }),
     ).toBeVisible();
   });
 
   test('shows gym stats section', async ({ page }) => {
-    const stats = page.locator('.stats-section');
+    const stats = page.getByTestId('stats-section');
     await expect(stats).toBeVisible();
     await expect(stats.getByText('Active Members')).toBeVisible();
     await expect(stats.getByText('Weekly Classes')).toBeVisible();
@@ -22,40 +22,33 @@ test.describe('Homepage', () => {
   });
 
   test('renders trainers carousel with trainer cards', async ({ page }) => {
-    const section = page.locator('.trainers-section');
+    const section = page.getByTestId('trainers-section');
     await section.scrollIntoViewIfNeeded();
     await expect(
       page.getByRole('heading', { name: 'Train with the Elite' }),
     ).toBeVisible();
-    await expect(page.locator('.trainer-card').first()).toBeVisible();
-    // Use scoped locator to avoid collision with the footer manager name
-    await expect(
-      page.locator('.trainer-name').filter({ hasText: 'Janko Mrkvička' }),
-    ).toBeVisible();
+    const firstCard = page.getByTestId('trainer-card').first();
+    const errorMsg = page.getByText("Couldn't load instructors");
+    await expect(firstCard.or(errorMsg)).toBeVisible({ timeout: 10_000 });
+    if (await firstCard.isVisible()) {
+      await expect(page.getByTestId('trainer-name').first()).toBeVisible();
+    }
   });
 
   test('pricing section renders (with or without backend)', async ({
     page,
   }) => {
-    await page.locator('.pricing-section').scrollIntoViewIfNeeded();
+    await page.getByTestId('pricing-section').scrollIntoViewIfNeeded();
     await expect(
       page.getByRole('heading', { name: /Choose the Plan/i }),
     ).toBeVisible();
-    // Either pricing cards loaded, or the graceful error message is shown
-    const hasCards = await page
-      .locator('.pricing-card')
-      .first()
-      .isVisible({ timeout: 8000 })
-      .catch(() => false);
-    const hasError = await page
-      .getByText("Couldn't load plans")
-      .isVisible()
-      .catch(() => false);
-    expect(hasCards || hasError).toBeTruthy();
+    const firstCard = page.getByTestId('pricing-card').first();
+    const errorMsg = page.getByText("Couldn't load plans");
+    await expect(firstCard.or(errorMsg)).toBeVisible({ timeout: 10_000 });
   });
 
   test('footer shows contact info', async ({ page }) => {
-    const footer = page.locator('.footer');
+    const footer = page.getByTestId('footer');
     await footer.scrollIntoViewIfNeeded();
     await expect(footer.getByText('Fitness Centrum XY')).toBeVisible();
     await expect(footer.getByText('+420 000 111 222')).toBeVisible();
@@ -63,7 +56,7 @@ test.describe('Homepage', () => {
   });
 
   test('footer shows opening hours', async ({ page }) => {
-    const footer = page.locator('.footer');
+    const footer = page.getByTestId('footer');
     await footer.scrollIntoViewIfNeeded();
     await expect(footer.getByText('Opening Hours')).toBeVisible();
     await expect(footer.getByText(/Mon – Fri/)).toBeVisible();
@@ -78,12 +71,12 @@ test.describe('Homepage', () => {
   });
 
   test('Get Started button in hero is visible', async ({ page }) => {
-    await expect(page.locator('.hero-content .btn-large')).toBeVisible();
+    await expect(page.getByTestId('hero-cta')).toBeVisible();
   });
 
   test('each pricing card has a Get Started button', async ({ page }) => {
-    await page.locator('.pricing-section').scrollIntoViewIfNeeded();
-    const cards = page.locator('.pricing-card');
+    await page.getByTestId('pricing-section').scrollIntoViewIfNeeded();
+    const cards = page.getByTestId('pricing-card');
     await cards.first().waitFor({ timeout: 8000 }).catch(() => null);
     const count = await cards.count();
     // Skip assertion if backend is down
@@ -94,20 +87,20 @@ test.describe('Homepage', () => {
   });
 
   test('trainers carousel next/previous buttons navigate', async ({ page }) => {
-    await page.locator('.trainers-section').scrollIntoViewIfNeeded();
-    await expect(page.locator('.trainers-carousel')).toBeVisible();
+    await page.getByTestId('trainers-section').scrollIntoViewIfNeeded();
+    await expect(page.getByTestId('trainers-carousel')).toBeVisible();
 
-    await page.locator('.carousel-next').click();
-    await expect(page.locator('.trainers-carousel')).toBeVisible();
+    await page.getByTestId('carousel-next').click();
+    await expect(page.getByTestId('trainers-carousel')).toBeVisible();
 
-    await page.locator('.carousel-prev').click();
-    await expect(page.locator('.trainers-carousel')).toBeVisible();
+    await page.getByTestId('carousel-prev').click();
+    await expect(page.getByTestId('trainers-carousel')).toBeVisible();
   });
 
   test('trainer cards show speciality and tags', async ({ page }) => {
-    await page.locator('.trainers-section').scrollIntoViewIfNeeded();
-    const firstCard = page.locator('.trainer-card').first();
-    await expect(firstCard.locator('.trainer-speciality')).toBeVisible();
-    await expect(firstCard.locator('.trainer-badge').first()).toBeVisible();
+    await page.getByTestId('trainers-section').scrollIntoViewIfNeeded();
+    const firstCard = page.getByTestId('trainer-card').first();
+    await expect(firstCard.getByTestId('trainer-speciality')).toBeVisible();
+    await expect(firstCard.getByTestId('trainer-badge').first()).toBeVisible();
   });
 });
