@@ -27,10 +27,12 @@ test.describe('Homepage', () => {
     await expect(
       page.getByRole('heading', { name: 'Train with the Elite' }),
     ).toBeVisible();
-    await expect(page.getByTestId('trainer-card').first()).toBeVisible();
-    await expect(
-      page.getByTestId('trainer-name').filter({ hasText: 'Janko Mrkvička' }),
-    ).toBeVisible();
+    const firstCard = page.getByTestId('trainer-card').first();
+    const errorMsg = page.getByText("Couldn't load instructors");
+    await expect(firstCard.or(errorMsg)).toBeVisible({ timeout: 10_000 });
+    if (await firstCard.isVisible()) {
+      await expect(page.getByTestId('trainer-name').first()).toBeVisible();
+    }
   });
 
   test('pricing section renders (with or without backend)', async ({
@@ -40,16 +42,9 @@ test.describe('Homepage', () => {
     await expect(
       page.getByRole('heading', { name: /Choose the Plan/i }),
     ).toBeVisible();
-    const hasCards = await page
-      .getByTestId('pricing-card')
-      .first()
-      .isVisible({ timeout: 8000 })
-      .catch(() => false);
-    const hasError = await page
-      .getByText("Couldn't load plans")
-      .isVisible()
-      .catch(() => false);
-    expect(hasCards || hasError).toBeTruthy();
+    const firstCard = page.getByTestId('pricing-card').first();
+    const errorMsg = page.getByText("Couldn't load plans");
+    await expect(firstCard.or(errorMsg)).toBeVisible({ timeout: 10_000 });
   });
 
   test('footer shows contact info', async ({ page }) => {

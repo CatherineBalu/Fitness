@@ -100,26 +100,28 @@ export default function Navbar({ className }: NavbarProps) {
                 </SignInButton>
               )}
               {isLoaded && isSignedIn && (
-                <UserButton>
-                  <UserButton.MenuItems>
-                    <UserButton.Action
+                <span data-testid="navbar-user-btn">
+                  <UserButton>
+                    <UserButton.MenuItems>
+                      <UserButton.Action
+                        label="My Profile"
+                        labelIcon={<UserCircle size={16} />}
+                        open="my-profile"
+                      />
+                      <UserButton.Action label="manageAccount" />
+                      <UserButton.Action label="signOut" />
+                    </UserButton.MenuItems>
+                    <UserButton.UserProfilePage label="account" />
+                    <UserButton.UserProfilePage label="security" />
+                    <UserButton.UserProfilePage
                       label="My Profile"
+                      url="my-profile"
                       labelIcon={<UserCircle size={16} />}
-                      open="my-profile"
-                    />
-                    <UserButton.Action label="manageAccount" />
-                    <UserButton.Action label="signOut" />
-                  </UserButton.MenuItems>
-                  <UserButton.UserProfilePage label="account" />
-                  <UserButton.UserProfilePage label="security" />
-                  <UserButton.UserProfilePage
-                    label="My Profile"
-                    url="my-profile"
-                    labelIcon={<UserCircle size={16} />}
-                  >
-                    <CustomerProfilePage />
-                  </UserButton.UserProfilePage>
-                </UserButton>
+                    >
+                      <CustomerProfilePage />
+                    </UserButton.UserProfilePage>
+                  </UserButton>
+                </span>
               )}
             </div>
           )}
