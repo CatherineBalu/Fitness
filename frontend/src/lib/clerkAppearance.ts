@@ -3,21 +3,40 @@ import type { ComponentProps } from 'react';
 
 type Appearance = NonNullable<ComponentProps<typeof SignIn>['appearance']>;
 
-function cssVar(name: string): string {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-}
+const TOKENS = {
+  light: {
+    card: 'oklch(0.99 0.018 135)',
+    foreground: 'oklch(0.19 0.018 135)',
+    mutedForeground: 'oklch(0.5 0.018 135)',
+    secondary: 'oklch(0.92 0.054 135)',
+    border: 'oklch(0.84 0.06 135)',
+    primary: '#aacc00',
+    primaryForeground: '#0d0d0d',
+    destructive: 'oklch(0.577 0.245 27.325)',
+  },
+  dark: {
+    card: '#161616',
+    foreground: '#e5e5e5',
+    mutedForeground: '#888888',
+    secondary: '#1e1e1e',
+    border: '#2a2a2a',
+    primary: '#aacc00',
+    primaryForeground: '#0d0d0d',
+    destructive: 'oklch(0.704 0.191 22.216)',
+  },
+} as const;
 
-export function getClerkAppearance(): Appearance {
-  const card = cssVar('--card');
-  const foreground = cssVar('--foreground');
-  const mutedForeground = cssVar('--muted-foreground');
-  const secondary = cssVar('--secondary');
-  const border = cssVar('--border');
-  const primary = cssVar('--primary');
-  const primaryForeground = cssVar('--primary-foreground');
-  const destructive = cssVar('--destructive');
+export function getClerkAppearance(theme: 'light' | 'dark'): Appearance {
+  const {
+    card,
+    foreground,
+    mutedForeground,
+    secondary,
+    border,
+    primary,
+    primaryForeground,
+    destructive,
+  } = TOKENS[theme];
 
   return {
     variables: {

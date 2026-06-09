@@ -13,11 +13,11 @@ export default function ThemedClerkProvider({
   publishableKey,
   children,
 }: Props) {
-  useContext(ThemeContext);
+  const theme = useContext(ThemeContext)?.theme ?? 'light';
   return (
     <ClerkProvider
       publishableKey={publishableKey}
-      appearance={getClerkAppearance()}
+      appearance={getClerkAppearance(theme)}
     >
       {children}
     </ClerkProvider>
