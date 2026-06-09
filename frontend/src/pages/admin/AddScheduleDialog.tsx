@@ -50,7 +50,7 @@ const formSchema = z
   .refine(
     (d) => {
       if (!d.date || !d.startTime) return true;
-      return new Date(`${d.date}T${d.startTime}:00Z`) > new Date();
+      return new Date(`${d.date}T${d.startTime}:00`) > new Date();
     },
     {
       message: 'Cannot schedule a lecture in the past',
@@ -91,10 +91,10 @@ export default function AddScheduleDialog({
 
   function onSubmit(values: FormValues) {
     const startISO = new Date(
-      `${values.date}T${values.startTime}:00Z`,
+      `${values.date}T${values.startTime}:00`,
     ).toISOString();
     const endISO = new Date(
-      `${values.date}T${values.endTime}:00Z`,
+      `${values.date}T${values.endTime}:00`,
     ).toISOString();
 
     const instructorsList = [

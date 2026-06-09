@@ -4,7 +4,9 @@ import type { ComponentProps } from 'react';
 type Appearance = NonNullable<ComponentProps<typeof SignIn>['appearance']>;
 
 function cssVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
 }
 
 export function getClerkAppearance(): Appearance {
