@@ -2,34 +2,27 @@
 
 ### Auth
 
-- POST `/auth/check-email` — check if email is already registered
-- POST `/auth/register` — create a new customer account
-- POST `/auth/login` — verify credentials and log in
-- GET `/auth/me` — return current Clerk user (requires auth cookie)
-- GET `/auth/profile` — return detailed profile of the current user (Person + Customer data)
+- GET `/auth/profile` — return detailed profile of the current user (Person + Customer data, requires auth)
 
 ### Schedule
 
 #### Public / Customers (Requires Auth)
-- GET `/schedule?from=YYYY-MM-DD&to=YYYY-MM-DD` — list scheduled lectures in a date range (returns `isRegistered` status for current user). Each instructor entry includes `{ name, isLead, phoneNumber, email }` (email pulled from Clerk).
+- GET `/schedule?from=YYYY-MM-DD&to=YYYY-MM-DD[&myLectures=true]` — list scheduled lectures in a date range (returns `isRegistered` status for current user; `myLectures=true` filters to only lectures the current employee teaches). Each instructor entry includes `{ name, isLead, phoneNumber, email }` (email pulled from Clerk).
 - POST `/schedule/:id/reservations` — register current user for a lecture (requires `reservation:write`)
 - DELETE `/schedule/:id/reservations` — cancel current user's reservation
 
 #### Admin / Reception
 _All `/calendar/*` lecture-management endpoints below require the `schedule:write` permission (employee + admin)._
-- GET `/schedule/lectures` — list all lecture templates
-- GET `/schedule/rooms` — list all rooms with capacity
-- GET `/schedule/instructors` — list all employees available as instructors
-- POST `/schedule` — create a new scheduled lecture (body: `{ lectureId, roomId, startTime, endTime, instructors: [{ employeeId, isLead }] }`; ids must be UUIDs, times must be ISO datetimes — else 422). Rejects with 422 if `endTime <= startTime`, 409 if the room or an instructor is already booked for an overlapping time.
-- PATCH `/schedule/:id` — update room, date or time for a specific instance (body: `{ roomId?, startTime?, endTime? }` where `roomId` is a UUID and `startTime`/`endTime` are full ISO datetimes — changing the date reschedules the lecture; malformed values give 422). Same 422/409 validation as create.
-- DELETE `/calendar/:id` — cancel a scheduled lecture: soft-delete with cascade to its reservations + instructors; emails registered customers for future lectures (note: this admin block is mounted at `/calendar/*`, not `/schedule/*`)
-- GET `/schedule/:id/members` — list all members registered for a schedule (includes `attended` status)
-- POST `/schedule/:id/members` — manually add a member by email (body: `{ email }`)
-- DELETE `/schedule/:id/members/:personId` — remove a member from a lecture
-- PATCH `/schedule/:id/attendance` — bulk update attendance status for members (body: `{ attendanceRecords: [{ personId, attended }] }`)
-- GET `/schedule?from=YYYY-MM-DD&to=YYYY-MM-DD` — list scheduled lectures in a date range
-- POST `/schedule/:id/reservations` — register the current customer for a lecture (requires auth + `reservation:write` permission)
-- DELETE `/schedule/:id/reservations` — cancel the current customer's reservation for a lecture
+- GET `/calendar/lectures` — list all lecture templates
+- GET `/calendar/rooms` — list all rooms with capacity
+- GET `/calendar/instructors` — list all employees available as instructors
+- POST `/calendar/` — create a new scheduled lecture (body: `{ lectureId, roomId, startTime, endTime, instructors?: [{ employeeId, isLead }] }`; ids must be UUIDs, times must be ISO datetimes — else 422). Rejects with 422 if `endTime <= startTime`, 409 if the room or an instructor is already booked for an overlapping time.
+- PATCH `/calendar/:id` — update room, date or time for a specific instance (body: `{ roomId?, startTime?, endTime? }` where `roomId` is a UUID and `startTime`/`endTime` are full ISO datetimes — changing the date reschedules the lecture; malformed values give 422). Same 422/409 validation as create.
+- DELETE `/calendar/:id` — cancel a scheduled lecture: soft-delete with cascade to its reservations + instructors; emails registered customers for future lectures
+- GET `/calendar/:id/members` — list all members registered for a schedule (includes `attended` status)
+- POST `/calendar/:id/members` — manually add a member by email (body: `{ email }`)
+- DELETE `/calendar/:id/members/:personId` — remove a member from a lecture
+- PATCH `/calendar/:id/attendance` — bulk update attendance status for members (body: `{ attendanceRecords: [{ personId, attended }] }`)
 
 ### Subscriptions
 
@@ -67,7 +60,12 @@ Entries are tracked per purchased batch in `entry_credit` (each batch has its ow
 - POST `/api/staff` — create new employee; body: `{ firstName, lastName, email, phoneNumber, role, specializations?: string[] }` (phoneNumber required); generates a temporary password, sends it to the employee via email; returns `201 { success: true }`
 - PATCH `/api/staff/:id` — update first/last name and phone number (DB + Clerk name); body: `{ firstName, lastName, phoneNumber, specializations?: string[] }`; for Instructor also replaces specializations
 - DELETE `/api/staff/:id` — remove employee and underlying person
-- GET `/api/staff/:id/lectures` — all scheduled lectures this employee teaches
+- GET `/api/staff/me/lectures` — all scheduled lectures for the currently authenticated employee (requires `staff:read`)
+- GET `/api/staff/:id/lectures` — all scheduled lectures a given employee teaches
+
+### Lectures
+
+- GET `/api/lectures/:id/members` — list all members registered for a lecture template (requires `staff:read`)
 
 ### Exercise types
 
