@@ -9,7 +9,7 @@ interface LecturesSectionProps {
   upcoming: Registration[];
   past: Registration[];
   unregister: Pick<
-    UseMutationResult<void, Error, string>,
+    UseMutationResult<unknown, Error, string>,
     'mutate' | 'isPending'
   >;
   confirmUnregister: string | null;
